@@ -137,3 +137,29 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Node
+node_modules/
+
+# Angular / Ionic builds
+dist/
+www/
+.angular/
+coverage/
+
+# Firebase local
+.firebase/
+.firebaserc.*.local
+*.log
+
+# Capacitor / Cordova
+android/app/build/
+ios/App/build/
+ios/App/Pods/
+ios/Pods/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+.vs/
