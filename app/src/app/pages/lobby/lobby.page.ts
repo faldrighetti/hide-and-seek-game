@@ -2,8 +2,8 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GameFacadeService } from '../services/game-facade';
-import { LobbyState } from '../models/core-model';
+import { GameFacadeService } from '../../services/game-facade';
+import { LobbyState } from '../../models/core-model';
 
 @Component({
   selector: 'app-lobby',

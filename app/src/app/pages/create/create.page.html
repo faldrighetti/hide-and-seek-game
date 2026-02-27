@@ -1,0 +1,54 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Crear partida</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-list lines="inset">
+    <ion-item>
+      <ion-select label="Modo" [(ngModel)]="mode">
+        <ion-select-option value="INDIVIDUAL_3">INDIVIDUAL_3</ion-select-option>
+        <ion-select-option value="TEAMS_2v2">TEAMS_2v2</ion-select-option>
+        <ion-select-option value="TEAMS_2v2v2">TEAMS_2v2v2</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-select label="turnsPerTeam" [(ngModel)]="turnsPerTeam">
+        <ion-select-option [value]="1">1</ion-select-option>
+        <ion-select-option [value]="2">2</ion-select-option>
+        <ion-select-option [value]="3">3</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-segment [(ngModel)]="winCondition">
+        <ion-segment-button value="TOTAL_TIME"><ion-label>TOTAL_TIME</ion-label></ion-segment-button>
+        <ion-segment-button value="BEST_SINGLE_RUN">
+          <ion-label>BEST_SINGLE_RUN</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </ion-item>
+
+    <ion-item>
+      <ion-toggle [(ngModel)]="ukMode">ukMode</ion-toggle>
+    </ion-item>
+  </ion-list>
+
+  <ion-button expand="block" (click)="create()">Crear</ion-button>
+
+  <ion-card *ngIf="createdLobby as lobby">
+    <ion-card-header>
+      <ion-card-title>Partida creada</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p><strong>gameId:</strong> {{ lobby.gameId }}</p>
+      <p><strong>link:</strong> {{ lobby.joinLink }}</p>
+      <ion-button expand="block" fill="outline" (click)="goToLobby()">Ir al lobby</ion-button>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

@@ -8,7 +8,7 @@ import {
   Seat,
   TeamStanding,
   WinCondition,
-} from '../app/core-model';
+} from '../models/core-model';
 
 const createSeedStandings = (mode: GameMode): TeamStanding[] => {
   if (mode === 'TEAMS_2v2') {

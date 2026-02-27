@@ -1,0 +1,20 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Hide & Seek</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>MVP</ion-card-title>
+      <ion-card-subtitle>Elegí una acción para comenzar</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="actions">
+        <ion-button expand="block" routerLink="/create">Crear partida</ion-button>
+        <ion-button expand="block" fill="outline" routerLink="/join">Unirse a partida</ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

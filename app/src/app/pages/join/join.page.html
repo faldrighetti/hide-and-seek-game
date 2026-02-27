@@ -1,0 +1,21 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Unirse a partida</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-list lines="inset">
+    <ion-item>
+      <ion-input label="gameId" [(ngModel)]="gameId"></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-input label="displayName" [(ngModel)]="displayName"></ion-input>
+    </ion-item>
+  </ion-list>
+
+  <ion-button expand="block" (click)="join()">Unirse</ion-button>
+</ion-content>

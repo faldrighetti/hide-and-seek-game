@@ -1,8 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
-import { GameFacadeService } from '../services/game-facade';
-import { GameBlueprint } from '../models/core-model';
+import { GameFacadeService } from '../../services/game-facade';
+import { GameBlueprint } from '../../models/core-model';
 
 @Component({
   selector: 'app-game',

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { GameFacadeService } from '../services/game-facade';
+import { GameFacadeService } from '../../services/game-facade';
 
 @Component({
   selector: 'app-join',

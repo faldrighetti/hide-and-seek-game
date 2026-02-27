@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { GameFacadeService } from '../services/game-facade';
-import { GameMode, LobbyState, WinCondition } from '../models/core-model';
+import { GameFacadeService } from '../../services/game-facade';
+import { GameMode, LobbyState, WinCondition } from '../../models/core-model';
 
 @Component({
   selector: 'app-create',
