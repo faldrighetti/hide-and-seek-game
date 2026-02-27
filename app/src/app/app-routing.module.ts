@@ -14,6 +14,10 @@ const routes: Routes = [
     path: 'join',
     loadChildren: () => import('./join/join.module').then(m => m.JoinPageModule),
   },
+  { 
+    path: 'join/:gameId', 
+    loadChildren: () => import('./pages/join/join.module').then(m => m.JoinPageModule) 
+  },
   {
     path: 'lobby/:gameId',
     loadChildren: () => import('./lobby/lobby.module').then(m => m.LobbyPageModule),

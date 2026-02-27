@@ -112,7 +112,7 @@ export class GameFacadeService {
     const blueprint = buildBlueprint(mode, turnsPerTeam, winCondition, ukMode);
     const lobby: LobbyState = {
       gameId,
-      joinLink: `https://demo.web.app/join/${gameId}`,
+      joinLink:  `${window.location.origin}/join/${gameId}`,
       seats: [{ id: 'seat-host', displayName: 'Host', teamId: 'A', host: true }],
       teamsLocked: false,
     };
@@ -128,7 +128,7 @@ export class GameFacadeService {
       blueprint: buildBlueprint('INDIVIDUAL_3', 2, 'TOTAL_TIME'),
       lobby: {
         gameId,
-        joinLink: `https://demo.web.app/join/${gameId}`,
+        joinLink: `${window.location.origin}/join/${gameId}`,
         seats: [],
         teamsLocked: false,
       },
