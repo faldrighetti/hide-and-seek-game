@@ -1,20 +1,20 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title>Hide & Seek</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>MVP</ion-card-title>
+      <ion-card-subtitle>Elegí una acción para comenzar</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="actions">
+        <ion-button expand="block" routerLink="/create">Crear partida</ion-button>
+        <ion-button expand="block" fill="outline" routerLink="/join">Unirse a partida</ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
 </ion-content>

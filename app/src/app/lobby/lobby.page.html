@@ -1,0 +1,44 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Lobby {{ gameId }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ng-container *ngIf="lobby$ | async as lobby; else emptyState">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Seats & Teams</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let seat of lobby.seats">
+            <ion-label>
+              <h2>{{ seat.displayName }} <ion-badge *ngIf="seat.host">HOST</ion-badge></h2>
+              <p>Team {{ seat.teamId }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+
+        <div class="actions">
+          <ion-button expand="block" fill="outline" (click)="randomizeTeams()">Asignación random</ion-button>
+          <ion-button expand="block" fill="outline" (click)="toggleLock()">
+            {{ lobby.teamsLocked ? 'Unlock teams' : 'Lock teams (host)' }}
+          </ion-button>
+          <ion-button expand="block" (click)="startGame()">Start game (host)</ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </ng-container>
+
+  <ng-template #emptyState>
+    <ion-card>
+      <ion-card-content>
+        <p>No hay estado de lobby cargado para este gameId.</p>
+      </ion-card-content>
+    </ion-card>
+  </ng-template>
+</ion-content>
