@@ -251,6 +251,18 @@
             { "id": "tren_urquiza_jorge_newbery", "name": "Jorge Newbery", "lat": -34.5879, "lng": -58.6225 },
             { "id": "tren_urquiza_ruben_dario", "name": "Rubén Darío", "lat": -34.5876, "lng": -58.6312 }
           ]
+        },
+        {
+          "line": "Tren de la Costa",
+          "stations": [
+            { "id": "tren_costa_maipu", "name": "Maipú", "lat": -34.5134, "lng": -58.4875 },
+            { "id": "tren_costa_borges", "name": "Borges", "lat": -34.5087, "lng": -58.4855 },
+            { "id": "tren_costa_libertador", "name": "Libertador", "lat": -34.5025, "lng": -58.4827 },
+            { "id": "tren_costa_juan_anchorena", "name": "Juan Anchorena", "lat": -34.4893, "lng": -58.4819 },
+            { "id": "tren_costa_las_barrancas", "name": "Las Barrancas", "lat": -34.4721, "lng": -58.4928 },
+            { "id": "tren_costa_san_isidro_r", "name": "San Isidro R", "lat": -34.4654, "lng": -58.5084 },
+            { "id": "tren_costa_punta_chica", "name": "Punta Chica", "lat": -34.4497, "lng": -58.5221 }
+          ]
         }
       ]
     }
