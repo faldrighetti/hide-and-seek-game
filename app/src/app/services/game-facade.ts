@@ -107,13 +107,20 @@ export class GameFacadeService {
   private readonly lobbySubject = new BehaviorSubject<LobbyState | null>(null);
   readonly lobby$ = this.lobbySubject.asObservable();
 
-  createGame(mode: GameMode, turnsPerTeam: 1 | 2 | 3, winCondition: WinCondition, ukMode: boolean): LobbyState {
+  createGame(
+    mode: GameMode,
+    turnsPerTeam: 1 | 2 | 3,
+    winCondition: WinCondition,
+    ukMode: boolean,
+    hostDisplayName: string,
+  ): LobbyState {
     const gameId = randomGameId();
     const blueprint = buildBlueprint(mode, turnsPerTeam, winCondition, ukMode);
+    const normalizedHostName = hostDisplayName.trim() || 'Host';
     const lobby: LobbyState = {
       gameId,
       joinLink:  `${window.location.origin}/join/${gameId}`,
-      seats: [{ id: 'seat-host', displayName: 'Host', teamId: 'A', host: true }],
+      seats: [{ id: 'seat-host', displayName: normalizedHostName, teamId: 'A', host: true }],
       teamsLocked: false,
     };
 

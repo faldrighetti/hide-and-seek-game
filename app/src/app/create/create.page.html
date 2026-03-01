@@ -10,6 +10,9 @@
 <ion-content [fullscreen]="true" class="ion-padding">
   <ion-list lines="inset">
     <ion-item>
+      <ion-input label="Tu nombre" [(ngModel)]="hostDisplayName"></ion-input>
+    </ion-item>
+    <ion-item>
       <ion-select label="Modo" [(ngModel)]="mode">
         <ion-select-option value="INDIVIDUAL_3">INDIVIDUAL_3</ion-select-option>
         <ion-select-option value="TEAMS_2v2">TEAMS_2v2</ion-select-option>

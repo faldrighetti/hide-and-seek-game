@@ -17,6 +17,7 @@ export class CreatePage {
   turnsPerTeam: 1 | 2 | 3 = 2;
   winCondition: WinCondition = 'TOTAL_TIME';
   ukMode = false;
+  hostDisplayName = '';
 
   createdLobby: LobbyState | null = null;
 
@@ -26,6 +27,7 @@ export class CreatePage {
       this.turnsPerTeam,
       this.winCondition,
       this.ukMode,
+      this.hostDisplayName,
     );
   }
 
