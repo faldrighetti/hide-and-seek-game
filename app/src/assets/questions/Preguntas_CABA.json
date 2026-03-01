@@ -1,0 +1,369 @@
+{
+  "schema_version": "1.0.0",
+  "source": "Jet Lag The Game.xlsx (user provided)",
+  "locale": "es-AR",
+  "questions": {
+    "matching": {
+      "name_es": "Coincidencia",
+      "cost_es": "Robá 3, elegí 1",
+      "time_es": "5 minutos",
+      "prompt_es": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+      "prompt_en": "Is your nearest _____ the same as my nearest _____?",
+      "placeholder": "_____",
+      "options_es": [
+        "Aeropuerto comercial",
+        "Terminal de línea de trenes",
+        "Longitud del nombre de la estación",
+        "Autopista",
+        "1.ª división administrativa (provincia)",
+        "2.ª división administrativa (partido)",
+        "3.ª división administrativa (localidad)",
+        "4.ª división administrativa (barrio)",
+        "Cementerio",
+        "Estadio de fútbol profesional",
+        "Comisaría",
+        "Hipódromo",
+        "Parque",
+        "Campo de golf",
+        "Museo",
+        "Cine",
+        "Hospital/Sanatorio",
+        "Embajada"
+      ],
+      "options_en": [
+        "Commercial Airport",
+        "Train Line",
+        "Station Name Length",
+        "Highway",
+        "1st Admin Border (State)",
+        "2nd Admin Border (County)",
+        "3rd Admin Border (Municipality)",
+        "4th Admin Border (Neighborhood)",
+        "Cemetery",
+        "Football Stadium",
+        "Police station",
+        "Horse Racing Track",
+        "Park",
+        "Golf Course",
+        "Museum",
+        "Cinema",
+        "Hospital",
+        "Embassy"
+      ]
+    },
+    "measuring": {
+      "name_es": "Midiendo",
+      "cost_es": "Robá 3, elegí 1",
+      "time_es": "5 minutos",
+      "prompt_es": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+      "prompt_en": "Compared to me, are you closer to or further from _____?",
+      "placeholder": "_____",
+      "options_es": [
+        "Aeropuerto comercial",
+        "Terminal de línea de trenes",
+        "Longitud del nombre de la estación",
+        "Autopista",
+        "1.ª división administrativa (provincia)",
+        "2.ª división administrativa (partido)",
+        "3.ª división administrativa (localidad)",
+        "4.ª división administrativa (barrio)",
+        "Estadio de fútbol",
+        "Comisaría",
+        "Hipódromo",
+        "Parque",
+        "Campo de golf",
+        "Museo",
+        "Cine",
+        "Hospital",
+        "Biblioteca",
+        "Embajada"
+      ],
+      "options_en": [
+        "Commercial Airport",
+        "Train Line terminal",
+        "Station Name Length",
+        "Highway",
+        "1st Admin Border (State)",
+        "2nd Admin Border (County)",
+        "3rd Admin Border (Municipality)",
+        "4th Admin Border (Neighborhood)",
+        "Football Stadium",
+        "Commission",
+        "Horse Racing Track",
+        "Park",
+        "Golf Course",
+        "Museum",
+        "Cinema",
+        "Hospital",
+        "Library",
+        "Embassy"
+      ]
+    },
+    "thermometer": {
+      "name_es": "Termómetro",
+      "cost_es": null,
+      "time_es": null,
+      "prompt_es": "Acabo de viajar (al menos) [Distancia]. ¿Estoy más “caliente” (más cerca) o más “frío” (más lejos)?",
+      "prompt_en": "I just traveled (at least) [Distance]. Am I hotter or colder?",
+      "placeholder": "[Distance]",
+      "presets": [
+        {
+          "availability": "Todos los tamaños",
+          "distance_raw": "0.5mi\n1m",
+          "distance_es": "1 km"
+        },
+        {
+          "availability": "Mediano y grande",
+          "distance_raw": "3mi\n5km",
+          "distance_es": "5 km"
+        },
+        {
+          "availability": "Mediano y grande",
+          "distance_raw": "6mi\n10km",
+          "distance_es": "10 km"
+        },
+        {
+          "availability": "Mediano y grande",
+          "distance_raw": "10mi\n15km",
+          "distance_es": "15 km"
+        },
+        {
+          "availability": "Solo grande",
+          "distance_raw": "50mi\n80km",
+          "distance_es": "50 mi (100 km)"
+        }
+      ]
+    },
+    "radar": {
+      "name_es": "Radar",
+      "cost_es": null,
+      "time_es": null,
+      "prompt_es": "¿Estás dentro de [Distancia] de mí?",
+      "prompt_en": "Are you within [Distance] of me?",
+      "placeholder": "[Distance]",
+      "presets_es": [
+        "500 metros",
+        "1 kilómetro",
+        "2 kilómetros",
+        "5 kilómetros",
+        "10 kilómetros",
+        "20 kilómetros",
+        "50 kilómetros",
+        "100 kilómetros",
+        "Elegir distancia (custom)"
+      ],
+      "presets_raw": [
+        "0.25mi\n500m",
+        "0.50mi\n1km",
+        "1mi\n2km",
+        "3mi\n5km",
+        "5mi\n10km",
+        "10mi\n20km",
+        "25mi\n50km",
+        "50mi\n100km",
+        "Choose"        
+      ]
+    },
+    "tentacles": {
+      "name_es": "Tentáculos",
+      "cost_es": "Robá 4, elegí 2",
+      "time_es": "5 minutos",
+      "prompt_es": "De todos/as los/las [Lugares] dentro de [Distancia] de mí, ¿a cuál estás más cerca?",
+      "prompt_en": "Of all the [Places] within [Distance] of me, \nwhich are you closest to?",
+      "placeholders": [
+        "[Places]",
+        "[Distance]"
+      ],
+      "items": [
+        {
+          "places_es": "McDonald's",
+          "places_en": "McDonald's",
+          "distance_es": "1 km",
+          "distance_raw": "1mi\n2km",
+          "availability_es": "Mediano o menos"
+        },
+        {
+          "places_es": "Estaciones de subte",
+          "places_en": "Subway Stations",
+          "distance_es": "1 km",
+          "distance_raw": "1mi\n2km",
+          "availability_es": "Mediano o menos"
+        },
+        {
+          "places_es": "Museos",
+          "places_en": "Museums",
+          "distance_es": "2 km",
+          "distance_raw": "1mi\n2km",
+          "availability_es": "Mediano o más"
+        },
+        {
+          "places_es": "Bibliotecas",
+          "places_en": "Libraries",
+          "distance_es": "2 km",
+          "distance_raw": "1mi\n2km",
+          "availability_es": "Mediano o más"
+        },
+        {
+          "places_es": "Cines",
+          "places_en": "Movie Theateres",
+          "distance_es": "2 km",
+          "distance_raw": "1mi\n2km",
+          "availability_es": "Mediano o más"
+        },
+        {
+          "places_es": "Hospitales",
+          "places_en": "Hopsitals",
+          "distance_es": "2 km",
+          "distance_raw": "1mi\n2km",
+          "availability_es": "Mediano o más"
+        },
+        {
+          "places_es": "Líneas de metro",
+          "places_en": "Metro Lines",
+          "distance_es": "20 km",
+          "distance_raw": "15mi\n20km",
+          "availability_es": "Solo juegos grandes"
+        },
+        {
+          "places_es": "Zoológicos",
+          "places_en": "Zoos",
+          "distance_es": "20 km",
+          "distance_raw": "15mi\n20km",
+          "availability_es": "Solo juegos grandes"
+        },
+        {
+          "places_es": "Acuarios",
+          "places_en": "Aquariums",
+          "distance_es": "20 km",
+          "distance_raw": "15mi\n20km",
+          "availability_es": "Solo juegos grandes"
+        },
+        {
+          "places_es": "Parques de diversiones",
+          "places_en": "Amusment Parks",
+          "distance_es": "20 km",
+          "distance_raw": "15mi\n20km",
+          "availability_es": "Solo juegos grandes"
+        }
+      ]
+    },
+    "photos": {
+      "name_es": "Fotos",
+      "cost_es": "Robá 1",
+      "time_es": "S/M: 10 minutos — L: 20 minutos",
+      "prompt_es": "Mandá una foto de [sujeto].",
+      "prompt_en": "Send a photo of [subject].",
+      "placeholder": "[subject]",
+      "subjects": [
+        {
+          "subject_es": "Un árbol",
+          "subject_en": "A Tree",
+          "requirement_es": "Debe incluir el árbol completo.",
+          "requirement_en": "Must include the entire tree"
+        },
+        {
+          "subject_es": "El cielo",
+          "subject_en": "The Sky",
+          "requirement_es": "Apoyá el teléfono en el suelo y sacá la foto apuntando directamente hacia arriba.",
+          "requirement_en": "Place phone on ground and shoot directly up"
+        },
+        {
+          "subject_es": "Vos (selfie)",
+          "subject_en": "You",
+          "requirement_es": "Modo selfie; brazo paralelo al suelo, completamente extendido.",
+          "requirement_en": "Selfie mode, arm parallel to the ground, fully extended"
+        },
+        {
+          "subject_es": "La calle más ancha",
+          "subject_en": "Widest Street",
+          "requirement_es": "Debe incluir ambos lados de la calle.",
+          "requirement_en": "Must include both sides of the street"
+        },
+        {
+          "subject_es": "La estructura más alta en tu línea de visión",
+          "subject_en": "Tallest structure in your sightline",
+          "requirement_es": "La más alta desde tu perspectiva / línea de visión actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior del encuadre.",
+          "requirement_en": "Tallest from your current perspective / sightline.\nMust include top and both sides.\nThe top must be in the top 1/3rd of frame"
+        },
+        {
+          "subject_es": "Cualquier edificio visible desde la estación",
+          "subject_en": "Any building visible from station",
+          "requirement_es": "Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior del edificio debe quedar en el tercio superior del encuadre.",
+          "requirement_en": "Must stand directly outside transit station entrance.\nIf multipole entrance you may choose.\nMust include roof, boths sides, \nwith the top of the building in the top 1/3rd of frame"
+        },
+        {
+          "subject_es": "El edificio más alto visible desde la estación",
+          "subject_en": "Tallest building visible from station",
+          "requirement_es": "La más alta desde tu perspectiva / línea de visión. Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre.",
+          "requirement_en": "Tallest from your perspective / sightline.\nMust stand directly outside transit station entrance.\nIf multipole entrance you may choose. \nMust include roof, boths sides,\nwith the top of the building in the top 1/3rd of frame"
+        },
+        {
+          "subject_es": "Trazá la calle/sendero más cercano",
+          "subject_en": "Trace Nearest Street / Path",
+          "requirement_es": "La calle/sendero debe verse en una app de mapas. Trazá de intersección a intersección.",
+          "requirement_en": "Street / Path must be visible on mapping app.\nTrace intersection to intersection"
+        },
+        {
+          "subject_es": "Dos edificios",
+          "subject_en": "Two Buildings",
+          "requirement_es": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
+          "requirement_en": "Must include 5'x5' section with three distinct elements"
+        },
+        {
+          "subject_es": "Interior de un restaurante",
+          "subject_en": "Restaurant Interior",
+          "requirement_es": "Sin zoom. Sacá la foto desde afuera, a través de una ventana.",
+          "requirement_en": "No zoom, must take photo from outside through window"
+        },
+        {
+          "subject_es": "Andén de tren",
+          "subject_en": "Train Platform",
+          "requirement_es": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
+          "requirement_en": "Must include 5'x5' section with three distinct elements"
+        },
+        {
+          "subject_es": "Parque",
+          "subject_en": "Park",
+          "requirement_es": "Sin zoom. Teléfono perpendicular al suelo. Debés estar a 1,5m de cualquier obstáculo.",
+          "requirement_en": "No zoom, phone perpendicular to ground, \nmust stand 5' away from any obstruction"
+        },
+        {
+          "subject_es": "Pasillo de supermercado",
+          "subject_en": "Grocery Store Aisle",
+          "requirement_es": "Sin zoom. Parate al final del pasillo y sacá la foto apuntando directo por el pasillo.",
+          "requirement_en": "No zoom, stand at the end of the aisle, \nshoot directly down aisle."
+        },
+        {
+          "subject_es": "Lugar de culto",
+          "subject_en": "Place of Worship",
+          "requirement_es": "Debe incluir una sección de 1,5m x 1,5m con tres elementos distintos.",
+          "requirement_en": "Must include 5'x5' section with three distinct elements"
+        },
+        {
+          "subject_es": "500 metros de calles trazadas",
+          "subject_en": "1/2 Mile of streets traced",
+          "requirement_es": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas.",
+          "requirement_en": "Must be continuous, include 5 turns, no doubling back, \nsend N-S Oriented, streets must appear on mapping app."
+        },
+        {
+          "subject_es": "La montaña más alta visible desde la estación",
+          "subject_en": "Tallest mountain visible from station",
+          "requirement_es": "La más alta desde tu perspectiva / línea de visión. Debe ser con 3x zoom. La cima debe quedar en el tercio superior del encuadre.",
+          "requirement_en": "Tallest form you perspective / sightline. \nMust be 3x zoom.\nTop of mountain must be in top 1/3rd of frame"
+        },
+        {
+          "subject_es": "El cuerpo de agua más grande en tu zona",
+          "subject_en": "Biggest body of water in your zone",
+          "requirement_es": "Máximo 3x zoom. Debe incluir ambos lados del agua **o** el horizonte.",
+          "requirement_en": "Max 3x zoom.\nMust include either both sides of water OR the horizon."
+        },
+        {
+          "subject_es": "Cinco edificios",
+          "subject_en": "Five buildings",
+          "requirement_es": "Debe incluir la base y hasta cuatro pisos de altura.",
+          "requirement_en": "Must include bottom, and up to four stories"
+        }
+      ]
+    }
+  }
+}
