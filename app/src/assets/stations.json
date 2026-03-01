@@ -1,0 +1,258 @@
+{
+  "version": "2026-03-01",
+  "sources": [
+    { "name": "GCBA Transporte GTFS", "scope": "Subte CABA" },
+    { "name": "Trenes Argentinos GTFS", "scope": "AMBA trenes" }
+  ],
+  "transport": [
+    {
+      "SUBTE": [
+        {
+          "line": "A",
+          "stations": [
+            { "id": "subte_a_plaza_de_mayo", "name": "Plaza de Mayo", "lat": -34.6088, "lng": -58.371 },
+            { "id": "subte_a_peru", "name": "Perú", "lat": -34.6086, "lng": -58.3747 },
+            { "id": "subte_a_piedras", "name": "Piedras", "lat": -34.6089, "lng": -58.3782 },
+            { "id": "subte_a_lima", "name": "Lima", "lat": -34.6091, "lng": -58.3825 },
+            { "id": "subte_a_saenz_pena", "name": "Sáenz Peña", "lat": -34.6095, "lng": -58.3871 },
+            { "id": "subte_a_congreso", "name": "Congreso", "lat": -34.6093, "lng": -58.3944 },
+            { "id": "subte_a_pasco", "name": "Pasco", "lat": -34.6097, "lng": -58.3999 },
+            { "id": "subte_a_alberti", "name": "Alberti", "lat": -34.6101, "lng": -58.403 },
+            { "id": "subte_a_plaza_miserere", "name": "Plaza Miserere", "lat": -34.6101, "lng": -58.4093 },
+            { "id": "subte_a_loria", "name": "Loria", "lat": -34.6108, "lng": -58.4156 },
+            { "id": "subte_a_castro_barros", "name": "Castro Barros", "lat": -34.6118, "lng": -58.4269 },
+            { "id": "subte_a_rio_de_janeiro", "name": "Río de Janeiro", "lat": -34.6143, "lng": -58.4317 },
+            { "id": "subte_a_acoyte", "name": "Acoyte", "lat": -34.6177, "lng": -58.4405 },
+            { "id": "subte_a_primera_junta", "name": "Primera Junta", "lat": -34.6209, "lng": -58.446 },
+            { "id": "subte_a_puan", "name": "Puan", "lat": -34.6247, "lng": -58.4531 },
+            { "id": "subte_a_carabobo", "name": "Carabobo", "lat": -34.6276, "lng": -58.4647 },
+            { "id": "subte_a_san_jose_de_flores", "name": "San José de Flores", "lat": -34.6292, "lng": -58.4652 },
+            { "id": "subte_a_san_pedrito", "name": "San Pedrito", "lat": -34.6308, "lng": -58.4703 }
+          ]
+        },
+        {
+          "line": "B",
+          "stations": [
+            { "id": "subte_b_leandro_n_alem", "name": "Leandro N. Alem", "lat": -34.6029, "lng": -58.3697 },
+            { "id": "subte_b_florida", "name": "Florida", "lat": -34.6031, "lng": -58.375 },
+            { "id": "subte_b_carlos_pellegrini", "name": "Carlos Pellegrini", "lat": -34.6036, "lng": -58.3814 },
+            { "id": "subte_b_uruguay", "name": "Uruguay", "lat": -34.604, "lng": -58.3867 },
+            { "id": "subte_b_callao", "name": "Callao", "lat": -34.6043, "lng": -58.3925 },
+            { "id": "subte_b_pasteur_amia", "name": "Pasteur - AMIA", "lat": -34.6046, "lng": -58.3995 },
+            { "id": "subte_b_pueyrredon", "name": "Pueyrredón", "lat": -34.6049, "lng": -58.4058 },
+            { "id": "subte_b_carlos_gardel", "name": "Carlos Gardel", "lat": -34.6053, "lng": -58.4119 },
+            { "id": "subte_b_medrano", "name": "Medrano", "lat": -34.6061, "lng": -58.4202 },
+            { "id": "subte_b_angel_gallardo", "name": "Ángel Gallardo", "lat": -34.6087, "lng": -58.4313 },
+            { "id": "subte_b_malabia", "name": "Malabia", "lat": -34.61, "lng": -58.4392 },
+            { "id": "subte_b_dorrego", "name": "Dorrego", "lat": -34.6105, "lng": -58.4448 },
+            { "id": "subte_b_federico_lacroze", "name": "Federico Lacroze", "lat": -34.611, "lng": -58.4552 },
+            { "id": "subte_b_tronador_villa_ortuzar", "name": "Tronador - Villa Ortúzar", "lat": -34.609, "lng": -58.4635 },
+            { "id": "subte_b_de_los_incas_parque_chas", "name": "De los Incas - Parque Chas", "lat": -34.6033, "lng": -58.4707 },
+            { "id": "subte_b_echeverria", "name": "Echeverría", "lat": -34.596, "lng": -58.4758 },
+            { "id": "subte_b_juan_manuel_de_rosas", "name": "Juan Manuel de Rosas", "lat": -34.589, "lng": -58.4819 }
+          ]
+        },
+        {
+          "line": "C",
+          "stations": [
+            { "id": "subte_c_constitucion", "name": "Constitución", "lat": -34.6282, "lng": -58.3816 },
+            { "id": "subte_c_san_juan", "name": "San Juan", "lat": -34.6223, "lng": -58.3791 },
+            { "id": "subte_c_independencia", "name": "Independencia", "lat": -34.6182, "lng": -58.3774 },
+            { "id": "subte_c_moreno", "name": "Moreno", "lat": -34.6129, "lng": -58.3742 },
+            { "id": "subte_c_avenida_de_mayo", "name": "Avenida de Mayo", "lat": -34.6089, "lng": -58.3731 },
+            { "id": "subte_c_diagonal_norte", "name": "Diagonal Norte", "lat": -34.6043, "lng": -58.3784 },
+            { "id": "subte_c_lavalle", "name": "Lavalle", "lat": -34.602, "lng": -58.3799 },
+            { "id": "subte_c_general_san_martin", "name": "General San Martín", "lat": -34.5956, "lng": -58.3778 },
+            { "id": "subte_c_retiro", "name": "Retiro", "lat": -34.5924, "lng": -58.3759 }
+          ]
+        },
+        {
+          "line": "D",
+          "stations": [
+            { "id": "subte_d_catedral", "name": "Catedral", "lat": -34.6076, "lng": -58.3742 },
+            { "id": "subte_d_9_de_julio", "name": "9 de Julio", "lat": -34.6045, "lng": -58.3801 },
+            { "id": "subte_d_tribunales", "name": "Tribunales", "lat": -34.6018, "lng": -58.3846 },
+            { "id": "subte_d_callao", "name": "Callao", "lat": -34.5996, "lng": -58.3923 },
+            { "id": "subte_d_facultad_de_medicina", "name": "Facultad de Medicina", "lat": -34.5983, "lng": -58.3979 },
+            { "id": "subte_d_pueyrredon", "name": "Pueyrredón", "lat": -34.5969, "lng": -58.4033 },
+            { "id": "subte_d_aguero", "name": "Agüero", "lat": -34.5948, "lng": -58.4094 },
+            { "id": "subte_d_bulnes", "name": "Bulnes", "lat": -34.5921, "lng": -58.4158 },
+            { "id": "subte_d_scalabrini_ortiz", "name": "Scalabrini Ortiz", "lat": -34.5888, "lng": -58.4207 },
+            { "id": "subte_d_plaza_italia", "name": "Plaza Italia", "lat": -34.5829, "lng": -58.4248 },
+            { "id": "subte_d_palermo", "name": "Palermo", "lat": -34.5783, "lng": -58.4256 },
+            { "id": "subte_d_ministro_carranza", "name": "Ministro Carranza", "lat": -34.5753, "lng": -58.4355 },
+            { "id": "subte_d_olleros", "name": "Olleros", "lat": -34.5702, "lng": -58.4444 },
+            { "id": "subte_d_jose_hernandez", "name": "José Hernández", "lat": -34.5662, "lng": -58.4523 },
+            { "id": "subte_d_juramento", "name": "Juramento", "lat": -34.5624, "lng": -58.4565 },
+            { "id": "subte_d_congreso_de_tucuman", "name": "Congreso de Tucumán", "lat": -34.556, "lng": -58.4614 }
+          ]
+        },
+        {
+          "line": "E",
+          "stations": [
+            { "id": "subte_e_retiro", "name": "Retiro", "lat": -34.5923, "lng": -58.3758 },
+            { "id": "subte_e_catalinas", "name": "Catalinas", "lat": -34.5964, "lng": -58.3739 },
+            { "id": "subte_e_correo_central", "name": "Correo Central", "lat": -34.6031, "lng": -58.371 },
+            { "id": "subte_e_bolivar", "name": "Bolívar", "lat": -34.6095, "lng": -58.3739 },
+            { "id": "subte_e_belgrano", "name": "Belgrano", "lat": -34.6128, "lng": -58.3782 },
+            { "id": "subte_e_independencia", "name": "Independencia", "lat": -34.6179, "lng": -58.3812 },
+            { "id": "subte_e_san_jose", "name": "San José", "lat": -34.6223, "lng": -58.3854 },
+            { "id": "subte_e_entre_rios", "name": "Entre Ríos", "lat": -34.623, "lng": -58.3913 },
+            { "id": "subte_e_pichincha", "name": "Pichincha", "lat": -34.6232, "lng": -58.3975 },
+            { "id": "subte_e_jujuy", "name": "Jujuy", "lat": -34.6238, "lng": -58.4032 },
+            { "id": "subte_e_general_urquiza", "name": "General Urquiza", "lat": -34.6247, "lng": -58.4089 },
+            { "id": "subte_e_boedo", "name": "Boedo", "lat": -34.6255, "lng": -58.4174 },
+            { "id": "subte_e_avenida_la_plata", "name": "Avenida La Plata", "lat": -34.6267, "lng": -58.4269 },
+            { "id": "subte_e_jose_maria_moreno", "name": "José María Moreno", "lat": -34.6276, "lng": -58.433 },
+            { "id": "subte_e_emilio_mitre", "name": "Emilio Mitre", "lat": -34.6309, "lng": -58.4429 },
+            { "id": "subte_e_medalla_milagrosa", "name": "Medalla Milagrosa", "lat": -34.6363, "lng": -58.4513 },
+            { "id": "subte_e_varela", "name": "Varela", "lat": -34.6399, "lng": -58.4584 },
+            { "id": "subte_e_plaza_de_los_virreyes", "name": "Plaza de los Virreyes", "lat": -34.6429, "lng": -58.4625 }
+          ]
+        },
+        {
+          "line": "H",
+          "stations": [
+            { "id": "subte_h_facultad_de_derecho", "name": "Facultad de Derecho", "lat": -34.5832, "lng": -58.3923 },
+            { "id": "subte_h_las_heras", "name": "Las Heras", "lat": -34.5877, "lng": -58.3981 },
+            { "id": "subte_h_santa_fe", "name": "Santa Fe", "lat": -34.5941, "lng": -58.4024 },
+            { "id": "subte_h_cordoba", "name": "Córdoba", "lat": -34.5988, "lng": -58.4044 },
+            { "id": "subte_h_corrientes", "name": "Corrientes", "lat": -34.6038, "lng": -58.4058 },
+            { "id": "subte_h_once", "name": "Once", "lat": -34.6091, "lng": -58.4061 },
+            { "id": "subte_h_venezuela", "name": "Venezuela", "lat": -34.6155, "lng": -58.4055 },
+            { "id": "subte_h_humberto_1", "name": "Humberto 1°", "lat": -34.6231, "lng": -58.4033 },
+            { "id": "subte_h_inclan", "name": "Inclán", "lat": -34.6292, "lng": -58.4017 },
+            { "id": "subte_h_caseros", "name": "Caseros", "lat": -34.6352, "lng": -58.4002 },
+            { "id": "subte_h_parque_patricios", "name": "Parque Patricios", "lat": -34.6375, "lng": -58.4068 },
+            { "id": "subte_h_hospitales", "name": "Hospitales", "lat": -34.6418, "lng": -58.4133 }
+          ]
+        }
+      ]
+    },
+    {
+      "TREN": [
+        {
+          "line": "Sarmiento",
+          "stations": [
+            { "id": "tren_sarmiento_once", "name": "Once", "lat": -34.6083, "lng": -58.4077 },
+            { "id": "tren_sarmiento_caballito", "name": "Caballito", "lat": -34.6194, "lng": -58.4448 },
+            { "id": "tren_sarmiento_flores", "name": "Flores", "lat": -34.6278, "lng": -58.4664 },
+            { "id": "tren_sarmiento_floresta", "name": "Floresta", "lat": -34.6325, "lng": -58.4823 },
+            { "id": "tren_sarmiento_villa_luro", "name": "Villa Luro", "lat": -34.6368, "lng": -58.5024 },
+            { "id": "tren_sarmiento_liniers", "name": "Liniers", "lat": -34.6408, "lng": -58.5264 },
+            { "id": "tren_sarmiento_ciudadela", "name": "Ciudadela", "lat": -34.6395, "lng": -58.5515 },
+            { "id": "tren_sarmiento_ramos_mejia", "name": "Ramos Mejía", "lat": -34.6391, "lng": -58.5663 },
+            { "id": "tren_sarmiento_haedo", "name": "Haedo", "lat": -34.6446, "lng": -58.6024 },
+            { "id": "tren_sarmiento_moron", "name": "Morón", "lat": -34.6495, "lng": -58.6292 },
+            { "id": "tren_sarmiento_castelar", "name": "Castelar", "lat": -34.6533, "lng": -58.6517 }
+          ]
+        },
+        {
+          "line": "Mitre",
+          "stations": [
+            { "id": "tren_mitre_retiro", "name": "Retiro", "lat": -34.5923, "lng": -58.3749 },
+            { "id": "tren_mitre_3_de_febrero", "name": "3 de Febrero", "lat": -34.5749, "lng": -58.4116 },
+            { "id": "tren_mitre_ministro_carranza", "name": "Ministro Carranza", "lat": -34.5673, "lng": -58.4382 },
+            { "id": "tren_mitre_colegiales", "name": "Colegiales", "lat": -34.573, "lng": -58.4517 },
+            { "id": "tren_mitre_lisandro_de_la_torre", "name": "Lisandro de la Torre", "lat": -34.559, "lng": -58.4593 },
+            { "id": "tren_mitre_belgrano_c", "name": "Belgrano C", "lat": -34.5524, "lng": -58.4547 },
+            { "id": "tren_mitre_nunez", "name": "Núñez", "lat": -34.5486, "lng": -58.4603 },
+            { "id": "tren_mitre_rivadavia", "name": "Rivadavia", "lat": -34.5394, "lng": -58.4789 },
+            { "id": "tren_mitre_vicente_lopez", "name": "Vicente López", "lat": -34.5285, "lng": -58.4785 },
+            { "id": "tren_mitre_olivos", "name": "Olivos", "lat": -34.5107, "lng": -58.4773 },
+            { "id": "tren_mitre_la_lucila", "name": "La Lucila", "lat": -34.5031, "lng": -58.4723 },
+            { "id": "tren_mitre_martinez", "name": "Martínez", "lat": -34.4942, "lng": -58.4963 },
+            { "id": "tren_mitre_acassuso", "name": "Acassuso", "lat": -34.4864, "lng": -58.5061 },
+            { "id": "tren_mitre_san_isidro", "name": "San Isidro", "lat": -34.4724, "lng": -58.5149 },
+            { "id": "tren_mitre_beccar", "name": "Beccar", "lat": -34.4557, "lng": -58.53 },
+            { "id": "tren_mitre_victoria", "name": "Victoria", "lat": -34.4477, "lng": -58.5607 },
+            { "id": "tren_mitre_virreyes", "name": "Virreyes", "lat": -34.4495, "lng": -58.5762 },
+            { "id": "tren_mitre_san_fernando", "name": "San Fernando", "lat": -34.4478, "lng": -58.5628 },
+            { "id": "tren_mitre_carupa", "name": "Carupá", "lat": -34.4414, "lng": -58.5709 },
+            { "id": "tren_mitre_tigre", "name": "Tigre", "lat": -34.4246, "lng": -58.5794 },
+            { "id": "tren_mitre_belgrano_r", "name": "Belgrano R", "lat": -34.5625, "lng": -58.4666 },
+            { "id": "tren_mitre_l_m_drago", "name": "L. M. Drago", "lat": -34.5668, "lng": -58.4822 },
+            { "id": "tren_mitre_coghlan", "name": "Coghlan", "lat": -34.5601, "lng": -58.4846 },
+            { "id": "tren_mitre_saavedra", "name": "Saavedra", "lat": -34.551, "lng": -58.4937 },
+            { "id": "tren_mitre_juan_b_justo", "name": "Juan B. Justo", "lat": -34.5457, "lng": -58.5039 },
+            { "id": "tren_mitre_florida", "name": "Florida", "lat": -34.5347, "lng": -58.4915 },
+            { "id": "tren_mitre_dr_cetrangolo", "name": "Dr. Cetrángolo", "lat": -34.5252, "lng": -58.5262 },
+            { "id": "tren_mitre_bartolome_mitre", "name": "Bartolomé Mitre", "lat": -34.5191, "lng": -58.5332 },
+            { "id": "tren_mitre_jose_leon_suarez", "name": "José León Suárez", "lat": -34.5308, "lng": -58.573 }
+          ]
+        },
+        {
+          "line": "Roca",
+          "stations": [
+            { "id": "tren_roca_constitucion", "name": "Constitución", "lat": -34.6376, "lng": -58.3936 },
+            { "id": "tren_roca_hipolito_yrigoyen", "name": "Hipólito Yrigoyen", "lat": -34.6558, "lng": -58.3861 },
+            { "id": "tren_roca_avellaneda", "name": "Avellaneda", "lat": -34.6615, "lng": -58.3799 },
+            { "id": "tren_roca_gerli", "name": "Gerli", "lat": -34.6862, "lng": -58.3899 },
+            { "id": "tren_roca_lanus", "name": "Lanús", "lat": -34.7075, "lng": -58.3911 },
+            { "id": "tren_roca_remedios_de_escalada", "name": "Remedios de Escalada", "lat": -34.7249, "lng": -58.3953 },
+            { "id": "tren_roca_banfield", "name": "Banfield", "lat": -34.7442, "lng": -58.4001 },
+            { "id": "tren_roca_lomas_de_zamora", "name": "Lomas de Zamora", "lat": -34.7679, "lng": -58.3992 },
+            { "id": "tren_roca_temperley", "name": "Temperley", "lat": -34.7752, "lng": -58.3996 },
+            { "id": "tren_roca_sarandi", "name": "Sarandí", "lat": -34.6764, "lng": -58.3693 },
+            { "id": "tren_roca_villa_dominico", "name": "Villa Domínico", "lat": -34.6895, "lng": -58.3347 },
+            { "id": "tren_roca_wilde", "name": "Wilde", "lat": -34.6976, "lng": -58.3112 },
+            { "id": "tren_roca_don_bosco", "name": "Don Bosco", "lat": -34.7033, "lng": -58.2961 },
+            { "id": "tren_roca_bernal", "name": "Bernal", "lat": -34.7077, "lng": -58.2878 },
+            { "id": "tren_roca_quilmes", "name": "Quilmes", "lat": -34.7203, "lng": -58.2696 }
+          ]
+        },
+        {
+          "line": "San Martín",
+          "stations": [
+            { "id": "tren_san_martin_hurlingham", "name": "Hurlingham", "lat": -34.5908, "lng": -58.635 },
+            { "id": "tren_san_martin_el_palomar", "name": "El Palomar", "lat": -34.6033, "lng": -58.6094 },
+            { "id": "tren_san_martin_caseros", "name": "Caseros", "lat": -34.6053, "lng": -58.573 },
+            { "id": "tren_san_martin_santos_lugares", "name": "Santos Lugares", "lat": -34.6038, "lng": -58.5494 },
+            { "id": "tren_san_martin_saenz_pena", "name": "Sáenz Peña", "lat": -34.6029, "lng": -58.5279 },
+            { "id": "tren_san_martin_devoto", "name": "Devoto", "lat": -34.6025, "lng": -58.5129 },
+            { "id": "tren_san_martin_villa_del_parque", "name": "Villa del Parque", "lat": -34.6022, "lng": -58.5078 },
+            { "id": "tren_san_martin_la_paternal", "name": "La Paternal", "lat": -34.5985, "lng": -58.4761 },
+            { "id": "tren_san_martin_villa_crespo", "name": "Villa Crespo", "lat": -34.5946, "lng": -58.4567 },
+            { "id": "tren_san_martin_palermo", "name": "Palermo", "lat": -34.5813, "lng": -58.431 },
+            { "id": "tren_san_martin_retiro", "name": "Retiro", "lat": -34.5895, "lng": -58.3749 }
+          ]
+        },
+        {
+          "line": "Belgrano Norte",
+          "stations": [
+            { "id": "tren_belgrano_norte_retiro", "name": "Retiro", "lat": -34.5896, "lng": -58.3743 },
+            { "id": "tren_belgrano_norte_saldias", "name": "Saldías", "lat": -34.5724, "lng": -58.4030 },
+            { "id": "tren_belgrano_norte_ciudad_universitaria", "name": "Ciudad Universitaria", "lat": -34.5437, "lng": -58.4471 },
+            { "id": "tren_belgrano_norte_aristobulo_del_valle", "name": "Aristóbulo del Valle", "lat": -34.5375, "lng": -58.4790 },
+            { "id": "tren_belgrano_norte_padilla", "name": "Padilla", "lat": -34.5435, "lng": -58.5020 },
+            { "id": "tren_belgrano_norte_florida", "name": "Florida", "lat": -34.5371, "lng": -58.5139 },
+            { "id": "tren_belgrano_norte_munro", "name": "Munro", "lat": -34.5317, "lng": -58.5244 },
+            { "id": "tren_belgrano_norte_carapachay", "name": "Carapachay", "lat": -34.5287, "lng": -58.5386 },
+            { "id": "tren_belgrano_norte_villa_adelina", "name": "Villa Adelina", "lat": -34.5236, "lng": -58.5468 },
+            { "id": "tren_belgrano_norte_boulogne_sur_mer", "name": "Boulogne Sur Mer", "lat": -34.5091, "lng": -58.5676 }
+          ]
+        },
+        {
+          "line": "Urquiza",
+          "stations": [
+            { "id": "tren_urquiza_federico_lacroze", "name": "Federico Lacroze", "lat": -34.5867, "lng": -58.4566 },
+            { "id": "tren_urquiza_artigas", "name": "Artigas", "lat": -34.5900, "lng": -58.4673 },
+            { "id": "tren_urquiza_arata", "name": "Arata", "lat": -34.5924, "lng": -58.4773 },
+            { "id": "tren_urquiza_francisco_beiro", "name": "Francisco Beiró", "lat": -34.5933, "lng": -58.4949 },
+            { "id": "tren_urquiza_el_libertador", "name": "El Libertador", "lat": -34.5944, "lng": -58.5034 },
+            { "id": "tren_urquiza_devoto", "name": "Devoto", "lat": -34.5955, "lng": -58.5111 },
+            { "id": "tren_urquiza_lynch", "name": "Lynch", "lat": -34.5972, "lng": -58.5257 },
+            { "id": "tren_urquiza_fernandez_moreno", "name": "Fernández Moreno", "lat": -34.5952, "lng": -58.5342 },
+            { "id": "tren_urquiza_lourdes", "name": "Lourdes", "lat": -34.5938, "lng": -58.5489 },
+            { "id": "tren_urquiza_tropezon", "name": "Tropezón", "lat": -34.5916, "lng": -58.5616 },
+            { "id": "tren_urquiza_bosch", "name": "Bosch", "lat": -34.5900, "lng": -58.5741 },
+            { "id": "tren_urquiza_martin_coronado", "name": "Martín Coronado", "lat": -34.5888, "lng": -58.5921 },
+            { "id": "tren_urquiza_pablo_podesta", "name": "Pablo Podestá", "lat": -34.5882, "lng": -58.6102 },
+            { "id": "tren_urquiza_jorge_newbery", "name": "Jorge Newbery", "lat": -34.5879, "lng": -58.6225 },
+            { "id": "tren_urquiza_ruben_dario", "name": "Rubén Darío", "lat": -34.5876, "lng": -58.6312 }
+          ]
+        }
+      ]
+    }
+  ]
+}
