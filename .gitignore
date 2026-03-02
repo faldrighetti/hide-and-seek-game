@@ -163,3 +163,6 @@ ios/Pods/
 .idea/
 .vscode/
 .vs/
+
+app/src/environments/environment.ts
+app/src/environments/environment.prod.ts
