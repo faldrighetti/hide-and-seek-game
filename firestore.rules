@@ -1,42 +1,35 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function gameDoc(gameId) {
-      return get(/databases/$(database)/documents/games/$(gameId));
-    }
-
+    function isAuth() { return request.auth != null; }
     function isMember(gameId) {
-      return isAuthenticated()
-        && exists(/databases/$(database)/documents/games/$(gameId)/seats/$(request.auth.uid));
+      return isAuth() &&
+        exists(/databases/$(database)/documents/games/$(gameId)/seats/$(request.auth.uid));
     }
-
     function isHost(gameId) {
-      return isMember(gameId)
-        && gameDoc(gameId).data.hostUid == request.auth.uid;
+      return isMember(gameId) &&
+        get(/databases/$(database)/documents/games/$(gameId)).data.hostUid == request.auth.uid;
     }
 
     match /games/{gameId} {
+      // Crear juego: cualquiera autenticado puede crearlo si no existe
+      allow create: if isAuth()
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.status == "LOBBY";
+
+      // Leer: miembros
       allow read: if isMember(gameId);
-      allow create, update, delete: if false;
 
-      match /seats/{seatUid} {
-        allow read: if isMember(gameId);
-        allow create, update, delete: if false;
-      }
+      // Update: solo host (p.ej. lock teams)
+      allow update: if isHost(gameId);
+      allow delete: if false;
 
-      match /questions/{questionId} {
+      match /seats/{uid} {
         allow read: if isMember(gameId);
-        allow create, update, delete: if false;
-      }
 
-      match /{sub=**}/{docId} {
-        allow read: if isMember(gameId);
-        allow write: if false;
+        // Cada uno puede crear/actualizar SOLO su seat
+        allow create, update: if isAuth() && uid == request.auth.uid;
+        allow delete: if false;
       }
     }
 
