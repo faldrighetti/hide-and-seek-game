@@ -11,25 +11,57 @@ service cloud.firestore {
         get(/databases/$(database)/documents/games/$(gameId)).data.hostUid == request.auth.uid;
     }
 
-    match /games/{gameId} {
-      // Crear juego: cualquiera autenticado puede crearlo si no existe
-      allow create: if isAuth()
-        && request.resource.data.hostUid == request.auth.uid
-        && request.resource.data.status == "LOBBY";
+    rules_version = '2';
 
-      // Leer: miembros
-      allow read: if isMember(gameId);
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        function isAuth() {
+          return request.auth != null;
+        }
 
-      // Update: solo host (p.ej. lock teams)
-      allow update: if isHost(gameId);
-      allow delete: if false;
+        function isMember(gameId) {
+          return isAuth()
+            && exists(/databases/$(database)/documents/games/$(gameId)/seats/$(request.auth.uid));
+        }
 
-      match /seats/{uid} {
-        allow read: if isMember(gameId);
+        function isHost(gameId) {
+          return isAuth()
+            && get(/databases/$(database)/documents/games/$(gameId)).data.hostUid == request.auth.uid;
+        }
 
-        // Cada uno puede crear/actualizar SOLO su seat
-        allow create, update: if isAuth() && uid == request.auth.uid;
-        allow delete: if false;
+        match /games/{gameId} {
+          // Estrategia A: el doc del game se puede leer si estás autenticado
+          allow read: if isAuth();
+
+          // Crear juego: hostUid debe ser el uid del creador
+          allow create: if isAuth()
+            && request.resource.data.hostUid == request.auth.uid
+            && request.resource.data.status == "LOBBY";
+
+          // Updates del doc del juego: solo host
+          allow update: if isHost(gameId);
+
+          allow delete: if false;
+
+          match /seats/{uid} {
+            // Seats solo visibles para miembros
+            allow read: if isMember(gameId);
+
+            // Cada uno solo puede crear/actualizar su seat
+            allow create, update: if isAuth() && uid == request.auth.uid;
+
+            allow delete: if false;
+          }
+
+          // Si tenés otras subcolecciones, por ahora bloquealas
+          match /{sub=**}/{docId} {
+            allow read, write: if false;
+          }
+        }
+
+        match /{document=**} {
+          allow read, write: if false;
+        }
       }
     }
 

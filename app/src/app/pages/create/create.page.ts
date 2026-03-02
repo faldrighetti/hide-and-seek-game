@@ -21,14 +21,15 @@ export class CreatePage {
 
   createdLobby: LobbyState | null = null;
 
-  create(): void {
-    this.createdLobby = this.gameFacade.createGame(
+  async create(): Promise<void> {
+    this.createdLobby = await this.gameFacade.createGame(
       this.mode,
       this.turnsPerTeam,
       this.winCondition,
       this.ukMode,
       this.hostDisplayName,
     );
+    this.router.navigate(['/lobby', this.createdLobby.gameId]);
   }
 
   goToLobby(): void {

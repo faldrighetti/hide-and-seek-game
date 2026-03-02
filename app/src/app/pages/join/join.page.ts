@@ -21,13 +21,16 @@ export class JoinPage implements OnInit {
     if (gameId) this.gameId = gameId.toUpperCase();
   }
 
-  join(): void {
+  async join(): Promise<void> {
     const normalizedGameId = this.gameId.trim().toUpperCase();
     const name = this.displayName.trim();
-
     if (!normalizedGameId || !name) return;
 
-    this.gameFacade.joinGame(normalizedGameId, name);
-    this.router.navigate(['/lobby', normalizedGameId]);
+    try {
+      await this.gameFacade.joinGame(normalizedGameId, name);
+      this.router.navigate(['/lobby', normalizedGameId]);
+    } catch (e) {
+      console.error(e);
+    }
   }
 }
