@@ -19,6 +19,13 @@ export class GamePage {
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
+    this.showData();
+  }
+
+  async showData(): Promise<void> {
+    const res = await fetch(`/../../assets/stations.json`, { cache: 'force-cache' });
+    const data = await res.json();
+    console.log(data.transport);
   }
 
   setPhase(phase: GameBlueprint['currentTurn']['phase']): void {
