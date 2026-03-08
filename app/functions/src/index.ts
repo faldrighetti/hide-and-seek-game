@@ -40,6 +40,16 @@ interface TeamStanding {
   runsCompleted: number;
 }
 
+interface ActiveEffect {
+  id: string;
+  curseId: string;
+  createdByUid: string;
+  createdAt: Timestamp;
+  expiresAt?: Timestamp | null;
+  blocksQuestions: boolean;
+  blocksTransport: boolean;
+}
+
 interface TurnState {
   runNumber: number;
   hiderTeamId: string;
@@ -49,6 +59,8 @@ interface TurnState {
   chaseStartedAt?: Timestamp;
   pendingQuestionId?: string | null;
   pendingQuestionEndsAt?: Timestamp | null;
+  categoryCooldowns?: Record<string, Timestamp>;
+  activeEffects?: ActiveEffect[];
   expirations: number;
   foundVotes: string[];
 }
@@ -225,6 +237,8 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       phaseEndsAt: txNow,
       pendingQuestionId: null,
       pendingQuestionEndsAt: null,
+      categoryCooldowns: {},
+      activeEffects: [],
       foundVotes: [],
     };
     game.winnerTeamIds = findWinnerIds(game);
@@ -244,6 +258,8 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     phaseEndsAt: intermissionEndsAt,
     pendingQuestionId: null,
     pendingQuestionEndsAt: null,
+    categoryCooldowns: {},
+    activeEffects: [],
     expirations: 0,
     foundVotes: [],
   };
@@ -446,6 +462,8 @@ export const startGame = onCall(async (request) => {
       phaseEndsAt: Timestamp.fromMillis(now.toMillis() + game.settings.intermissionSeconds * 1000),
       pendingQuestionId: null,
       pendingQuestionEndsAt: null,
+      categoryCooldowns: {},
+      activeEffects: [],
       expirations: 0,
       foundVotes: [],
     };
@@ -466,10 +484,11 @@ export const sendQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const prompt = String(request.data?.prompt ?? "").trim();
+  const categoryId = String(request.data?.categoryId ?? "").trim();
   const isPhoto = Boolean(request.data?.isPhoto);
 
-  if (!gameId || !prompt) {
-    throw new HttpsError("invalid-argument", "gameId y prompt son obligatorios.");
+  if (!gameId || !prompt || !categoryId) {
+    throw new HttpsError("invalid-argument", "gameId, prompt y categoryId son obligatorios.");
   }
 
   await requireGameMembership(db, gameId, uid);
@@ -490,12 +509,18 @@ export const sendQuestion = onCall(async (request) => {
     }
 
     const now = nowTs();
+    const cooldownUntil = game.currentTurn.categoryCooldowns?.[categoryId];
+    if (cooldownUntil && cooldownUntil.toMillis() > now.toMillis()) {
+      throw new HttpsError("failed-precondition", "CATEGORY_COOLDOWN_ACTIVE");
+    }
+
     const timeoutSeconds = isPhoto ? 600 : 300;
     const questionRef = gameRef.collection("questions").doc();
     tx.set(questionRef, {
       askedByUid: uid,
       prompt,
       isPhoto,
+      categoryId,
       status: "PENDING",
       createdAt: now,
       expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
@@ -517,7 +542,12 @@ export const sendQuestion = onCall(async (request) => {
 export const resolveQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-  const resolution = String(request.data?.resolution ?? "ANSWER").trim();
+  const resolution = String(request.data?.resolution ?? "ANSWER").trim().toUpperCase();
+  const validResolutions = new Set(["ANSWER", "VETO", "RANDOMIZE"]);
+
+  if (!validResolutions.has(resolution)) {
+    throw new HttpsError("invalid-argument", "resolution inválida.");
+  }
 
   await requireGameMembership(db, gameId, uid);
 
@@ -531,20 +561,87 @@ export const resolveQuestion = onCall(async (request) => {
       throw new HttpsError("failed-precondition", "No hay pregunta pendiente.");
     }
 
+    const now = nowTs();
     const qRef = gameRef.collection("questions").doc(turn.pendingQuestionId);
+    const qSnap = await tx.get(qRef);
+    const categoryId = String(qSnap.data()?.categoryId ?? "").trim();
+    
     tx.update(qRef, {
       status: "RESOLVED",
       resolution,
       resolvedByUid: uid,
-      resolvedAt: nowTs(),
+      resolvedAt: now,
     });
+
+    const categoryCooldowns = {...(turn.categoryCooldowns ?? {})};
+    if (categoryId) {
+      categoryCooldowns[categoryId] = Timestamp.fromMillis(now.toMillis() + 15 * 60 * 1000);
+    }
+
     tx.update(gameRef, {
       currentTurn: {
         ...turn,
         pendingQuestionId: null,
         pendingQuestionEndsAt: null,
+        categoryCooldowns,
       },
-      updatedAt: nowTs(),
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true};
+});
+
+export const playCurse = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const curseId = String(request.data?.curseId ?? "").trim();
+  const blocksQuestions = Boolean(request.data?.blocksQuestions);
+  const blocksTransport = Boolean(request.data?.blocksTransport);
+  const expiresAtMillisRaw = request.data?.expiresAtMillis;
+  const expiresAtMillis = typeof expiresAtMillisRaw === "number" ? expiresAtMillisRaw : null;
+
+  if (!gameId || !curseId) {
+    throw new HttpsError("invalid-argument", "gameId y curseId son obligatorios.");
+  }
+
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn) {
+      throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
+    }
+
+    const now = nowTs();
+    const activeEffects = (turn.activeEffects ?? []).filter((effect) =>
+      !effect.expiresAt || effect.expiresAt.toMillis() > now.toMillis(),
+    );
+
+    if (activeEffects.some((effect) => effect.blocksQuestions || effect.blocksTransport)) {
+      throw new HttpsError("failed-precondition", "CURSE_BLOCKING_EFFECT_ACTIVE");
+    }
+
+    const newEffect: ActiveEffect = {
+      id: gameRef.collection("effects").doc().id,
+      curseId,
+      createdByUid: uid,
+      createdAt: now,
+      expiresAt: expiresAtMillis ? Timestamp.fromMillis(expiresAtMillis) : null,
+      blocksQuestions,
+      blocksTransport,
+    };
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        activeEffects: [...activeEffects, newEffect],
+      },
+      updatedAt: now,
     });
   });
 
@@ -648,6 +745,8 @@ export const nextTurn = onCall(async (request) => {
       phaseEndsAt: Timestamp.fromMillis(now.toMillis() + game.settings.intermissionSeconds * 1000),
       pendingQuestionId: null,
       pendingQuestionEndsAt: null,
+      categoryCooldowns: {},
+      activeEffects: [],
       expirations: 0,
       foundVotes: [],
     };
