@@ -1,324 +1,746 @@
 {
-    "deck": {
-    "hider_deck": {
-      "name_es": "Mazo del escondedor",
-      "time_bonus": [
-        {
-          "color_en": "Red",
-          "color_es": "Rojo",
-          "minutes_options": [
-            2,
-            3,
-            5
-          ],
-          "qty": 25
-        },
-        {
-          "color_en": "Orange",
-          "color_es": "Naranja",
-          "minutes_options": [
-            4,
-            6,
-            10
-          ],
-          "qty": 15
-        },
-        {
-          "color_en": "Yellow",
-          "color_es": "Amarillo",
-          "minutes_options": [
-            6,
-            9,
-            15
-          ],
-          "qty": 10
-        },
-        {
-          "color_en": "Green",
-          "color_es": "Verde",
-          "minutes_options": [
-            8,
-            12,
-            20
-          ],
-          "qty": 3
-        },
-        {
-          "color_en": "Blue",
-          "color_es": "Azul",
-          "minutes_options": [
-            12,
-            18,
-            30
-          ],
-          "qty": 2
-        }
+  "mazo": {
+    "mazo_escondedor": {
+      "nombre": "Mazo del escondedor",
+      "bonus_tiempo": [
+        { "color": "Rojo", "minutos": 3, "cantidad": 25 },
+        { "color": "Naranja", "minutos": 5, "cantidad": 15 },
+        { "color": "Amarillo", "minutos": 10, "cantidad": 10 },
+        { "color": "Verde", "minutos": 15, "cantidad": 3 },
+        { "color": "Azul", "minutos": 20, "cantidad": 2 }
       ],
       "powerups": [
         {
           "id": "randomize",
-          "name_es": "Randomizar",
-          "name_en": "Randomize",
-          "qty": 4,
-          "rules_hint_es": "Sortea otra pregunta de la misma categoría."
+          "nombre": "Randomizar",
+          "cantidad": 4,
+          "pista_reglas": "Sortea otra pregunta de la misma categoría."
         },
         {
           "id": "veto",
-          "name_es": "Veto",
-          "name_en": "Veto",
-          "qty": 4,
-          "rules_hint_es": "Veta la pregunta: queda prohibida el resto del turno sin responderla."
+          "nombre": "Veto",
+          "cantidad": 4,
+          "pista_reglas": "Veta la pregunta: queda prohibida el resto del turno sin responderla."
         },
-        {
-          "id": "duplicate",
-          "name_es": "Duplicar",
-          "name_en": "Duplicate",
-          "qty": 2
-        },
-        {
-          "id": "move",
-          "name_es": "Mover",
-          "name_en": "Move",
-          "qty": 1
-        },
-        {
-          "id": "discard1_draw2",
-          "name_es": "Descartar 1, robar 2",
-          "name_en": "Discard 1 Draw 2",
-          "qty": 4
-        },
-        {
-          "id": "discard2_draw3",
-          "name_es": "Descartar 2, robar 3",
-          "name_en": "Discard 2 Draw 3",
-          "qty": 4
-        },
-        {
-          "id": "draw1_expand1",
-          "name_es": "Robar 1, expandir 1",
-          "name_en": "Draw 1 Expand 1",
-          "qty": 2
-        }
+        { "id": "duplicate", "nombre": "Duplicar", "cantidad": 2 },
+        { "id": "move", "nombre": "Mover", "cantidad": 1 },
+        { "id": "discard1_draw2", "nombre": "Descartar 1, robar 2", "cantidad": 4 },
+        { "id": "discard2_draw3", "nombre": "Descartar 2, robar 3", "cantidad": 4 },
+        { "id": "draw1_expand1", "nombre": "Robar 1, expandir 1", "cantidad": 2 }
       ],
-      "curses_in_deck_qty": 24
+      "cantidad_maldiciones_en_mazo": 24
     }
   },
-  "curses": [
+  "maldiciones": [
     {
       "id": 1,
-      "name_en": "Curse of The Zoologist",
-      "name_es": "Maldición del Zoólogo",
-      "casting_cost_en": "A photo of an animal",
-      "casting_cost_es": "Una foto de un animal",
-      "effect_en": "Take a photo of a wild fish, bird, mammal, reptile, amphibian or bug. The seeker(s) must take a picture of a wild animal in the same category before  asking another question.",
-      "effect_es": "Sacá una foto de un pez/ave/mamífero/reptil/anfibio/insecto **salvaje**. Los buscadores deben sacar una foto de un animal salvaje de la **misma categoría** antes de hacer otra pregunta."
+      "nombre": "Maldición del Zoólogo",
+      "etiquetas": ["foto", "animal", "igualar", "bloqueo_pregunta"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["foto"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          {
+            "tipo": "sacar_foto",
+            "sujeto": "animal_salvaje",
+            "categorias_permitidas": ["pez", "ave", "mamifero", "reptil", "anfibio", "insecto"]
+          }
+        ],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Una foto de un animal",
+        "efecto": "Sacá una foto de un pez/ave/mamífero/reptil/anfibio/insecto salvaje. Los buscadores deben sacar una foto de un animal salvaje de la misma categoría antes de hacer otra pregunta."
+      },
+      "motor": {
+        "tipo": "igualar_foto_por_categoria",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "sacar_foto",
+            "sujeto": "animal_salvaje",
+            "misma_categoria_que_accion_de_lanzamiento": true
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 2,
-      "name_en": "Curse Of The Unguided Tourist",
-      "name_es": "Maldición del Turista Sin Guía",
-      "casting_cost_en": "Seker(s) must be outside",
-      "casting_cost_es": "Los buscadores deben estar afuera",
-      "effect_en": "Send the seeker(s) an unzoomed google Street View image from a street within 500ft (152m) of where they are now. The shot has to be parallel to the horizon and include at least one human-built structure other than a road. Without using the internet for research, they must find what you sent them in real life before they can use transportation or ask another question. They must send a picture the hiders for verification.",
-      "effect_es": "Enviá a los buscadores una imagen de Google Street View **sin zoom** de una calle dentro de 150m de donde están ahora. La toma tiene que ser paralela al horizonte e incluir al menos una estructura construida por humanos (no cuenta solo la calle). Sin usar internet para investigar, deben encontrar ese lugar en la vida real antes de poder usar transporte o hacer otra pregunta. Deben enviarte una foto a vos (escondedor) como verificación."
+      "nombre": "Maldición del Turista Sin Guía",
+      "etiquetas": ["navegacion", "ubicacion", "street_view", "bloqueo_pregunta", "bloqueo_transporte", "verificacion"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["foto"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [
+          {
+            "tipo": "estado_ubicacion_buscadores",
+            "debe_ser": "afuera"
+          }
+        ],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Los buscadores deben estar afuera",
+        "efecto": "Enviá a los buscadores una imagen de Google Street View sin zoom de una calle dentro de 150 m de donde están ahora. La toma tiene que ser paralela al horizonte e incluir al menos una estructura construida por humanos. Sin usar internet para investigar, deben encontrar ese lugar en la vida real antes de poder usar transporte o hacer otra pregunta. Deben enviarte una foto como verificación."
+      },
+      "motor": {
+        "tipo": "encontrar_lugar_desde_street_view",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": true
+        },
+        "reglas": {
+          "internet_para_investigar_permitido": false
+        },
+        "requisitos": [
+          {
+            "tipo": "recibir_imagen_street_view",
+            "distancia_maxima_metros": 150,
+            "restricciones": {
+              "zoom": "ninguno",
+              "paralela_al_horizonte": true,
+              "debe_incluir_estructura_humana": true,
+              "solo_calle_no_permitido": true
+            }
+          },
+          {
+            "tipo": "encontrar_lugar_real"
+          },
+          {
+            "tipo": "enviar_foto_verificacion"
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 3,
-      "name_en": "Curse Of The Endless Tumble",
-      "name_es": "Maldición del Tambaleo Infinito",
-      "casting_cost_en": "Roll a die. If its 5 or 6 this card has no effect.",
-      "casting_cost_es": "Tirá un dado. Si sale 5 o 6, esta carta no tiene efecto.",
-      "effect_en": "Seekers Must roll a die at least 30m and have it land on a 5 or a 6 before they can ask another question. The die must roll the full distance, unaided, using only the momentum from the initial throw and gravity to travel the 100ft (30m). If the seekers accidentally hit someone with a die you are awarded a [S10, M20, L30] minute bonus",
-      "effect_es": "Los buscadores deben tirar un dado a por lo menos 30 metros y lograr que termine mostrando **5 o 6** antes de poder hacer otra pregunta. El dado debe recorrer toda la distancia **sin ayuda**, usando solo el impulso del lanzamiento inicial y la gravedad para viajar esos 100 ft (30 m). Si los buscadores golpean accidentalmente a alguien con el dado, vos ganás un bonus de tiempo de [S10, M20, L30] minutos."
+      "nombre": "Maldición del Tambaleo Infinito",
+      "etiquetas": ["dado", "distancia", "bloqueo_pregunta", "bonus_tiempo", "desafio_de_habilidad"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          {
+            "tipo": "tirar_dado"
+          }
+        ],
+        "se_anula_si": {
+          "tipo": "resultado_dado_en",
+          "valores": [5, 6]
+        }
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Tirá un dado. Si sale 5 o 6, esta carta no tiene efecto.",
+        "efecto": "Los buscadores deben tirar un dado a por lo menos 30 metros y lograr que termine mostrando 5 o 6 antes de poder hacer otra pregunta. El dado debe recorrer toda la distancia sin ayuda, usando solo el impulso del lanzamiento inicial y la gravedad. Si los buscadores golpean accidentalmente a alguien con el dado, ganás un bonus de tiempo de 10 minutos."
+      },
+      "motor": {
+        "tipo": "tirada_larga_de_dado",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "tirar_dado_a_distancia",
+            "distancia_minima_metros": 30,
+            "resultados_objetivo": [5, 6],
+            "restricciones": {
+              "sin_ayuda": true,
+              "solo_lanzamiento_inicial_y_gravedad": true
+            }
+          }
+        ],
+        "recompensas": [
+          {
+            "tipo": "bonus_tiempo_por_evento",
+            "evento": "dado_golpea_persona",
+            "minutos": 10
+          }
+        ],
+        "penalizaciones": []
+      }
     },
     {
       "id": 4,
-      "name_en": "Curse Of The Hidden Hangman",
-      "name_es": "Maldición del Ahorcado Oculto",
-      "casting_cost_en": "Discard 2 cards",
-      "casting_cost_es": "Descartá 2 cartas",
-      "effect_en": "Before asking another question or boarding another form of transportation, seeker(s) must be the hider(s) in game of hangman.",
-      "effect_es": "Antes de hacer otra pregunta o subirse a otro medio de transporte, los buscadores deben ser los “escondedores” en una partida de ahorcado contra vos."
+      "nombre": "Maldición del Ahorcado Oculto",
+      "etiquetas": ["descarte", "minijuego", "bloqueo_pregunta", "bloqueo_transporte"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": {
+          "cartas": 2
+        },
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Descartá 2 cartas",
+        "efecto": "Antes de hacer otra pregunta o subirse a otro medio de transporte, los buscadores deben ser los escondedores en una partida de ahorcado contra vos."
+      },
+      "motor": {
+        "tipo": "jugar_ahorcado",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": true
+        },
+        "requisitos": [
+          {
+            "tipo": "jugar_partida",
+            "juego": "ahorcado",
+            "rol_buscadores": "escondedores"
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 5,
-      "name_en": "Curse Of The Overflowing Chalice",
-      "name_es": "Maldición del Cáliz Desbordante",
-      "casting_cost_en": "Discard a card",
-      "casting_cost_es": "Descartá 1 carta",
-      "effect_en": "For the next three questions, you may draw (not keep) an additional card when drawing from the hider deck",
-      "effect_es": "Para las próximas 3 preguntas, cuando robes del mazo del escondedor podés robar **1 carta adicional** (pero **no** la conservás; es solo para mirar y decidir/usar según tus reglas)."
+      "nombre": "Maldición del Cáliz Desbordante",
+      "etiquetas": ["descarte", "modificador_robo", "bonus_escondedor"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": {
+          "cartas": 1
+        },
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Descartá 1 carta",
+        "efecto": "Para las próximas 3 preguntas, cuando robes del mazo del escondedor podés robar 1 carta adicional, pero no la conservás; es solo para mirar."
+      },
+      "motor": {
+        "tipo": "robo_extra_solo_vista_previa",
+        "alcance": "proximas_3_preguntas",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": false,
+          "transporte": false
+        },
+        "requisitos": [],
+        "modificador": {
+          "cartas_extra_robadas": 1,
+          "cartas_extra_conservadas": 0,
+          "modo": "solo_vista_previa"
+        },
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 6,
-      "name_en": "Curse Of The Mediocre Travel Agent",
-      "name_es": "Maldición del Agente de Viajes Mediocre",
-      "casting_cost_en": null,
-      "casting_cost_es": "Sin costo",
-      "effect_en": "Choose any publicly-accessible place within [S0.25, M0.25, L0.50]mi [S0.40, M0.40, 0.50]km of the seeker(s) current location. They cannot currently be on transit. They must go there, and spend at least [S5, M5, L10] minutes there, before asking another question. They must send you at least three photos of them enjoying their vacation, and procure an object to bring you as souvenir. If this souvenir is lost before they can get to you, you are awarded and extra [S30, M45, L60] minutes.",
-      "effect_es": "Elegí cualquier lugar público accesible dentro de [S400, M400, L800] m aprox. de la ubicación actual de los buscadores. No pueden estar arriba de transporte en ese momento. Deben ir ahí y pasar al menos [S5, M5, L10] minutos antes de hacer otra pregunta. Deben enviarte al menos 3 fotos “disfrutando sus vacaciones” y conseguir un objeto para traértelo como souvenir. Si pierden ese souvenir antes de encontrarte, ganás [S30, M45, L60] minutos extra."
+      "nombre": "Maldición del Agente de Viajes Mediocre",
+      "etiquetas": ["desvio", "ubicacion", "souvenir", "bloqueo_pregunta", "foto", "bonus_tiempo"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["foto", "souvenir"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Sin costo",
+        "efecto": "Elegí cualquier lugar público accesible dentro de 400 m de la ubicación actual de los buscadores. No pueden estar arriba de transporte en ese momento. Deben ir ahí y pasar al menos 5 minutos antes de hacer otra pregunta. Deben enviarte al menos 3 fotos disfrutando sus vacaciones y conseguir un objeto para traértelo como souvenir. Si pierden ese souvenir antes de encontrarte, ganás 30 minutos extra."
+      },
+      "motor": {
+        "tipo": "desvio_forzado_y_souvenir",
+        "alcance": "hasta_completar_y_luego_souvenir_hasta_encontrarse",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "ir_a_lugar",
+            "restricciones_lugar": {
+              "acceso_publico": true,
+              "distancia_maxima_metros": 400
+            },
+            "buscadores_no_deben_estar_en_transporte_al_asignar": true
+          },
+          {
+            "tipo": "permanecer_en_lugar",
+            "minutos_minimos": 5
+          },
+          {
+            "tipo": "enviar_fotos",
+            "cantidad_minima": 3,
+            "tema": "vacaciones"
+          },
+          {
+            "tipo": "obtener_objeto",
+            "rol_objeto": "souvenir"
+          }
+        ],
+        "recompensas": [
+          {
+            "tipo": "bonus_tiempo_por_evento",
+            "evento": "souvenir_perdido_antes_de_encontrar_al_escondedor",
+            "minutos": 30
+          }
+        ],
+        "penalizaciones": []
+      }
     },
     {
       "id": 7,
-      "name_en": "Curse Of The Luxury Car",
-      "name_es": "Maldición del Auto de Lujo",
-      "casting_cost_en": "A photo of a car",
-      "casting_cost_es": "Una foto de un auto",
-      "effect_en": "Take a photo of a car. The seekers must take a photo of a more expensive car before asking another question.",
-      "effect_es": "Sacá una foto de un auto. Los buscadores deben sacar una foto de un auto **más caro** antes de hacer otra pregunta."
+      "nombre": "Maldición del Auto de Lujo",
+      "etiquetas": ["foto", "comparacion", "vehiculo", "bloqueo_pregunta"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["foto"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          {
+            "tipo": "sacar_foto",
+            "sujeto": "auto"
+          }
+        ],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Una foto de un auto",
+        "efecto": "Sacá una foto de un auto. Los buscadores deben sacar una foto de un auto más caro antes de hacer otra pregunta."
+      },
+      "motor": {
+        "tipo": "sacar_foto_auto_mas_caro",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "sacar_foto",
+            "sujeto": "auto",
+            "comparacion": {
+              "metrica": "precio",
+              "operador": "mayor_que",
+              "referencia": "sujeto_de_accion_de_lanzamiento"
+            }
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 8,
-      "name_en": "Curse Of The U-Turn",
-      "name_es": "Maldición del Giro en U",
-      "casting_cost_en": "Seekers must be heading the wrong way. (Their next station is further from you then they are.)",
-      "casting_cost_es": "Los buscadores deben estar yendo en la dirección equivocada (su próxima estación está más lejos de vos que donde están ahora).",
-      "effect_en": "Seeker(s) must disembark their current mode of transportation at the next station (as long as that station is served by another form of transit in the next [S30, M30, L60] minutes",
-      "effect_es": "Los buscadores deben bajarse de su transporte actual en la **próxima** estación (siempre que esa estación tenga otro servicio de transporte dentro de [S30, M30, L60] minutos)."
+      "nombre": "Maldición del Giro en U",
+      "etiquetas": ["transporte", "direccion", "movimiento_forzado"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [
+          {
+            "tipo": "direccion_buscadores_respecto_al_escondedor",
+            "debe_ser": "alejandose"
+          }
+        ],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Los buscadores deben estar yendo en la dirección equivocada.",
+        "efecto": "Los buscadores deben bajarse de su transporte actual en la próxima estación siempre que esa estación tenga otro servicio de transporte dentro de 30 minutos."
+      },
+      "motor": {
+        "tipo": "bajada_forzada_en_proxima_estacion",
+        "alcance": "inmediato",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": false,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "bajarse_del_transporte",
+            "estacion": "proxima",
+            "solo_si": {
+              "transporte_alternativo_disponible_dentro_de_minutos": 30
+            }
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 9,
-      "name_en": "Curse Of The Bridge Troll",
-      "name_es": "Maldición del Troll del Puente",
-      "casting_cost_en": "Seekers Must be at least [S1, M5, L30]mi [S0.3, M1.5, L9.1]km from you",
-      "casting_cost_es": "Los buscadores deben estar al menos a [S1, M5, L30] mi ([S2, M10, L50] km aprox.) de vos",
-      "effect_en": "The seekers must ask their next question from under a bridge",
-      "effect_es": "Los buscadores deben hacer su próxima pregunta **debajo de un puente**."
+      "nombre": "Maldición del Troll del Puente",
+      "etiquetas": ["restriccion_de_ubicacion", "proxima_pregunta", "puente"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [
+          {
+            "tipo": "distancia_buscadores_al_escondedor",
+            "minimo_metros": 2000
+          }
+        ],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Los buscadores deben estar al menos a 2000 m de vos",
+        "efecto": "Los buscadores deben hacer su próxima pregunta debajo de un puente, autopista o cualquier paso bajo nivel."
+      },
+      "motor": {
+        "tipo": "restriccion_de_ubicacion_para_proxima_pregunta",
+        "alcance": "proxima_pregunta",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": false,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "hacer_pregunta_desde_ubicacion",
+            "tipos_ubicacion_permitidos": ["debajo_de_puente", "debajo_de_autopista", "paso_bajo_nivel"]
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 10,
-      "name_en": "Curse Of Water Weight",
-      "name_es": "Maldición del Peso del Agua",
-      "casting_cost_en": "Seekers must be within 1,000ft (300 meters) of a body of water",
-      "casting_cost_es": "Los buscadores deben estar a menos de 300 m de un cuerpo de agua",
-      "effect_en": "Seeker(s) must acquire and carry at least 2 liters of liquid per seeker for the rest of your run. They cannot ask another question until they have acquired the liquid. The water may be distributed between seeker as they see fit. If the liquid is lost or abandoned at any point the hider is awarded a [S30, M30, L60] minute bonus",
-      "effect_es": "Los buscadores deben conseguir y cargar al menos **2 litros** de líquido por buscador durante el resto de tu turno/run. No pueden hacer otra pregunta hasta conseguir el líquido. Se puede distribuir entre ellos como quieran. Si el líquido se pierde o se abandona en cualquier momento, ganás un bonus de [S30, M30, L60] minutos."
+      "nombre": "Maldición del Peso del Agua",
+      "etiquetas": ["cargar", "recurso", "resto_del_turno", "bloqueo_pregunta", "bonus_tiempo"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [
+          {
+            "tipo": "distancia_buscadores_a_elemento",
+            "elemento": "cuerpo_de_agua",
+            "maximo_metros": 300
+          }
+        ],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Los buscadores deben estar a menos de 300 m de un cuerpo de agua",
+        "efecto": "Los buscadores deben conseguir y cargar al menos 2 litros de líquido por buscador durante el resto del turno. No pueden hacer otra pregunta hasta conseguir el líquido. Si el líquido se pierde o se abandona en cualquier momento, ganás un bonus de 30 minutos."
+      },
+      "motor": {
+        "tipo": "cargar_liquido_durante_resto_del_turno",
+        "alcance": "resto_del_turno",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "obtener_liquido",
+            "litros_por_buscador": 2
+          },
+          {
+            "tipo": "cargar_liquido",
+            "litros_por_buscador": 2,
+            "duracion": "resto_del_turno"
+          }
+        ],
+        "recompensas": [
+          {
+            "tipo": "bonus_tiempo_por_evento",
+            "evento": "liquido_perdido_o_abandonado",
+            "minutos": 30
+          }
+        ],
+        "penalizaciones": []
+      }
     },
     {
       "id": 11,
-      "name_en": "Curse Of The Jammed Door",
-      "name_es": "Maldición de la Puerta Atascada",
-      "casting_cost_en": "Discard 2 cards",
-      "casting_cost_es": "Descartá 2 cartas",
-      "effect_en": "For the next [S0.5, M1, L3] hours, whenever the seeker(s) want to pass through a doorway into a building, business, train, or other vehicle they must first roll 2 dice. If they do not roll a 7 or higher they cannot enter that space (including through other doorways) any given doorway can be reattempted after [S5, M10, L15] minutes.",
-      "effect_es": "Durante las próximas [S0.5, M1, L3] horas, cada vez que los buscadores quieran pasar por una puerta para entrar a un edificio, negocio, tren u otro vehículo, primero deben tirar **2 dados**. Si no sacan **7 o más**, no pueden entrar a ese lugar (ni por otras puertas). Una puerta específica se puede reintentar después de [S5, M10, L15] minutos."
-    },
-    {
-      "id": 12,
-      "name_en": "Curse Of The Cairn",
-      "name_es": "Maldición del Cairn (Torre de Piedras)",
-      "casting_cost_en": "Build a rock tower",
-      "casting_cost_es": "Construí una torre de piedras",
-      "effect_en": "You have one attempt to stack as many rocks on top of each other as you can in a freestanding tower. Each rock may only touch one other rock. Once you have added a rock to the tower it may not be removed. Before adding another rock, the tower must stand for at least 5 seconds. If at any point any rock other then the base rock touches the ground, your tower has fallen. Once your tower falls tell the seekers how many rocks high your tower was when it last stood for five seconds. The seekers must then construct a rock tower of the same number of rucks, under the same parameters before asking another question. If their tower falls they must restart. The rocks must be found in nature and both teams must  disperse the rocks after building.",
-      "effect_es": "Tenés un intento para apilar tantas piedras como puedas en una torre estable, sin apoyo. Cada piedra solo puede tocar a **una** otra piedra. Una vez que agregás una piedra, no se puede quitar. Antes de agregar otra piedra, la torre debe mantenerse de pie al menos 5 segundos. Si en cualquier momento cualquier piedra que no sea la base toca el suelo, la torre cayó. Cuando caiga, deciles a los buscadores cuántas piedras de altura tenía tu torre la última vez que aguantó 5 segundos. Los buscadores deben construir una torre con la **misma cantidad** de piedras, con las mismas reglas, antes de hacer otra pregunta. Si se les cae, reinician. Las piedras deben ser encontradas en la naturaleza y ambos equipos deben dispersarlas al terminar."
-    },
-    {
-      "id": 13,
-      "name_en": "Curse Of The Urban Explorer",
-      "name_es": "Maldición del Explorador Urbano",
-      "casting_cost_en": "Discard 2 cards",
-      "casting_cost_es": "Descartá 2 cartas",
-      "effect_en": "For the rest of the run seekers cannot ask question when they are on transit or in a train station",
-      "effect_es": "Durante el resto del turno/run, los buscadores no pueden hacer preguntas mientras estén en transporte o dentro de una estación de tren."
-    },
-    {
-      "id": 14,
-      "name_en": "Curse Of The Impressionable Consumer",
-      "name_es": "Maldición del Consumidor Influenciable",
-      "casting_cost_en": "The seekers next question is free",
-      "casting_cost_es": "La próxima pregunta de los buscadores es gratis",
-      "effect_en": "Seekers must enter and gain admission (if applicable) to a location or buy a product that they saw an advertisement for before asking another question. This advertisement musts be found out in the world and must be at least 100ft (30m) from the product or location itself.",
-      "effect_es": "Antes de hacer otra pregunta, los buscadores deben entrar y conseguir admisión (si aplica) a un lugar, o comprar un producto, que hayan visto anunciado. El anuncio debe encontrarse en el mundo real y estar al menos 30 m del producto o del lugar."
-    },
-    {
-      "id": 15,
-      "name_en": "Curse Of The Egg Partner",
-      "name_es": "Maldición del Compañero Huevo",
-      "casting_cost_en": "Discard two cards",
-      "casting_cost_es": "Descartá 2 cartas",
-      "effect_en": "Seeker(s) must acquire an egg before asking another question. This egg is now treated as an official team member of the seekers. If any team members are abandoned or killed (defined as crack in the eggs case) before the end of your run you are awarded an extra [S30 M45 L60] minutes. This course cannot be played during the endgame.",
-      "effect_es": "Antes de hacer otra pregunta, los buscadores deben conseguir un **huevo**. Ese huevo pasa a ser un miembro oficial del equipo. Si cualquier miembro del equipo es abandonado o muere (definido como que se rompe la cáscara del huevo) antes de terminar tu turno/run, ganás [S30, M45, L60] minutos extra. Esta maldición no se puede jugar durante el endgame."
-    },
-    {
-      "id": 16,
-      "name_en": "Curse Of The Distant Cuisine",
-      "name_es": "Maldición de la Cocina Lejana",
-      "casting_cost_en": "You must be at the restaurant",
-      "casting_cost_es": "Tenés que estar en el restaurante",
-      "effect_en": "Find a restaurant within your zone that explicitly serves food from a specific foreign country. The seekers must visit a restaurant serving food from a country that is equal or great distance away before asking another question",
-      "effect_es": "Encontrá un restaurante dentro de tu zona que explícitamente sirva comida de un país extranjero específico. Los buscadores deben visitar un restaurante que sirva comida de un país que esté a una distancia **igual o mayor** (más lejos) antes de hacer otra pregunta."
+      "nombre": "Maldición de la Puerta Atascada",
+      "etiquetas": ["descarte", "duracion", "chequeo_con_dados", "restriccion_de_entrada"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": {
+          "cartas": 2
+        },
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Descartá 2 cartas",
+        "efecto": "Durante los próximos 30 minutos, cada vez que los buscadores quieran entrar a un edificio, negocio, tren u otro vehículo deben tirar 2 dados. Si no sacan 7 o más, no pueden entrar. Pueden volver a intentar esa puerta después de 5 minutos."
+      },
+      "motor": {
+        "tipo": "chequeo_con_dados_para_entrar",
+        "alcance": "duracion",
+        "duracion_minutos": 30,
+        "bloquea": {
+          "preguntas": false,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "superar_chequeo_de_entrada",
+            "aplica_al_entrar_en": ["edificio", "negocio", "tren", "vehiculo"],
+            "chequeo": {
+              "tipo": "tirar_dados_y_sumar",
+              "cantidad_dados": 2,
+              "total_minimo": 7
+            },
+            "reintentar_misma_entrada_despues_de_minutos": 5
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 17,
-      "name_en": "Curse Of The Right Turn",
-      "name_es": "Maldición de la Vuelta a la Derecha",
-      "casting_cost_en": "Discard a card",
-      "casting_cost_es": "Descartá 1 carta",
-      "effect_en": "For the next [S20, M40, L60] minutes the seekers can only turn right at any street intersection. If at any point they find themselves in dead end where they cannot continue forward or turn right for another 1,000ft (304m) they must do a full 180. A right turn is defined as a road at any angle that veers to the right of the seekers",
-      "effect_es": "Durante los próximos [S20, M40, L60] minutos, los buscadores solo pueden doblar a la **derecha** en cualquier intersección. Si llegan a un callejón sin salida donde no pueden seguir derecho ni doblar a la derecha por otros 300m, deben hacer un giro de 180°. Se considera “giro a la derecha” cualquier calle que se desvíe hacia la derecha respecto del sentido de marcha."
+      "nombre": "Maldición de la Vuelta a la Derecha",
+      "etiquetas": ["descarte", "regla_de_movimiento", "duracion", "navegacion"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": {
+          "cartas": 1
+        },
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Descartá 1 carta",
+        "efecto": "Durante los próximos 20 minutos, los buscadores solo pueden doblar a la derecha en cualquier intersección."
+      },
+      "motor": {
+        "tipo": "restriccion_de_giro",
+        "alcance": "duracion",
+        "duracion_minutos": 20,
+        "bloquea": {
+          "preguntas": false,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "regla_de_movimiento",
+            "regla": "solo_doblar_a_la_derecha_en_intersecciones"
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 18,
-      "name_en": "Curse Of The Labyrinth",
-      "name_es": "Maldición del Laberinto",
-      "casting_cost_en": "Draw a maze",
-      "casting_cost_es": "Dibujá un laberinto",
-      "effect_en": "Spend up to [S10, M20, L30] minutes drawing a solvable maze and send a photo of it to the seekers. You cannot use the internet to research maze designs. The seekers musts solve the maze before asking another question.",
-      "effect_es": "Gastá hasta [S10, M20, L30] minutos dibujando un laberinto resoluble y enviá una foto a los buscadores. No podés usar internet para investigar diseños. Los buscadores deben resolver el laberinto antes de hacer otra pregunta."
+      "nombre": "Maldición del Laberinto",
+      "etiquetas": ["laberinto", "rompecabezas", "bloqueo_pregunta", "verificacion"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["resolucion_laberinto", "foto"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          {
+            "tipo": "dibujar_laberinto",
+            "debe_ser_resoluble": true,
+            "maximo_minutos": 10,
+            "internet_para_investigar_permitido": false
+          },
+          {
+            "tipo": "enviar_foto"
+          }
+        ],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Dibujá un laberinto",
+        "efecto": "Gastá hasta 10 minutos dibujando un laberinto resoluble y enviá una foto a los buscadores. No podés usar internet para investigar diseños. Los buscadores deben resolver el laberinto antes de hacer otra pregunta."
+      },
+      "motor": {
+        "tipo": "resolver_laberinto",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "resolver_laberinto"
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 19,
-      "name_en": "Curse Of The Bird Guide",
-      "name_es": "Maldición de la Guía de Aves",
-      "casting_cost_en": "Film a bird",
-      "casting_cost_es": "Filmá un pájaro",
-      "effect_en": "You have one chance to film a bird for as long as possible. Up to [S5 M10 L15] minutes straight, if at any point the bird leaves the frame your timer is stopped. The seekers must then film a bird for the same amount of time or longer",
-      "effect_es": "Tenés una oportunidad para filmar un pájaro durante el mayor tiempo posible: hasta [S5, M10, L15] minutos seguidos. Si en algún momento el pájaro sale del encuadre, tu cronómetro se detiene. Los buscadores deben filmar un pájaro durante el **mismo** tiempo o más."
-    },
-    {
-      "id": 20,
-      "name_en": "Curse Of Spotty Memory",
-      "name_es": "Maldición de la Memoria Intermitente",
-      "casting_cost_en": "Discard a time bonus card",
-      "casting_cost_es": "Descartá una carta de bonus de tiempo",
-      "effect_en": "For the rest of the run, one random category of questions will be disabled at all times. After this curse is played seeker(s) must roll a die to determine the category of questions to be disabled. The catergy remain disabled until the next question is asked at which point a die is rolled again to choose an e category. The same category can be disabled multiple times in a row",
-      "effect_es": "Durante el resto del turno/run, una categoría aleatoria de preguntas queda deshabilitada en todo momento. Después de jugar esta maldición, los buscadores tiran un dado para determinar qué categoría queda deshabilitada. Esa categoría permanece deshabilitada hasta que se haga la próxima pregunta; en ese momento se vuelve a tirar el dado para elegir otra categoría. La misma categoría puede salir varias veces seguidas."
-    },
-    {
-      "id": 21,
-      "name_en": "Curse Of The Lemon Phylactery",
-      "name_es": "Maldición del Filacterio de Limón",
-      "casting_cost_en": "Discard a powerup card",
-      "casting_cost_es": "Descartá una carta de power-up",
-      "effect_en": "Before asking another question the seeker(s) must each find a lemon and affix it to their outermost layer of their clothes or skin. If at any point one of these lemons is no longer touching a seeker you are awarded  [S30, M45, L60] minutes. This curse cannot be played during the endgame.",
-      "effect_es": "Antes de hacer otra pregunta, cada buscador debe encontrar un limón y fijarlo a la capa más externa de su ropa o a la piel. Si en algún momento alguno de esos limones deja de estar tocando a un buscador, ganás [S30, M45, L60] minutos. Esta maldición no se puede jugar durante el endgame."
-    },
-    {
-      "id": 22,
-      "name_en": "Curse Of The Drained Brain",
-      "name_es": "Maldición de la Mente Drenada",
-      "casting_cost_en": "Discard your hand",
-      "casting_cost_es": "Descartá tu mano",
-      "effect_en": "Choose three questions in different categories. The seekers cannot ask those questions for the rest of the run.",
-      "effect_es": "Elegí 3 preguntas en categorías diferentes. Los buscadores no pueden hacer esas preguntas durante el resto del turno/run."
-    },
-    {
-      "id": 23,
-      "name_en": "Curse Of The Ransom Note",
-      "name_es": "Maldición de la Nota de Rescate",
-      "casting_cost_en": "Spell out \"Ransom Note\" as a ransom note (without using this card)",
-      "casting_cost_es": "Escribí \"Ransom Note\" como nota de rescate (sin usar esta carta como plantilla)",
-      "effect_en": "The next question that the seekers ask must be composed of words and letters cut out of any printed material. The question must be coherent and include at least 5 words.",
-      "effect_es": "La próxima pregunta que hagan los buscadores debe estar compuesta por palabras y letras recortadas de cualquier material impreso. La pregunta debe ser coherente e incluir al menos 5 palabras."
+      "nombre": "Maldición de la Guía de Aves",
+      "etiquetas": ["ave", "video", "igualar", "bloqueo_pregunta", "desafio_temporizado"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["video"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          {
+            "tipo": "filmar_ave",
+            "maximo_minutos": 5,
+            "cronometro_se_detiene_si_sale_del_cuadro": true
+          }
+        ],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Filmá un pájaro",
+        "efecto": "Tenés una oportunidad para filmar un pájaro durante el mayor tiempo posible: hasta 5 minutos seguidos. Si sale del encuadre, tu cronómetro se detiene. Los buscadores deben filmar un pájaro durante el mismo tiempo o más."
+      },
+      "motor": {
+        "tipo": "igualar_duracion_de_filmacion_de_ave",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "filmar_ave",
+            "duracion_minima_referencia": "duracion_registrada_en_accion_de_lanzamiento",
+            "operador_comparacion": "mayor_o_igual"
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     },
     {
       "id": 24,
-      "name_en": "Curse Of The Gambler's Feet",
-      "name_es": "Maldición de los Pies del Apostador",
-      "casting_cost_en": "Roll a die if its even number this curse has no effect",
-      "casting_cost_es": "Tirá un dado; si sale un número par, esta maldición no tiene efecto.",
-      "effect_en": "For the next [S20, M40, L60] minutes seekers must roll a die before they take any steps in any direction, they may take that many steps before rolling again",
-      "effect_es": "Durante los próximos [S20, M40, L60] minutos, los buscadores deben tirar un dado antes de dar cualquier paso en cualquier dirección. Pueden dar esa cantidad de pasos antes de volver a tirar."
+      "nombre": "Maldición de los Pies del Apostador",
+      "etiquetas": ["dado", "regla_de_movimiento", "duracion"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          {
+            "tipo": "tirar_dado"
+          }
+        ],
+        "se_anula_si": {
+          "tipo": "resultado_dado_es_par"
+        }
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Tirá un dado; si sale un número par, esta maldición no tiene efecto.",
+        "efecto": "Durante los próximos 20 minutos, los buscadores deben tirar un dado antes de dar cualquier paso. Pueden dar esa cantidad de pasos antes de volver a tirar."
+      },
+      "motor": {
+        "tipo": "tirar_antes_de_caminar",
+        "alcance": "duracion",
+        "duracion_minutos": 20,
+        "bloquea": {
+          "preguntas": false,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "regla_de_movimiento",
+            "regla": "tirar_dado_antes_de_moverse",
+            "pasos_permitidos_igual_al_resultado_del_dado": true
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
+    },
+    {
+      "id": 25,
+      "nombre": "Maldición de la bandera",
+      "etiquetas": ["foto", "bandera", "igualar", "bloqueo_pregunta", "verificacion"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["foto"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Sin costo",
+        "efecto": "Los buscadores deben encontrar algo con tres franjas horizontales celeste-blanco-celeste, como la bandera argentina, y enviarte una foto antes de poder hacer otra pregunta. No tiene que ser una bandera real, pero la secuencia debe ser horizontal. No puede ser una imagen mostrada en un teléfono celular."
+      },
+      "motor": {
+        "tipo": "foto_colores_bandera_argentina",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "sacar_foto",
+            "patron_colores": ["celeste", "blanco", "celeste"],
+            "orden_importa": true,
+            "restricciones": {
+              "no_desde_pantalla_de_celular": true
+            }
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     }
   ]
 }
