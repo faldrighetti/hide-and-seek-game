@@ -48,15 +48,27 @@
             <ion-card-title>Voto FOUND</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <ion-button
-              size="small"
-              fill="outline"
-              *ngFor="let team of vm.standings"
-              (click)="voteFound(team.id)"
-            >
-              Vote {{ team.id }}
-            </ion-button>
-            <p>Votos: {{ vm.currentTurn.foundVotes.join(', ') || 'Sin votos' }}</p>
+            <div class="actions">
+              <ion-button size="small" fill="outline" color="success" (click)="setEndgameActive(true)">
+                Activar Endgame
+              </ion-button>
+              <ion-button size="small" fill="outline" color="medium" (click)="setEndgameActive(false)">
+                Desactivar Endgame
+              </ion-button>
+            </div>
+            <p>Endgame: {{ vm.currentTurn.endgameActive ? 'Activo' : 'Inactivo' }}</p>
+            <ng-container *ngIf="lobby$ | async as lobby">
+              <ion-button
+                size="small"
+                fill="outline"
+                *ngFor="let seat of getSeekerSeats(vm, lobby)"
+                (click)="voteFound(seat.id)"
+              >
+                Vote {{ seat.displayName }} ({{ seat.teamId }})
+              </ion-button>
+              <p>Votos (seatId): {{ vm.currentTurn.foundVotes.join(', ') || 'Sin votos' }}</p>
+            </ng-container>
+            <p>FOUND confirmado: {{ vm.currentTurn.foundConfirmed ? 'Sí' : 'No' }}</p>
           </ion-card-content>
         </ion-card>
       </ion-col>

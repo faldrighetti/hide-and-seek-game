@@ -32,6 +32,7 @@ export interface TurnStatus {
   pendingQuestion: boolean;
   expirations: number;
   foundVotes: string[];
+  foundConfirmed: boolean;
   endgameEligible: boolean;
   endgameActive: boolean;
 }

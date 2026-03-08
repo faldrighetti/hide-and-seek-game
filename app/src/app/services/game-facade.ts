@@ -63,6 +63,7 @@ const buildBlueprint = (
       pendingQuestion: false,
       expirations: 0,
       foundVotes: [],
+      foundConfirmed: false,
       endgameEligible: false,
       endgameActive: false,
     },
@@ -222,18 +223,59 @@ export class GameFacadeService {
     });
   }
 
-  voteFound(teamId: string): void {
+  voteFound(seatId: string): void {
     const current = this.blueprintSubject.value;
-    const votes = current.currentTurn.foundVotes.includes(teamId)
+    const lobby = this.lobbySubject.value;
+
+    if (!lobby || !current.currentTurn.endgameActive) {
+      return;
+    }
+
+    const seat = lobby.seats.find(item => item.id === seatId);
+    if (!seat || seat.teamId === current.currentTurn.hiderTeamId) {
+      return;
+    }
+
+    const votes = current.currentTurn.foundVotes.includes(seatId)
       ? current.currentTurn.foundVotes
-      : [...current.currentTurn.foundVotes, teamId];
+      : [...current.currentTurn.foundVotes, seatId];
 
     this.blueprintSubject.next({
       ...current,
       currentTurn: {
         ...current.currentTurn,
         foundVotes: votes,
+        foundConfirmed: this.isFoundConfirmed(current, lobby, votes),
       },
     });
+  }
+
+  setEndgameActive(active: boolean): void {
+    const current = this.blueprintSubject.value;
+
+    this.blueprintSubject.next({
+      ...current,
+      currentTurn: {
+        ...current.currentTurn,
+        endgameActive: active,
+        foundVotes: active ? current.currentTurn.foundVotes : [],
+        foundConfirmed: active ? current.currentTurn.foundConfirmed : false,
+      },
+    });
+  }
+
+  private isFoundConfirmed(current: GameBlueprint, lobby: LobbyState, votes: string[]): boolean {
+    const seekerSeats = lobby.seats.filter(seat => seat.teamId !== current.currentTurn.hiderTeamId);
+
+    if (current.mode === 'INDIVIDUAL_3' || current.mode === 'TEAMS_2v2') {
+      const seekerSeatIds = seekerSeats.map(seat => seat.id);
+      return seekerSeatIds.length > 0 && seekerSeatIds.every(seekerSeatId => votes.includes(seekerSeatId));
+    }
+
+    const seekerTeamIds = [...new Set(seekerSeats.map(seat => seat.teamId))];
+    return (
+      seekerTeamIds.length > 0
+      && seekerTeamIds.every(teamId => seekerSeats.some(seat => seat.teamId === teamId && votes.includes(seat.id)))
+    );
   }
 }

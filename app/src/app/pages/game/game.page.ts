@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { GameFacadeService } from '../../services/game-facade';
-import { GameBlueprint } from '../../models/core-model';
+import { GameBlueprint, LobbyState, Seat } from '../../models/core-model';
 
 @Component({
   selector: 'app-game',
@@ -16,6 +16,7 @@ export class GamePage {
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
+  readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$;
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
@@ -32,8 +33,20 @@ export class GamePage {
     this.gameFacade.setPhase(phase);
   }
 
-  voteFound(teamId: string): void {
-    this.gameFacade.voteFound(teamId);
+   voteFound(seatId: string): void {
+    this.gameFacade.voteFound(seatId);
+  }
+
+  setEndgameActive(active: boolean): void {
+    this.gameFacade.setEndgameActive(active);
+  }
+
+  getSeekerSeats(vm: GameBlueprint, lobby: LobbyState | null): Seat[] {
+    if (!lobby) {
+      return [];
+    }
+
+    return lobby.seats.filter(seat => seat.teamId !== vm.currentTurn.hiderTeamId);
   }
 
   formatTime(seconds: number): string {
