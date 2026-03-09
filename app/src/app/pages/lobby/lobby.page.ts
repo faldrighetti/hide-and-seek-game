@@ -1,18 +1,21 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GameFacadeService } from '../../services/game-facade';
-import { LobbyState, Seat } from '../../models/core-model';
+import { GameBlueprint, LobbyState, Seat } from '../../models/core-model';
 
 interface TeamGroup {
   id: string;
   members: Seat[];
+  requiredSeats: number;
+  isComplete: boolean;
 }
 
 interface LobbyViewModel {
   lobby: LobbyState;
   teams: TeamGroup[];
+  hasCompleteTeams: boolean;
 }
 
 @Component({
@@ -31,32 +34,28 @@ export class LobbyPage {
     map(lobby => (lobby?.gameId === this.gameId ? lobby : null)),
   );
 
-    readonly vm$: Observable<LobbyViewModel | null> = this.lobby$.pipe(
-    map(lobby => {
+  readonly vm$: Observable<LobbyViewModel | null> = combineLatest([
+    this.lobby$,
+    this.gameFacade.blueprint$,
+    ]).pipe(
+    map(([lobby, blueprint]) => {
       if (!lobby) {
         return null;
       }
 
-      const teamsMap = new Map<string, Seat[]>();
-      for (const seat of lobby.seats) {
-        const members = teamsMap.get(seat.teamId) ?? [];
-        members.push(seat);
-        teamsMap.set(seat.teamId, members);
-      }
+      const teams = this.buildTeamGroups(lobby, blueprint);
+      const hasCompleteTeams = teams.every(team => team.isComplete);
 
-      const teams = Array.from(teamsMap.entries())
-        .map(([id, members]) => ({
-          id,
-          members: [...members].sort((a, b) => a.displayName.localeCompare(b.displayName)),
-        }))
-        .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-
-      return { lobby, teams };
+      return { lobby, teams, hasCompleteTeams };
     }),
   );
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
+  }
+
+  assignSeatToTeam(seatId: string, teamId: string): void {
+    this.gameFacade.assignSeatToTeam(this.gameId, seatId, teamId);
   }
 
   randomizeTeams(): void {
@@ -69,5 +68,26 @@ export class LobbyPage {
 
   startGame(): void {
     this.router.navigate(['/game', this.gameId]);
+  }
+
+  private buildTeamGroups(lobby: LobbyState, blueprint: GameBlueprint): TeamGroup[] {
+    const teamIds = blueprint.standings
+      .map(team => team.id)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const requiredSeats = Math.floor(lobby.seats.length / teamIds.length);
+
+    return teamIds.map(teamId => {
+      const members = lobby.seats
+        .filter(seat => seat.teamId === teamId)
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+      return {
+        id: teamId,
+        members,
+        requiredSeats,
+        isComplete: members.length === requiredSeats,
+      };
+    });
   }
 }

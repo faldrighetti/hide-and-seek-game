@@ -20,6 +20,19 @@
             <p class="player-chip__name">{{ seat.displayName }}</p>
             <p class="player-chip__seat">Jugador {{ index + 1 }}</p>
             <ion-badge *ngIf="seat.host" color="primary">Host</ion-badge>
+            <ion-item lines="none" class="player-chip__team-select">
+              <ion-select
+                label="Equipo"
+                [disabled]="vm.lobby.teamsLocked"
+                [value]="seat.teamId"
+                (ionChange)="assignSeatToTeam(seat.id, $event.detail.value)"
+              >
+                <ion-select-option value="">Sin asignar</ion-select-option>
+                <ion-select-option *ngFor="let team of vm.teams" [value]="team.id">
+                  Equipo {{ team.id }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
           </article>
         </div>
 
@@ -28,10 +41,14 @@
             <article class="team-row" *ngFor="let team of vm.teams">
               <h3>Equipo {{ team.id }}</h3>
               <p>
-                <span *ngFor="let member of team.members; let last = last">
-                  {{ member.displayName }}<span *ngIf="!last"> · </span>
-                </span>
+                <ng-container *ngIf="team.members.length; else emptyTeam">
+                  <span *ngFor="let member of team.members; let last = last">
+                    {{ member.displayName }}<span *ngIf="!last"> · </span>
+                  </span>
+                </ng-container>
+                <ng-template #emptyTeam>Sin jugadores</ng-template>
               </p>
+              <ion-note color="medium">{{ team.members.length }}/{{ team.requiredSeats }}</ion-note>
             </article>
           </div>
 
@@ -40,7 +57,9 @@
             <ion-button expand="block" fill="outline" (click)="toggleLock()">
               {{ vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)' }}
             </ion-button>
-            <ion-button expand="block" (click)="startGame()">Iniciar juego</ion-button>
+            <ion-button expand="block" [disabled]="!vm.hasCompleteTeams" (click)="startGame()">
+              Iniciar juego
+            </ion-button>
           </div>
         </div>
       </ion-card-content>

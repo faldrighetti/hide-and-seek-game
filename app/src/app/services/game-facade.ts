@@ -96,6 +96,12 @@ const buildBlueprint = (
 
 const randomGameId = (): string => Math.random().toString(36).slice(2, 8).toUpperCase();
 
+const PRESET_PLAYERS_BY_MODE: Record<GameMode, string[]> = {
+  INDIVIDUAL_3: ['Fede', 'Nico', 'Nacho'],
+  TEAMS_2v2: ['Fede', 'Nico', 'Nacho', 'Hugo'],
+  TEAMS_2v2v2: ['Fede', 'Nico', 'Nacho', 'Hugo', 'Gonza', 'Adri'],
+};
+
 @Injectable({ providedIn: 'root' })
 export class GameFacadeService {
   private readonly games = new Map<string, { blueprint: GameBlueprint; lobby: LobbyState }>();
@@ -117,11 +123,18 @@ export class GameFacadeService {
   ): LobbyState {
     const gameId = randomGameId();
     const blueprint = buildBlueprint(mode, turnsPerTeam, winCondition, ukMode);
+    const fallbackHostName = hostDisplayName.trim() || 'Fede';
+    const presetPlayers = PRESET_PLAYERS_BY_MODE[mode] ?? [fallbackHostName];
     const normalizedHostName = hostDisplayName.trim() || 'Host';
     const lobby: LobbyState = {
       gameId,
       joinLink:  `${window.location.origin}/join/${gameId}`,
-      seats: [{ id: 'seat-host', displayName: normalizedHostName, teamId: 'A', host: true }],
+      seats: presetPlayers.map((displayName, index) => ({
+        id: `seat-${index + 1}`,
+        displayName,
+        teamId: '',
+        host: displayName === 'Fede',
+      })),
       teamsLocked: false,
     };
 
@@ -194,6 +207,21 @@ export class GameFacadeService {
     entry.lobby = {
       ...entry.lobby,
       seats: shuffled.map((seat, index) => ({ ...seat, teamId: teams[index % teams.length] })),
+    };
+
+    this.games.set(gameId, entry);
+    this.lobbySubject.next(entry.lobby);
+  }
+
+  assignSeatToTeam(gameId: string, seatId: string, teamId: string): void {
+    const entry = this.games.get(gameId);
+    if (!entry || entry.lobby.teamsLocked) {
+      return;
+    }
+
+    entry.lobby = {
+      ...entry.lobby,
+      seats: entry.lobby.seats.map(seat => (seat.id === seatId ? { ...seat, teamId } : seat)),
     };
 
     this.games.set(gameId, entry);
