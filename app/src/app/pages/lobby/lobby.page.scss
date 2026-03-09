@@ -1,4 +1,80 @@
+.lobby-card {
+  border-radius: 16px;
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.player-chip {
+  background: #f7f8fc;
+  border: 1px solid #e1e4ef;
+  border-radius: 12px;
+  padding: 0.75rem;
+
+  &__name {
+    margin: 0;
+    font-weight: 700;
+    color: #1aaf5d;
+  }
+
+  &__seat {
+    margin: 0.25rem 0 0.5rem;
+    color: #1c1c1c;
+    font-weight: 600;
+  }
+}
+
+.teams-and-actions {
+  display: grid;
+  grid-template-columns: 1.5fr minmax(220px, 0.8fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.teams-list {
+  border-top: 1px solid #e8e8e8;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.team-row {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #ececec;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  p {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
 .actions {
   display: grid;
   gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .teams-and-actions {
+    grid-template-columns: 1fr;
+  }
 }

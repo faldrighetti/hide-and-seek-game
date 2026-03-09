@@ -8,27 +8,40 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
-  <ng-container *ngIf="lobby$ | async as lobby; else emptyState">
-    <ion-card>
+  <ng-container *ngIf="vm$ | async as vm; else emptyState">
+    <ion-card class="lobby-card">
       <ion-card-header>
-        <ion-card-title>Seats & Teams</ion-card-title>
+        <ion-card-title>Participantes y equipos</ion-card-title>
       </ion-card-header>
-      <ion-card-content>
-        <ion-list>
-          <ion-item *ngFor="let seat of lobby.seats">
-            <ion-label>
-              <h2>{{ seat.displayName }} <ion-badge *ngIf="seat.host">HOST</ion-badge></h2>
-              <p>Team {{ seat.teamId }}</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
 
-        <div class="actions">
-          <ion-button expand="block" fill="outline" (click)="randomizeTeams()">Asignación random</ion-button>
-          <ion-button expand="block" fill="outline" (click)="toggleLock()">
-            {{ lobby.teamsLocked ? 'Unlock teams' : 'Lock teams (host)' }}
-          </ion-button>
-          <ion-button expand="block" (click)="startGame()">Start game (host)</ion-button>
+      <ion-card-content>
+        <div class="players-grid">
+          <article class="player-chip" *ngFor="let seat of vm.lobby.seats; index as index">
+            <p class="player-chip__name">{{ seat.displayName }}</p>
+            <p class="player-chip__seat">Jugador {{ index + 1 }}</p>
+            <ion-badge *ngIf="seat.host" color="primary">Host</ion-badge>
+          </article>
+        </div>
+
+        <div class="teams-and-actions">
+          <div class="teams-list">
+            <article class="team-row" *ngFor="let team of vm.teams">
+              <h3>Equipo {{ team.id }}</h3>
+              <p>
+                <span *ngFor="let member of team.members; let last = last">
+                  {{ member.displayName }}<span *ngIf="!last"> · </span>
+                </span>
+              </p>
+            </article>
+          </div>
+
+          <div class="actions">
+            <ion-button expand="block" fill="outline" (click)="randomizeTeams()">Asignar al azar</ion-button>
+            <ion-button expand="block" fill="outline" (click)="toggleLock()">
+              {{ vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)' }}
+            </ion-button>
+            <ion-button expand="block" (click)="startGame()">Iniciar juego</ion-button>
+          </div>
         </div>
       </ion-card-content>
     </ion-card>
