@@ -1,0 +1,321 @@
+{
+  "barrios": [
+    {
+      "id": 1,
+      "nombre": "Retiro",
+      "limites": ["Córdoba", "Cecilia Grierson", "Uruguay", "Montevideo", "Juan Facundo Quiroga", "Juan Biblioni", "Ramón Castillo", "Río de la Plata"]
+    },
+    {
+      "id": 2,
+      "nombre": "Constitución",
+      "limites": ["Independencia", "Piedras", "Caseros", "General Hornos", "Doctor Enrique Finochietto", "Guanahani", "Ituzaingó", "Paracas", "Entre Ríos"]
+    },
+    {
+      "id": 3,
+      "nombre": "Montserrat",
+      "limites": ["Rivadavia", "Leandro N. Alem", "Bartolomé Mitre", "Rosales", "La Rábida", "Ingeniero Huergo", "Chile", "Piedras", "Independencia", "Entre Ríos"]
+    },
+    {
+      "id": 4,
+      "nombre": "San Nicolás",
+      "limites": ["Córdoba", "Eduardo Madero", "La Rábida Norte", "Rivadavia", "Callao"]
+    },
+    {
+      "id": 5,
+      "nombre": "San Telmo",
+      "limites": ["Chile", "Ingeniero Huergo", "Brasil", "Paseo Colón", "Martín García", "Defensa", "Caseros", "Piedras"]
+    },
+    {
+      "id": 6,
+      "nombre": "Puerto Madero",
+      "limites": ["Cecilia Grierson", "Río de la Plata", "Límite catastral sur de la Reserva Ecológica", "Paredón de la Costanera Sur", "Elvira Rawson de Dellepiane", "Ingeniero Huergo", "Eduardo Madero"]
+    },
+    {
+      "id": 7,
+      "nombre": "Recoleta",
+      "limites": ["Ramón Castillo", "Juan Biblioni", "Juan Facundo Quiroga", "Montevideo", "Uruguay", "Córdoba", "Mario Bravo", "Coronel Díaz", "Las Heras", "Tagle", "Vías del F.G.B.M", "Jerónimo Salguero", "Río de la Plata"]
+    },
+    {
+      "id": 8,
+      "nombre": "Balvanera",
+      "limites": ["Independencia", "Entre Ríos", "Callao", "Córdoba", "Gallo", "Díaz Vélez", "Sánchez de Bustamante", "Sánchez de Loria"]
+    },
+    {
+      "id": 9,
+      "nombre": "San Cristóbal",
+      "limites": ["Independencia", "Entre Ríos", "Juan de Garay", "Sánchez de Loria"]
+    },
+    {
+      "id": 10,
+      "nombre": "Barracas",
+      "limites": ["Regimiento de Patricios", "Defensa", "Caseros", "General Hornos", "Doctor Enrique Finochietto", "Guanahani", "Ituzaingó", "Paracas", "Vélez Sarsfield", "Amancio Alcorta", "Lafayette", "Miravé", "Lavardén", "Zavaleta", "Iguazú", "Riachuelo"]
+    },
+    {
+      "id": 11,
+      "nombre": "La Boca",
+      "limites": ["Martín García", "Paseo Colón", "Brasil", "Elvira Rawson de Dellepiane", "Paredón de la Costanera Sur", "Límite catastral sur de la Reserva Ecológica", "Río de la Plata", "Riachuelo", "Regimiento de Patricios"]
+    },
+    {
+      "id": 12,
+      "nombre": "Nueva Pompeya",
+      "limites": ["Cnel. Esteban Bonorino", "Fernández de la Cruz", "Agustín de Vedia", "Riestra", "Del Barco Centenera", "Cobo", "Caseros", "Almafuerte", "José Cortejarena", "Cachi", "Ancaste", "Amancio Alcorta", "Iguazú", "Riachuelo"]
+    },
+    {
+      "id": 13,
+      "nombre": "Parque Patricios",
+      "limites": ["Juan de Garay", "Entre Ríos", "Vélez Sársfield", "Amancio Alcorta", "Lafayette", "Miravé", "Lavardén", "Cachi", "Almafuerte", "Sánchez de Loria"]
+    },
+    {
+      "id": 14,
+      "nombre": "Almagro",
+      "limites": ["Río de Janeiro", "Rivadavia", "Avenida La Plata", "Independencia", "Sánchez de Loria", "Sánchez de Bustamante", "Díaz Vélez", "Gallo", "Córdoba", "Estado de Israel", "Ángel Gallardo"]
+    },
+    {
+      "id": 15,
+      "nombre": "Boedo",
+      "limites": ["Independencia", "Sánchez de Loria", "Caseros", "Avenida La Plata"]
+    },
+    {
+      "id": 16,
+      "nombre": "Caballito",
+      "limites": ["Juan B. Justo", "Avenida San Martín", "Gaona", "Ángel Gallardo", "Río de Janeiro", "Rivadavia", "Avenida La Plata", "Directorio", "Curapaligüe", "Donato Álvarez"]
+    },
+    {
+      "id": 17,
+      "nombre": "Flores",
+      "limites": ["Gaona", "Donato Álvarez", "Curapaligüe", "Directorio", "Castañares", "Camilo Torres y Tenorio", "Riestra", "Agustín de Vedia", "Perito Moreno", "Autopista Luis Dellepiane", "Lacarra", "Portela", "Cuenca"]
+    },
+    {
+      "id": 18,
+      "nombre": "Parque Chacabuco",
+      "limites": ["Avenida La Plata", "Cobo", "Del Barco Centenera", "Riestra", "Pte. Camilo Torres y Tenorio", "Curapaligüe", "Castañares", "Carabobo"]
+    },
+    {
+      "id": 19,
+      "nombre": "Villa Soldati",
+      "limites": ["Cnel. Esteban Bonorino", "Fernández de la Cruz", "Varela", "Perito Moreno", "Castañares", "Escalada", "Cnel. Roca", "Riachuelo"]
+    },
+    {
+      "id": 20,
+      "nombre": "Villa Lugano",
+      "limites": ["Eva Perón", "Escalada", "Cnel. Roca", "Lisandro de la Torre", "Unanué", "Avenida General Paz"]
+    },
+    {
+      "id": 21,
+      "nombre": "Villa Riachuelo",
+      "limites": ["Avenida General Paz", "Unanué", "Lisandro de la Torre", "Cnel. Roca", "Escalada", "Riachuelo"]
+    },
+    {
+      "id": 22,
+      "nombre": "Parque Avellaneda",
+      "limites": ["Juan Bautista Alberdi", "Escalada", "Autopista Luis Dellepiane", "Mozart", "Santiago de Compostela", "Asturias", "Castañares", "Lacarra", "Portela", "Directorio", "Mariano Acosta"]
+    },
+    {
+      "id": 23,
+      "nombre": "Liniers",
+      "limites": ["Juan B. Justo", "Anselmo Sáenz Valiente", "Albariño", "Emilio Castro", "Avenida General Paz"]
+    },
+    {
+      "id": 24,
+      "nombre": "Mataderos",
+      "limites": ["Emilio Castro", "Escalada", "Eva Perón", "Avenida General Paz"]
+    },
+    {
+      "id": 25,
+      "nombre": "Floresta",
+      "limites": ["Juan Agustín García", "Joaquín V. González", "Gaona", "Cuenca", "Portela", "Directorio", "Mariano Acosta", "Segurola"]
+    },
+    {
+      "id": 26,
+      "nombre": "Monte Castro",
+      "limites": ["Baigorria", "Joaquín V. González", "Juan Agustín García", "Lope de Vega", "Álvarez Jonte", "Irigoyen"]
+    },
+    {
+      "id": 27,
+      "nombre": "Versalles",
+      "limites": ["Nogoyá", "Irigoyen", "Juan B. Justo", "Avenida General Paz"]
+    },
+    {
+      "id": 28,
+      "nombre": "Vélez Sarsfield",
+      "limites": ["Segurola", "Juan Agustín García", "Lope de Vega", "Juan B. Justo", "del Corro", "Medina", "Juan Bautista Alberdi", "Mariano Acosta"]
+    },
+    {
+      "id": 29,
+      "nombre": "Villa Luro",
+      "limites": ["Emilio Castro", "Escalada", "Juan B. Alberdi", "Medina", "Rivadavia", "Canónigo Miguel del Corro", "Juan B. Justo", "Lope de Vega", "Álvarez Jonte", "Irigoyen", "Bacacay", "Vías del ex FF.CC. Gral. Sarmiento", "Anselmo Sáenz Valiente", "Albariño"]
+    },
+    {
+      "id": 30,
+      "nombre": "Villa Real",
+      "limites": ["Lope de Vega", "Baigorria", "Irigoyen", "Nogoyá", "Avenida General Paz"]
+    },
+    {
+      "id": 31,
+      "nombre": "Villa General Mitre",
+      "limites": ["Álvarez Jonte", "Avenida San Martín", "Juan B. Justo", "Donato Álvarez", "Gaona", "Condarco"]
+    },
+    {
+      "id": 32,
+      "nombre": "Villa Devoto",
+      "limites": ["Avenida General Paz", "Campana", "Gutenberg", "Avenida San Martín", "Francisco Beiró", "Joaquín V. González", "Baigorria", "Lope de Vega"]
+    },
+    {
+      "id": 33,
+      "nombre": "Villa del Parque",
+      "limites": ["Francisco Beiró", "Avenida San Martín", "Arregui", "Gavilán", "Álvarez Jonte", "Miranda", "Joaquín V. González"]
+    },
+    {
+      "id": 34,
+      "nombre": "Villa Santa Rita",
+      "limites": ["Miranda", "Álvarez Jonte", "Condarco", "Gaona", "Joaquín V. González"]
+    },
+    {
+      "id": 35,
+      "nombre": "Coghlan",
+      "limites": ["Vías del ferrocarril Mitre", "Núñez", "Zapiola", "Franklin D. Roosevelt", "Ricardo Balbín", "Monroe", "Estomba", "Tronador", "Congreso", "San Francisco de Asís", "Quesada"]
+    },
+    {
+      "id": 36,
+      "nombre": "Saavedra",
+      "limites": ["Avenida General Paz", "Cabildo", "Zapiola", "Núñez", "Galván", "Crisólogo Larralde"]
+    },
+    {
+      "id": 37,
+      "nombre": "Villa Urquiza",
+      "limites": ["Crisólogo Larralde", "Galván", "Núñez", "Vías del F.G.B.M.", "Tronador", "Franklin D. Roosevelt", "Estomba", "Monroe", "Rómulo Naón", "La Pampa", "Avenida de los Constituyentes"]
+    },
+    {
+      "id": 38,
+      "nombre": "Villa Pueyrredón",
+      "limites": ["Avenida General Paz", "Avenida de los Constituyentes", "Salvador M. del Carril", "Campana"]
+    },
+    {
+      "id": 39,
+      "nombre": "Belgrano",
+      "limites": ["Monroe", "Ricardo Balbín", "Franklin D. Roosevelt", "Zapiola", "Congreso", "Del Libertador", "Udaondo", "Leopoldo Lugones", "Desembocadura del Arroyo Medrano", "Río de la Plata", "La Pampa", "Figueroa Alcorta", "Valentín Alsina", "Olleros", "Vías del ferrocarril Mitre", "Zabala", "Cabildo", "Virrey del Pino", "Elcano", "De los Incas", "Forest", "Rómulo Naón"]
+    },
+    {
+      "id": 40,
+      "nombre": "Núñez",
+      "limites": ["Desembocadura del Arroyo Medrano", "Leopoldo Lugones", "Guillermo Udaondo", "del Libertador", "Congreso", "Zapiola", "Crisólogo Larralde", "Cabildo", "Avenida General Paz", "Río de la Plata"]
+    },
+    {
+      "id": 41,
+      "nombre": "Colegiales",
+      "limites": ["Avenida de los Incas", "Elcano", "Virrey del Pino", "Cabildo", "Jorge Newbery", "Crámer", "Dorrego", "Álvarez Thomas", "Forest"]
+    },
+    {
+      "id": 42,
+      "nombre": "Palermo",
+      "limites": ["Zabala", "Vías del F.G.B.M.", "Olleros", "Valentín Alsina", "Figueroa Alcorta", "La Pampa", "Río de la Plata", "Jerónimo Salguero", "Tagle", "Las Heras", "Coronel Díaz", "Mario Bravo", "Córdoba", "Dorrego", "Crámer", "Jorge Newbery", "Cabildo", "Raúl Scalabrini Ortiz"]
+    },
+    {
+      "id": 43,
+      "nombre": "Agronomía",
+      "limites": ["Avenida San Martín", "Gutenberg", "Campana", "Salvador María del Carril", "Avenida de los Constituyentes", "Chorroarín"]
+    },
+    {
+      "id": 44,
+      "nombre": "Chacarita",
+      "limites": ["Elcano", "Avenida del Campo", "Garmendia", "Warnes", "Dorrego", "Vías del Ferrocarril San Martín", "Córdoba", "Álvarez Thomas"]
+    },
+    {
+      "id": 45,
+      "nombre": "La Paternal",
+      "limites": ["Chorroarín", "Avenida del Campo", "Garmendia", "Warnes", "Paysandú", "Avenida San Martín", "Álvarez Jonte", "Gavilán", "Arregui"]
+    },
+    {
+      "id": 46,
+      "nombre": "Parque Chas",
+      "limites": ["La Pampa", "Triunvirato", "Combatientes de Malvinas", "Chorroarín", "Avenida de los Constituyentes"]
+    },
+    {
+      "id": 47,
+      "nombre": "Villa Crespo",
+      "limites": ["Dorrego", "Warnes", "Paysandú", "Avenida San Martín", "Ángel Gallardo", "Estado de Israel", "Córdoba"]
+    },
+    {
+      "id": 48,
+      "nombre": "Villa Ortúzar",
+      "limites": ["La Pampa", "Forest", "Elcano", "Vías del F.G.U.", "Avenida del Campo", "Combatientes de Malvinas", "Triunvirato"]
+    }
+  ],
+  "comunas": [
+    {
+      "id": 1,
+      "nombre": "Comuna 1",
+      "barrios": ["Retiro", "Constitución", "Montserrat", "San Nicolás", "San Telmo", "Puerto Madero"]
+    },
+    {
+      "id": 2,
+      "nombre": "Comuna 2",
+      "barrios": ["Recoleta"]
+    },
+    {
+      "id": 3,
+      "nombre": "Comuna 3",
+      "barrios": ["Balvanera", "San Cristóbal"]
+    },
+    {
+      "id": 4,
+      "nombre": "Comuna 4",
+      "barrios": ["Barracas", "La Boca", "Nueva Pompeya", "Parque Patricios"]
+    },
+    {
+      "id": 5,
+      "nombre": "Comuna 5",
+      "barrios": ["Almagro", "Boedo"]
+    },
+    {
+      "id": 6,
+      "nombre": "Comuna 6",
+      "barrios": ["Caballito"]
+    },
+    {
+      "id": 7,
+      "nombre": "Comuna 7",
+      "barrios": ["Flores", "Parque Chacabuco"]
+    },
+    {
+      "id": 8,
+      "nombre": "Comuna 8",
+      "barrios": ["Villa Soldati", "Villa Lugano", "Villa Riachuelo"]
+    },
+    {
+      "id": 9,
+      "nombre": "Comuna 9",
+      "barrios": ["Parque Avellaneda", "Liniers", "Mataderos"]
+    },
+    {
+      "id": 10,
+      "nombre": "Comuna 10",
+      "barrios": ["Floresta", "Monte Castro", "Versalles", "Vélez Sarsfield", "Villa Luro", "Villa Real"]
+    },
+    {
+      "id": 11,
+      "nombre": "Comuna 11",
+      "barrios": ["Villa General Mitre", "Villa Devoto", "Villa del Parque", "Villa Santa Rita"]
+    },
+    {
+      "id": 12,
+      "nombre": "Comuna 12",
+      "barrios": ["Coghlan", "Saavedra", "Villa Urquiza", "Villa Pueyrredón"]
+    },
+    {
+      "id": 13,
+      "nombre": "Comuna 13",
+      "barrios": ["Belgrano", "Núñez", "Colegiales"]
+    },
+    {
+      "id": 14,
+      "nombre": "Comuna 14",
+      "barrios": ["Palermo"]
+    },
+    {
+      "id": 15,
+      "nombre": "Comuna 15",
+      "barrios": ["Agronomía", "Chacarita", "La Paternal", "Parque Chas", "Villa Crespo", "Villa Ortúzar"]
+    }
+  ]
+}

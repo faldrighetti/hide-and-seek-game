@@ -4,364 +4,441 @@
   "locale": "es-AR",
   "questions": {
     "matching": {
-      "name_es": "Coincidencia",
-      "cost_es": "Robá 3, elegí 1",
-      "time_es": "5 minutos",
-      "prompt_es": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
-      "prompt_en": "Is your nearest _____ the same as my nearest _____?",
-      "placeholder": "_____",
-      "options_es": [
-        "Aeropuerto comercial",
-        "Terminal de línea de trenes",
-        "Longitud del nombre de la estación",
-        "Autopista",
-        "1.ª división administrativa (provincia)",
-        "2.ª división administrativa (partido)",
-        "3.ª división administrativa (localidad)",
-        "4.ª división administrativa (barrio)",
-        "Cementerio",
-        "Estadio de fútbol profesional",
-        "Comisaría",
-        "Hipódromo",
-        "Parque",
-        "Campo de golf",
-        "Museo",
-        "Cine",
-        "Hospital/Sanatorio",
-        "Embajada"
-      ],
-      "options_en": [
-        "Commercial Airport",
-        "Train Line",
-        "Station Name Length",
-        "Highway",
-        "1st Admin Border (State)",
-        "2nd Admin Border (County)",
-        "3rd Admin Border (Municipality)",
-        "4th Admin Border (Neighborhood)",
-        "Cemetery",
-        "Football Stadium",
-        "Police station",
-        "Horse Racing Track",
-        "Park",
-        "Golf Course",
-        "Museum",
-        "Cinema",
-        "Hospital",
-        "Embassy"
+      "name": "Coincidencia",
+      "cost": "Robá 3, elegí 1",
+      "time": "5 minutos",
+      "items": [
+        {
+          "label": "Aeropuerto comercial",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Terminal de línea de trenes",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Longitud del nombre de la estación",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Autopista",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "1.ª división administrativa (provincia)",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "2.ª división administrativa (partido)",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "3.ª división administrativa (localidad/comuna)",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "4.ª división administrativa (barrio)",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Cementerio",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Estadio de fútbol profesional",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Comisaría",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Hipódromo",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Parque",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Campo de golf",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Museo",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Cine",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Hospital/Sanatorio",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Embajada",
+          "prompt": "¿Tu _____ más cercano/a es el mismo que mi _____ más cercano/a?",
+          "placeholder": "_____"
+        }
       ]
     },
     "measuring": {
-      "name_es": "Midiendo",
-      "cost_es": "Robá 3, elegí 1",
-      "time_es": "5 minutos",
-      "prompt_es": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
-      "prompt_en": "Compared to me, are you closer to or further from _____?",
-      "placeholder": "_____",
-      "options_es": [
-        "Aeropuerto comercial",
-        "Terminal de línea de trenes",
-        "Longitud del nombre de la estación",
-        "Autopista",
-        "1.ª división administrativa (provincia)",
-        "2.ª división administrativa (partido)",
-        "3.ª división administrativa (localidad)",
-        "4.ª división administrativa (barrio)",
-        "Estadio de fútbol",
-        "Comisaría",
-        "Hipódromo",
-        "Parque",
-        "Campo de golf",
-        "Museo",
-        "Cine",
-        "Hospital",
-        "Biblioteca",
-        "Embajada"
-      ],
-      "options_en": [
-        "Commercial Airport",
-        "Train Line terminal",
-        "Station Name Length",
-        "Highway",
-        "1st Admin Border (State)",
-        "2nd Admin Border (County)",
-        "3rd Admin Border (Municipality)",
-        "4th Admin Border (Neighborhood)",
-        "Football Stadium",
-        "Commission",
-        "Horse Racing Track",
-        "Park",
-        "Golf Course",
-        "Museum",
-        "Cinema",
-        "Hospital",
-        "Library",
-        "Embassy"
+      "name": "Midiendo",
+      "cost": "Robá 3, elegí 1",
+      "time": "5 minutos",
+      "items": [
+        {
+          "label": "Aeropuerto comercial",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Terminal de línea de trenes",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Longitud del nombre de la estación",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Autopista",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "1.ª división administrativa (provincia)",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "2.ª división administrativa (partido)",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "3.ª división administrativa (localidad/comuna)",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "4.ª división administrativa (barrio)",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Estadio de fútbol",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Comisaría",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Hipódromo",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Parque",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Campo de golf",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Museo",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Cine",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Hospital",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Biblioteca",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Embajada",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Río de la Plata",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de _____?",
+          "placeholder": "_____"
+        },
+        {
+          "label": "Número de comuna",
+          "prompt": "¿El número de comuna donde estás es mayor, menor o igual al de la comuna donde estoy?"
+        },
+        {
+          "label": "Orden alfabético del barrio",
+          "prompt": "¿La inicial del barrio en el que estás, alfabéticamente está antes, después de la del barrio donde estoy, o empieza con la misma letra?"
+        }
       ]
     },
     "thermometer": {
-      "name_es": "Termómetro",
-      "cost_es": null,
-      "time_es": null,
-      "prompt_es": "Acabo de viajar (al menos) [Distancia]. ¿Estoy más “caliente” (más cerca) o más “frío” (más lejos)?",
-      "prompt_en": "I just traveled (at least) [Distance]. Am I hotter or colder?",
-      "placeholder": "[Distance]",
-      "presets": [
+      "name": "Termómetro",
+      "cost": null,
+      "time": null,
+      "prompt": "Acabo de viajar (al menos) [Distancia]. ¿Estoy más “caliente” (más cerca) o más “frío” (más lejos)?",
+      "placeholder": "[Distancia]",
+      "items": [
         {
+          "label": "1 km",
           "availability": "Todos los tamaños",
-          "distance_raw": "0.5mi\n1m",
-          "distance_es": "1 km"
+          "distance": "1 km"
         },
         {
+          "label": "5 km",
           "availability": "Mediano y grande",
-          "distance_raw": "3mi\n5km",
-          "distance_es": "5 km"
+          "distance": "5 km"
         },
         {
+          "label": "10 km",
           "availability": "Mediano y grande",
-          "distance_raw": "6mi\n10km",
-          "distance_es": "10 km"
+          "distance": "10 km"
         },
         {
+          "label": "15 km",
           "availability": "Mediano y grande",
-          "distance_raw": "10mi\n15km",
-          "distance_es": "15 km"
+          "distance": "15 km"
         },
         {
+          "label": "100 km",
           "availability": "Solo grande",
-          "distance_raw": "50mi\n80km",
-          "distance_es": "50 mi (100 km)"
+          "distance": "100 km"
         }
       ]
     },
     "radar": {
-      "name_es": "Radar",
-      "cost_es": null,
-      "time_es": null,
-      "prompt_es": "¿Estás dentro de [Distancia] de mí?",
-      "prompt_en": "Are you within [Distance] of me?",
-      "placeholder": "[Distance]",
-      "presets_es": [
-        "500 metros",
-        "1 kilómetro",
-        "2 kilómetros",
-        "5 kilómetros",
-        "10 kilómetros",
-        "20 kilómetros",
-        "50 kilómetros",
-        "100 kilómetros",
-        "Elegir distancia (custom)"
-      ],
-      "presets_raw": [
-        "0.25mi\n500m",
-        "0.50mi\n1km",
-        "1mi\n2km",
-        "3mi\n5km",
-        "5mi\n10km",
-        "10mi\n20km",
-        "25mi\n50km",
-        "50mi\n100km",
-        "Choose"        
+      "name": "Radar",
+      "cost": null,
+      "time": null,
+      "prompt": "¿Estás dentro de [Distancia] de mí?",
+      "placeholder": "[Distancia]",
+      "items": [
+        {
+          "label": "500 metros",
+          "distance": "500 metros"
+        },
+        {
+          "label": "1 kilómetro",
+          "distance": "1 kilómetro"
+        },
+        {
+          "label": "2 kilómetros",
+          "distance": "2 kilómetros"
+        },
+        {
+          "label": "5 kilómetros",
+          "distance": "5 kilómetros"
+        },
+        {
+          "label": "10 kilómetros",
+          "distance": "10 kilómetros"
+        },
+        {
+          "label": "20 kilómetros",
+          "distance": "20 kilómetros"
+        },
+        {
+          "label": "50 kilómetros",
+          "distance": "50 kilómetros"
+        },
+        {
+          "label": "100 kilómetros",
+          "distance": "100 kilómetros"
+        },
+        {
+          "label": "Elegir distancia (custom)",
+          "distance": null
+        }
       ]
     },
     "tentacles": {
-      "name_es": "Tentáculos",
-      "cost_es": "Robá 4, elegí 2",
-      "time_es": "5 minutos",
-      "prompt_es": "De todos/as los/las [Lugares] dentro de [Distancia] de mí, ¿a cuál estás más cerca?",
-      "prompt_en": "Of all the [Places] within [Distance] of me, \nwhich are you closest to?",
+      "name": "Tentáculos",
+      "cost": "Robá 4, elegí 2",
+      "time": "5 minutos",
+      "prompt": "De todos/as los/las [Lugares] dentro de [Distancia] de mí, ¿a cuál estás más cerca?",
       "placeholders": [
-        "[Places]",
-        "[Distance]"
+        "[Lugares]",
+        "[Distancia]"
       ],
       "items": [
         {
-          "places_es": "McDonald's",
-          "places_en": "McDonald's",
-          "distance_es": "1 km",
-          "distance_raw": "1mi\n2km",
-          "availability_es": "Mediano o menos"
+          "label": "McDonald's",
+          "places": "McDonald's",
+          "distance": "1 km",
+          "availability": "Mediano o menos"
         },
         {
-          "places_es": "Estaciones de subte",
-          "places_en": "Subway Stations",
-          "distance_es": "1 km",
-          "distance_raw": "1mi\n2km",
-          "availability_es": "Mediano o menos"
+          "label": "Estaciones de subte",
+          "places": "Estaciones de subte",
+          "distance": "1 km",
+          "availability": "Mediano o menos"
         },
         {
-          "places_es": "Museos",
-          "places_en": "Museums",
-          "distance_es": "2 km",
-          "distance_raw": "1mi\n2km",
-          "availability_es": "Mediano o más"
+          "label": "Museos",
+          "places": "Museos",
+          "distance": "2 km",
+          "availability": "Mediano o más"
         },
         {
-          "places_es": "Bibliotecas",
-          "places_en": "Libraries",
-          "distance_es": "2 km",
-          "distance_raw": "1mi\n2km",
-          "availability_es": "Mediano o más"
+          "label": "Bibliotecas",
+          "places": "Bibliotecas",
+          "distance": "2 km",
+          "availability": "Mediano o más"
         },
         {
-          "places_es": "Cines",
-          "places_en": "Movie Theateres",
-          "distance_es": "2 km",
-          "distance_raw": "1mi\n2km",
-          "availability_es": "Mediano o más"
+          "label": "Cines",
+          "places": "Cines",
+          "distance": "2 km",
+          "availability": "Mediano o más"
         },
         {
-          "places_es": "Hospitales",
-          "places_en": "Hopsitals",
-          "distance_es": "2 km",
-          "distance_raw": "1mi\n2km",
-          "availability_es": "Mediano o más"
+          "label": "Hospitales",
+          "places": "Hospitales",
+          "distance": "2 km",
+          "availability": "Mediano o más"
         },
         {
-          "places_es": "Líneas de metro",
-          "places_en": "Metro Lines",
-          "distance_es": "20 km",
-          "distance_raw": "15mi\n20km",
-          "availability_es": "Solo juegos grandes"
+          "label": "Líneas de metro",
+          "places": "Líneas de metro",
+          "distance": "20 km",
+          "availability": "Solo juegos grandes"
         },
         {
-          "places_es": "Zoológicos",
-          "places_en": "Zoos",
-          "distance_es": "20 km",
-          "distance_raw": "15mi\n20km",
-          "availability_es": "Solo juegos grandes"
+          "label": "Zoológicos",
+          "places": "Zoológicos",
+          "distance": "20 km",
+          "availability": "Solo juegos grandes"
         },
         {
-          "places_es": "Acuarios",
-          "places_en": "Aquariums",
-          "distance_es": "20 km",
-          "distance_raw": "15mi\n20km",
-          "availability_es": "Solo juegos grandes"
+          "label": "Acuarios",
+          "places": "Acuarios",
+          "distance": "20 km",
+          "availability": "Solo juegos grandes"
         },
         {
-          "places_es": "Parques de diversiones",
-          "places_en": "Amusment Parks",
-          "distance_es": "20 km",
-          "distance_raw": "15mi\n20km",
-          "availability_es": "Solo juegos grandes"
+          "label": "Parques de diversiones",
+          "places": "Parques de diversiones",
+          "distance": "20 km",
+          "availability": "Solo juegos grandes"
         }
       ]
     },
     "photos": {
-      "name_es": "Fotos",
-      "cost_es": "Robá 1",
-      "time_es": "S/M: 10 minutos — L: 20 minutos",
-      "prompt_es": "Mandá una foto de [sujeto].",
-      "prompt_en": "Send a photo of [subject].",
-      "placeholder": "[subject]",
-      "subjects": [
+      "name": "Fotos",
+      "cost": "Robá 1",
+      "time": "10 minutos",
+      "prompt": "Mandá una foto de [asunto].",
+      "placeholder": "[asunto]",
+      "items": [
         {
-          "subject_es": "Un árbol",
-          "subject_en": "A Tree",
-          "requirement_es": "Debe incluir el árbol completo.",
-          "requirement_en": "Must include the entire tree"
+          "asunto": "Un árbol",
+          "requisito": "Debe incluir el árbol completo."
         },
         {
-          "subject_es": "El cielo",
-          "subject_en": "The Sky",
-          "requirement_es": "Apoyá el teléfono en el suelo y sacá la foto apuntando directamente hacia arriba.",
-          "requirement_en": "Place phone on ground and shoot directly up"
+          "asunto": "El cielo",
+          "requisito": "Apoyá el teléfono en el suelo y sacá la foto apuntando directamente hacia arriba."
         },
         {
-          "subject_es": "Vos (selfie)",
-          "subject_en": "You",
-          "requirement_es": "Modo selfie; brazo paralelo al suelo, completamente extendido.",
-          "requirement_en": "Selfie mode, arm parallel to the ground, fully extended"
+          "asunto": "Vos (selfie)",
+          "requisito": "Modo selfie; brazo paralelo al suelo, completamente extendido."
         },
         {
-          "subject_es": "La calle más ancha",
-          "subject_en": "Widest Street",
-          "requirement_es": "Debe incluir ambos lados de la calle.",
-          "requirement_en": "Must include both sides of the street"
+          "asunto": "La calle más ancha",
+          "requisito": "Debe incluir ambos lados de la calle."
         },
         {
-          "subject_es": "La estructura más alta en tu línea de visión",
-          "subject_en": "Tallest structure in your sightline",
-          "requirement_es": "La más alta desde tu perspectiva / línea de visión actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior del encuadre.",
-          "requirement_en": "Tallest from your current perspective / sightline.\nMust include top and both sides.\nThe top must be in the top 1/3rd of frame"
+          "asunto": "La estructura más alta en tu línea de visión",
+          "requisito": "La más alta desde tu perspectiva / línea de visión actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior del encuadre."
         },
         {
-          "subject_es": "Cualquier edificio visible desde la estación",
-          "subject_en": "Any building visible from station",
-          "requirement_es": "Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior del edificio debe quedar en el tercio superior del encuadre.",
-          "requirement_en": "Must stand directly outside transit station entrance.\nIf multipole entrance you may choose.\nMust include roof, boths sides, \nwith the top of the building in the top 1/3rd of frame"
+          "asunto": "Cualquier edificio visible desde la estación",
+          "requisito": "Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior del edificio debe quedar en el tercio superior del encuadre."
         },
         {
-          "subject_es": "El edificio más alto visible desde la estación",
-          "subject_en": "Tallest building visible from station",
-          "requirement_es": "La más alta desde tu perspectiva / línea de visión. Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre.",
-          "requirement_en": "Tallest from your perspective / sightline.\nMust stand directly outside transit station entrance.\nIf multipole entrance you may choose. \nMust include roof, boths sides,\nwith the top of the building in the top 1/3rd of frame"
+          "asunto": "El edificio más alto visible desde la estación",
+          "requisito": "La más alta desde tu perspectiva / línea de visión. Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre."
         },
         {
-          "subject_es": "Trazá la calle/sendero más cercano",
-          "subject_en": "Trace Nearest Street / Path",
-          "requirement_es": "La calle/sendero debe verse en una app de mapas. Trazá de intersección a intersección.",
-          "requirement_en": "Street / Path must be visible on mapping app.\nTrace intersection to intersection"
+          "asunto": "Trazá la calle/sendero más cercano",
+          "requisito": "La calle/sendero debe verse en una app de mapas. Trazá de intersección a intersección."
         },
         {
-          "subject_es": "Dos edificios",
-          "subject_en": "Two Buildings",
-          "requirement_es": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
-          "requirement_en": "Must include 5'x5' section with three distinct elements"
+          "asunto": "Dos edificios",
+          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos."
         },
         {
-          "subject_es": "Interior de un restaurante",
-          "subject_en": "Restaurant Interior",
-          "requirement_es": "Sin zoom. Sacá la foto desde afuera, a través de una ventana.",
-          "requirement_en": "No zoom, must take photo from outside through window"
+          "asunto": "Interior de un restaurante",
+          "requisito": "Sin zoom. Sacá la foto desde afuera, a través de una ventana."
         },
         {
-          "subject_es": "Andén de tren",
-          "subject_en": "Train Platform",
-          "requirement_es": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
-          "requirement_en": "Must include 5'x5' section with three distinct elements"
+          "asunto": "Andén de tren",
+          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos."
         },
         {
-          "subject_es": "Parque",
-          "subject_en": "Park",
-          "requirement_es": "Sin zoom. Teléfono perpendicular al suelo. Debés estar a 1,5m de cualquier obstáculo.",
-          "requirement_en": "No zoom, phone perpendicular to ground, \nmust stand 5' away from any obstruction"
+          "asunto": "Parque",
+          "requisito": "Sin zoom. Teléfono perpendicular al suelo. Debés estar a 1,5m de cualquier obstáculo."
         },
         {
-          "subject_es": "Pasillo de supermercado",
-          "subject_en": "Grocery Store Aisle",
-          "requirement_es": "Sin zoom. Parate al final del pasillo y sacá la foto apuntando directo por el pasillo.",
-          "requirement_en": "No zoom, stand at the end of the aisle, \nshoot directly down aisle."
+          "asunto": "Pasillo de supermercado",
+          "requisito": "Sin zoom. Parate al final del pasillo y sacá la foto apuntando directo por el pasillo."
         },
         {
-          "subject_es": "Lugar de culto",
-          "subject_en": "Place of Worship",
-          "requirement_es": "Debe incluir una sección de 1,5m x 1,5m con tres elementos distintos.",
-          "requirement_en": "Must include 5'x5' section with three distinct elements"
+          "asunto": "Lugar de culto",
+          "requisito": "Debe incluir una sección de 1,5 m x 1,5 m con tres elementos distintos."
         },
         {
-          "subject_es": "500 metros de calles trazadas",
-          "subject_en": "1/2 Mile of streets traced",
-          "requirement_es": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas.",
-          "requirement_en": "Must be continuous, include 5 turns, no doubling back, \nsend N-S Oriented, streets must appear on mapping app."
+          "asunto": "500 metros de calles trazadas",
+          "requisito": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas."
         },
         {
-          "subject_es": "La montaña más alta visible desde la estación",
-          "subject_en": "Tallest mountain visible from station",
-          "requirement_es": "La más alta desde tu perspectiva / línea de visión. Debe ser con 3x zoom. La cima debe quedar en el tercio superior del encuadre.",
-          "requirement_en": "Tallest form you perspective / sightline. \nMust be 3x zoom.\nTop of mountain must be in top 1/3rd of frame"
+          "asunto": "La montaña más alta visible desde la estación",
+          "requisito": "La más alta desde tu perspectiva / línea de visión. Debe ser con 3x zoom. La cima debe quedar en el tercio superior del encuadre."
         },
         {
-          "subject_es": "El cuerpo de agua más grande en tu zona",
-          "subject_en": "Biggest body of water in your zone",
-          "requirement_es": "Máximo 3x zoom. Debe incluir ambos lados del agua **o** el horizonte.",
-          "requirement_en": "Max 3x zoom.\nMust include either both sides of water OR the horizon."
+          "asunto": "El cuerpo de agua más grande en tu zona",
+          "requisito": "Máximo 3x zoom. Debe incluir ambos lados del agua o el horizonte."
         },
         {
-          "subject_es": "Cinco edificios",
-          "subject_en": "Five buildings",
-          "requirement_es": "Debe incluir la base y hasta cuatro pisos de altura.",
-          "requirement_en": "Must include bottom, and up to four stories"
+          "asunto": "Cinco edificios",
+          "requisito": "Debe incluir la base y hasta cuatro pisos de altura."
         }
       ]
     }

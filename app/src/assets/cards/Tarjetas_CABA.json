@@ -741,6 +741,47 @@
         "recompensas": [],
         "penalizaciones": []
       }
+    },
+    {
+      "id": 26,
+      "nombre": "Maldición del Cambio de Barrio",
+      "etiquetas": ["ubicacion", "barrio", "movimiento_forzado", "bloqueo_pregunta"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [
+          {
+            "tipo": "ubicacion_buscadores",
+            "debe_ser": "CABA"
+          }
+        ],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Los buscadores deben estar en CABA.",
+        "efecto": "Los buscadores deben entrar a un barrio distinto de la Ciudad de Buenos Aires antes de poder hacer otra pregunta. El barrio cuenta cuando cruzan el límite oficial entre barrios."
+      },
+      "motor": {
+        "tipo": "cambiar_de_barrio",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "entrar_a_barrio_distinto",
+            "jurisdiccion": "CABA",
+            "referencia": "barrio_actual_al_lanzar"
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
     }
   ]
 }
