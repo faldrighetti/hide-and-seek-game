@@ -97,9 +97,9 @@ const buildBlueprint = (
 const randomGameId = (): string => Math.random().toString(36).slice(2, 8).toUpperCase();
 
 const PRESET_PLAYERS_BY_MODE: Record<GameMode, string[]> = {
-  INDIVIDUAL_3: ['Fede', 'Nico', 'Nacho'],
-  TEAMS_2v2: ['Fede', 'Nico', 'Nacho', 'Hugo'],
-  TEAMS_2v2v2: ['Fede', 'Nico', 'Nacho', 'Hugo', 'Gonza', 'Adri'],
+  INDIVIDUAL_3: ['Fede', 'Nom2', 'Nom3'],
+  TEAMS_2v2: ['Fede', 'Nom2', 'Nom3', 'Nom4'],
+  TEAMS_2v2v2: ['Fede', 'Nom2', 'Nom3', 'Nom4', 'Nom5', 'Nom6'],
 };
 
 @Injectable({ providedIn: 'root' })
