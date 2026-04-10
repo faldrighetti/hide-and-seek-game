@@ -15,6 +15,48 @@
         <ion-button expand="block" routerLink="/create">Crear partida</ion-button>
         <ion-button expand="block" fill="outline" routerLink="/join">Unirse a partida</ion-button>
       </div>
+      <div class="questions-test">
+        <ion-button id="preguntar-trigger" expand="block" color="secondary">
+          Preguntar
+        </ion-button>
+
+        <ion-popover trigger="preguntar-trigger" triggerAction="click">
+          <ng-template>
+            <ion-content>
+              <ion-list inset>
+                <ion-list-header>
+                  <ion-label>Categorías de preguntas</ion-label>
+                </ion-list-header>
+                <ion-item
+                  button
+                  detail
+                  *ngFor="let category of questionCategories"
+                  (click)="onSelectCategory(category)"
+                >
+                  <ion-label>{{ category.name }}</ion-label>
+                </ion-item>
+              </ion-list>
+            </ion-content>
+          </ng-template>
+        </ion-popover>
+
+        <ion-note *ngIf="selectedCategory" class="selected-category">
+          Categoría seleccionada:
+          <strong>{{ selectedCategory.name }}</strong>
+        </ion-note>
+
+        <ion-list *ngIf="selectedCategory" inset class="questions-list">
+          <ion-list-header>
+            <ion-label>Preguntas</ion-label>
+          </ion-list-header>
+          <ion-item button detail *ngFor="let question of selectedCategory.items" (click)="onQuestionClick(question)">
+            <ion-label class="ion-text-wrap">
+              <h3 *ngIf="question.label">{{ question.label }}</h3>
+              <p>{{ question.prompt }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </div>
     </ion-card-content>
   </ion-card>
 </ion-content>
