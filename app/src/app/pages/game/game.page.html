@@ -19,10 +19,10 @@
             <ion-chip color="tertiary">{{ vm.currentTurn.phase }}</ion-chip>
             <p>Termina: {{ vm.currentTurn.endsAtIso | date: 'short' }}</p>
             <div class="actions">
-              <ion-button size="small" fill="outline" (click)="setPhase('INTERMISSION')">Intermission</ion-button>
+              <ion-button size="small" fill="outline" (click)="setPhase('INTERMISSION')">Entre turnos</ion-button>
               <ion-button size="small" fill="outline" (click)="setPhase('ESCAPE')">Escape</ion-button>
-              <ion-button size="small" fill="outline" (click)="setPhase('CHASE')">Chase</ion-button>
-              <ion-button size="small" fill="outline" color="medium" (click)="setPhase('ENDED')">End</ion-button>
+              <ion-button size="small" fill="outline" (click)="setPhase('CHASE')">Búsqueda</ion-button>
+              <ion-button size="small" fill="outline" color="medium" (click)="setPhase('ENDED')">Fin</ion-button>
             </div>
           </ion-card-content>
         </ion-card>
