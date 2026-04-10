@@ -1,0 +1,11 @@
+<section class="hand-container">
+  <div class="cards-row" *ngIf="cards.length; else emptyState">
+    <app-hider-card *ngFor="let card of cards" [card]="card"></app-hider-card>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty-message">No hay cartas en mano.</div>
+  </ng-template>
+
+  <h2>{{ title }}</h2>
+</section>

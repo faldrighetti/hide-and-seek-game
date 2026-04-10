@@ -1,3 +1,15 @@
+:host {
+  ion-content {
+    --background: #e7e7e7;
+  }
+}
+
+app-hider-draw,
+app-hider-hand {
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
 .actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

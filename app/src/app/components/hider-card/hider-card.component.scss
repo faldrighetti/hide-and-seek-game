@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+.hider-card {
+  margin: 0;
+  width: min(280px, 100%);
+  min-height: 420px;
+  border-radius: 14px;
+  border: 3px solid #3b2a59;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  background: #ffffff;
+  color: #3b2a59;
+
+  ion-card-header {
+    padding-bottom: 0.2rem;
+  }
+
+  ion-card-title {
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: #4b2d79;
+  }
+
+  ion-card-content {
+    min-height: 290px;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.8rem;
+  }
+
+  .description {
+    font-size: 1.1rem;
+    line-height: 1.35;
+    color: #5a5172;
+    margin: 0;
+    flex: 1;
+  }
+
+  .casting-cost {
+    margin: 1.2rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #4b2d79;
+  }
+}

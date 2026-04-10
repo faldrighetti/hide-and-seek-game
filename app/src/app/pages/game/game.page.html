@@ -8,6 +8,28 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
+  <div class="draw-rule-selector">
+    <ion-button
+      size="small"
+      fill="outline"
+      *ngFor="let rule of drawRulesByCategory"
+      [color]="rule.categoryKey === selectedRule?.categoryKey ? 'primary' : 'medium'"
+      (click)="selectDrawRule(rule)"
+    >
+      {{ rule.categoryKey }} (saca {{ rule.draw }} / toma {{ rule.take }})
+    </ion-button>
+  </div>
+
+  <app-hider-draw
+    *ngIf="selectedRule"
+    [title]="'Draw'"
+    [category]="selectedRule.categoryName"
+    [cardsToDraw]="selectedRule.draw"
+    [cardsTaken]="selectedRule.take"
+    [drawnCards]="drawPreviewCards"
+  ></app-hider-draw>
+
+  <app-hider-hand [title]="'Mano'" [cards]="hiderHand"></app-hider-hand>
   <ion-grid *ngIf="blueprint$ | async as vm">
     <ion-row>
       <ion-col size="12">

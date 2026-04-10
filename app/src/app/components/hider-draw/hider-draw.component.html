@@ -1,0 +1,18 @@
+<section class="draw-container">
+  <div class="draw-status">
+    <ion-chip color="primary">Categoría: {{ category }}</ion-chip>
+    <ion-chip color="warning">Saca: {{ cardsToDraw }}</ion-chip>
+    <ion-chip color="success">Toma: {{ cardsTaken }}</ion-chip>
+  </div>
+
+  <div class="cards-row">
+    <app-hider-card *ngFor="let card of drawnCards" [card]="card"></app-hider-card>
+
+    <div class="deck-slot" *ngIf="pendingCards > 0">
+      <div class="deck-card"></div>
+      <small>Mazo ({{ pendingCards }} restantes)</small>
+    </div>
+  </div>
+
+  <h2>{{ title }}</h2>
+</section>

@@ -1,0 +1,27 @@
+.hand-container {
+  background: linear-gradient(180deg, #9bb0c8 0%, #8ea4bd 100%);
+  border-radius: 6px;
+  padding: 2rem;
+
+  h2 {
+    margin: 2rem 0 0;
+    text-align: center;
+    font-size: 2.3rem;
+    font-weight: 900;
+    color: #000;
+  }
+}
+
+.cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+}
+
+.empty-message {
+  min-height: 420px;
+  display: grid;
+  place-content: center;
+  color: #243a54;
+  font-weight: 700;
+}
