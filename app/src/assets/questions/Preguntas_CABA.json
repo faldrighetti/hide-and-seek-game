@@ -164,6 +164,14 @@
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del Río de la Plata?"
         },
         {
+          "label": "General Paz",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la Avenida General Paz?"
+        },
+        {
+          "label": "Riachuelo",
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del Riachuelo?"
+        },
+        {
           "label": "Número de comuna",
           "prompt": "¿El número de la comuna donde estás es mayor, menor o igual al de la comuna donde estoy?"
         },
@@ -256,7 +264,7 @@
       "name": "Tentáculos",
       "cost": "Robá 4, elegí 2",
       "time": "5 minutos",
-      "prompt": "De todos/as los/las [Lugares] dentro de [Distancia] de mí, ¿a cuál estás más cerca?",
+      "prompt": "De todos/as los/las [Lugares] dentro de [Distancia] de mí, ¿de cuál estás más cerca?",
       "placeholders": [
         "[Lugares]",
         "[Distancia]"
