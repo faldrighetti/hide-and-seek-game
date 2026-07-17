@@ -9,8 +9,12 @@
       "time": "5 minutos",
       "items": [
         {
-          "label": "Aeropuerto comercial",
-          "prompt": "¿Tu aeropuerto comercial más cercano es el mismo que mi aeropuerto comercial más cercano?"
+          "label": "Línea de subte",
+          "prompt": "¿Tu línea de subte más cercana es la misma que mi línea de subte más cercana?"
+        },
+        {
+          "label": "Línea de trenes",
+          "prompt": "¿Tu línea de trenes más cercana es la misma que mi línea de trenes más cercana?"
         },
         {
           "label": "Terminal de línea de trenes",
@@ -53,16 +57,8 @@
           "prompt": "¿Tu comisaría más cercana es la misma que mi comisaría más cercana?"
         },
         {
-          "label": "Hipódromo",
-          "prompt": "¿Tu hipódromo más cercano es el mismo que mi hipódromo más cercano?"
-        },
-        {
           "label": "Parque",
           "prompt": "¿Tu parque más cercano es el mismo que mi parque más cercano?"
-        },
-        {
-          "label": "Campo de golf",
-          "prompt": "¿Tu campo de golf más cercano es el mismo que mi campo de golf más cercano?"
         },
         {
           "label": "Museo",
@@ -73,12 +69,8 @@
           "prompt": "¿Tu cine más cercano es el mismo que mi cine más cercano?"
         },
         {
-          "label": "Hospital/Sanatorio",
-          "prompt": "¿Tu hospital o sanatorio más cercano es el mismo que mi hospital o sanatorio más cercano?"
-        },
-        {
-          "label": "Embajada",
-          "prompt": "¿Tu embajada más cercana es la misma que mi embajada más cercana?"
+          "label": "Hospital",
+          "prompt": "¿Tu hospital más cercano es el mismo que mi hospital más cercano?"
         }
       ]
     },
@@ -88,8 +80,12 @@
       "time": "5 minutos",
       "items": [
         {
-          "label": "Aeropuerto comercial",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un aeropuerto comercial?"
+          "label": "Línea de subte",
+          "prompt": "¿Tu línea de subte más cercana es la misma que mi línea de subte más cercana?"
+        },
+        {
+          "label": "Línea de trenes",
+          "prompt": "¿Tu línea de trenes más cercana es la misma que mi línea de trenes más cercana?"
         },
         {
           "label": "Terminal de línea de trenes",
@@ -136,10 +132,6 @@
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un parque?"
         },
         {
-          "label": "Campo de golf",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un campo de golf?"
-        },
-        {
           "label": "Museo",
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un museo?"
         },
@@ -154,10 +146,6 @@
         {
           "label": "Biblioteca",
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una biblioteca?"
-        },
-        {
-          "label": "Embajada",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una embajada?"
         },
         {
           "label": "Río de la Plata",
@@ -189,29 +177,29 @@
       "placeholder": "[Distancia]",
       "items": [
         {
+          "label": "100 m",
+          "availability": "Todos los tamaños",
+          "distance": "100 m"
+        },
+        {
+          "label": "200 m",
+          "availability": "Todos los tamaños",
+          "distance": "200 m"
+        },
+        {
+          "label": "500 m",
+          "availability": "Todos los tamaños",
+          "distance": "500 m"
+        },
+        {
           "label": "1 km",
           "availability": "Todos los tamaños",
           "distance": "1 km"
         },
         {
-          "label": "5 km",
-          "availability": "Mediano y grande",
-          "distance": "5 km"
-        },
-        {
-          "label": "10 km",
-          "availability": "Mediano y grande",
-          "distance": "10 km"
-        },
-        {
-          "label": "15 km",
-          "availability": "Mediano y grande",
-          "distance": "15 km"
-        },
-        {
-          "label": "100 km",
-          "availability": "Solo grande",
-          "distance": "100 km"
+          "label": "2 km",
+          "availability": "Todos los tamaños",
+          "distance": "2 km"
         }
       ]
     },
@@ -237,22 +225,6 @@
         {
           "label": "5 kilómetros",
           "distance": "5 kilómetros"
-        },
-        {
-          "label": "10 kilómetros",
-          "distance": "10 kilómetros"
-        },
-        {
-          "label": "20 kilómetros",
-          "distance": "20 kilómetros"
-        },
-        {
-          "label": "50 kilómetros",
-          "distance": "50 kilómetros"
-        },
-        {
-          "label": "100 kilómetros",
-          "distance": "100 kilómetros"
         },
         {
           "label": "Elegir distancia (custom)",
@@ -289,12 +261,6 @@
           "availability": "Mediano o más"
         },
         {
-          "label": "Bibliotecas",
-          "places": "Bibliotecas",
-          "distance": "2 km",
-          "availability": "Mediano o más"
-        },
-        {
           "label": "Cines",
           "places": "Cines",
           "distance": "2 km",
@@ -305,30 +271,6 @@
           "places": "Hospitales",
           "distance": "2 km",
           "availability": "Mediano o más"
-        },
-        {
-          "label": "Líneas de metro",
-          "places": "Líneas de metro",
-          "distance": "20 km",
-          "availability": "Solo juegos grandes"
-        },
-        {
-          "label": "Zoológicos",
-          "places": "Zoológicos",
-          "distance": "20 km",
-          "availability": "Solo juegos grandes"
-        },
-        {
-          "label": "Acuarios",
-          "places": "Acuarios",
-          "distance": "20 km",
-          "availability": "Solo juegos grandes"
-        },
-        {
-          "label": "Parques de diversiones",
-          "places": "Parques de diversiones",
-          "distance": "20 km",
-          "availability": "Solo juegos grandes"
         }
       ]
     },
