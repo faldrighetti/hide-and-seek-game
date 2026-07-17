@@ -62,7 +62,7 @@
         "area_metro": 2122169.54,
         "comuna": 15,
         "id": 1,
-        "nombre": "Agronomia",
+        "nombre": "Agronomía",
         "objeto": "BARRIO",
         "perimetro_": 6556.17
       },
@@ -2596,7 +2596,7 @@
         "area_metro": 2101995.2,
         "comuna": 1,
         "id": 12,
-        "nombre": "Constitucion",
+        "nombre": "Constitución",
         "objeto": "BARRIO",
         "perimetro_": 6326.84
       },
@@ -3464,7 +3464,7 @@
         "area_metro": 4496656.39,
         "comuna": 13,
         "id": 20,
-        "nombre": "Nuñez",
+        "nombre": "Núñez",
         "objeto": "BARRIO",
         "perimetro_": 10902.95
       },
@@ -4436,7 +4436,7 @@
         "area_metro": 2229829.24,
         "comuna": 15,
         "id": 26,
-        "nombre": "Paternal",
+        "nombre": "La Paternal",
         "objeto": "BARRIO",
         "perimetro_": 7087.51
       },
@@ -5894,7 +5894,7 @@
         "area_metro": 2043711.31,
         "comuna": 3,
         "id": 31,
-        "nombre": "San Cristobal",
+        "nombre": "San Cristóbal",
         "objeto": "BARRIO",
         "perimetro_": 5987.23
       },
@@ -5976,7 +5976,7 @@
         "area_metro": 2289007.8,
         "comuna": 1,
         "id": 32,
-        "nombre": "San Nicolas",
+        "nombre": "San Nicolás",
         "objeto": "BARRIO",
         "perimetro_": 6548.09
       },
@@ -6124,7 +6124,7 @@
         "area_metro": 2400518.55,
         "comuna": 10,
         "id": 34,
-        "nombre": "Velez Sarsfield",
+        "nombre": "Vélez Sarsfield",
         "objeto": "BARRIO",
         "perimetro_": 7045.58
       },
@@ -6382,7 +6382,7 @@
         "area_metro": 3399595.96,
         "comuna": 11,
         "id": 37,
-        "nombre": "Villa Del Parque",
+        "nombre": "Villa del Parque",
         "objeto": "BARRIO",
         "perimetro_": 7705.39
       },
@@ -6872,7 +6872,7 @@
         "area_metro": 1853802.23,
         "comuna": 15,
         "id": 42,
-        "nombre": "Villa Ortuzar",
+        "nombre": "Villa Ortúzar",
         "objeto": "BARRIO",
         "perimetro_": 5685
       },
@@ -6930,7 +6930,7 @@
         "area_metro": 3303239.82,
         "comuna": 12,
         "id": 43,
-        "nombre": "Villa Pueyrredon",
+        "nombre": "Villa Pueyrredón",
         "objeto": "BARRIO",
         "perimetro_": 7522.36
       },

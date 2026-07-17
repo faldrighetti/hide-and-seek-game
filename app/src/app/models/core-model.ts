@@ -97,7 +97,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   winCondition: 'TOTAL_TIME',
   ukMode: false,
   intermissionSeconds: 120,
-  escapeSeconds: 3600,
+  escapeSeconds: GAME_CONFIG.escapePhaseSeconds,
   chaseMaxSeconds: 21600,
   zoneRadiusM: GAME_CONFIG.hidingZoneRadiusM,
   eligibleBufferM: 0,

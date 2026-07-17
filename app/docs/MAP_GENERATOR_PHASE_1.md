@@ -17,22 +17,34 @@ npm run data:process-barrios
 Entradas:
 
 - `src/assets/barrios_caba.json`: GeoJSON oficial de barrios CABA. No se reemplaza ni se descarga otra fuente.
-- `src/assets/general_paz.geojson`: GeoJSON local `LineString` de Avenida General Paz.
+- `src/assets/general_paz.geojson`: GeoJSON local `LineString` de Avenida General Paz, derivado de vertices del limite oficial de barrios CABA.
+- `src/assets/riachuelo.geojson`: GeoJSON local `LineString` derivado de la geometria oficial de barrios CABA.
 - `src/assets/stations.json`: archivo de estaciones detectado automaticamente por el script.
+- `src/app/data/station-hubs.ts`: definiciones versionadas de hubs logicos.
 
 Salidas generadas:
 
 - `src/assets/stations.processed.json`: estaciones validadas, con `barrio`, `comuna` cuando aplica y `hub_id` configurado.
 - `src/assets/barrios_caba.simplified.json`: barrios simplificados para Leaflet.
+- `src/assets/map-generator.bounds.json`: bounding box deterministico de navegacion del mapa.
 
-El script reporta IDs duplicados, coordenadas invalidas, estaciones fuera de poligonos, nombres duplicados sin hub y advertencias de hubs ambiguos. El dataset actual tiene 188 estaciones; muchas estaciones de AMBA quedan fuera de barrios CABA y se reportan explicitamente.
+El script reporta IDs duplicados, coordenadas invalidas, estaciones fuera de poligonos, nombres duplicados sin hub, hubs invalidos, hubs unitarios, coordenadas duplicadas y saltos anomalos por linea jugable. El dataset actual tiene 191 estaciones; muchas estaciones de AMBA quedan fuera de barrios CABA y se reportan explicitamente.
 
-La jugabilidad se clasifica con una distancia real punto-linea contra `general_paz.geojson`:
+La jugabilidad se clasifica con distancia real punto-linea contra `general_paz.geojson` y `riachuelo.geojson`:
 
 - Estacion dentro de CABA: jugable.
 - Estacion fuera de CABA y a 1000 m o menos de General Paz: jugable.
-- Estacion fuera de CABA y a mas de 1000 m de General Paz: no jugable.
+- Estacion fuera de CABA y a 1000 m o menos del Riachuelo: jugable.
+- Estacion fuera de CABA y a mas de 1000 m de ambos limites: no jugable.
 - Belgrano Sur: siempre excluido, independientemente de su ubicacion.
+
+El limite visual del mapa es independiente de la regla de jugabilidad. Se deriva offline a partir del poligono oficial de CABA, la geometria de General Paz, la geometria del Riachuelo y un buffer visual de 2000 m. La salida actual es:
+
+```json
+[-58.5533266, -34.7139662, -58.3314934, -34.5118298]
+```
+
+La geometria de General Paz fue refinada para el tramo norte/noroeste usando vertices del limite oficial. Esto hizo jugables estaciones ferroviarias fuera de CABA pero dentro del umbral de 1000 m: Juan B. Justo, Padilla, Miguelete, Lynch y Saenz Pena.
 
 ## Modelo Station
 
@@ -49,6 +61,7 @@ interface Station {
   comuna?: number | string;
   isInsideCaba?: boolean;
   distanceToGeneralPazM?: number;
+  distanceToRiachueloM?: number;
   isPlayable?: boolean;
   exclusionReason?: string;
 }
@@ -62,29 +75,31 @@ station.hub_id ?? station.id
 
 La utilidad esta en `src/app/models/station.model.ts` como `getStationComparisonKey`.
 
-## Hubs configurados
+## Hubs
 
-- `hub-retiro`: Retiro Mitre, Belgrano Norte, San Martin, Linea C y Linea E.
-- `hub-once`: Plaza Miserere A, Once H y Once Sarmiento.
-- `hub-constitucion`: Constitucion C y Roca.
-- `hub-ministro-carranza`: Ministro Carranza D y Mitre.
-- `hub-palermo`: Palermo D y San Martin.
-- `hub-federico-lacroze`: Federico Lacroze B y Urquiza.
-- `hub-independencia`: Independencia C y E.
+`stations.json` es la fuente de verdad para estaciones y coordenadas. `station-hubs.ts` es la fuente de verdad para grupos logicos de hubs.
 
-Callao B/D y Pueyrredon B/D permanecen como estaciones separadas sin `hub_id`.
+El procesamiento aplica `hub_id` al JSON procesado segun `STATION_HUB_DEFINITIONS`, sin modificar `stations.json`. Si un miembro de hub no resuelve exactamente una estacion real, queda como warning. Para nombres diferenciados por linea en la fuente, como `Pueyrredon (B)` / `Pueyrredon (D)`, el matching de hubs ignora el sufijo parentetico cuando `line` y `mode` ya desambiguan.
 
-## Duplicados revisados
+Ultima corrida:
 
-El procesamiento inicial informo cinco nombres duplicados sin hub. Se revisaron y se aplico solo la correccion inequivoca:
+- Hubs configurados: 16.
+- Estaciones con `hub_id`: 38.
+- Miembros de hub sin resolver: 0.
+- Hubs unitarios: 0.
+- `hubId` duplicados en `station-hubs.ts`: 0.
+
+## Duplicados aceptados
+
+Los siguientes nombres repetidos no califican para hub porque no estan en ubicaciones cercanas entre si. La validacion los ignora por conjunto exacto de IDs; si aparece otra estacion con el mismo nombre, volvera a reportarse. No se asignan hubs silenciosamente.
 
 | Nombre | IDs / lineas / coordenadas | Clasificacion | Decision |
 | --- | --- | --- | --- |
-| Caseros | `subte_h_caseros` SUBTE H (-34.6352, -58.4002); `tren_san_martin_caseros` TREN San Martin (-34.6053, -58.573) | Coincidencia de nombre sin combinacion fisica | Sin hub |
-| Devoto | `tren_san_martin_devoto` TREN San Martin (-34.6025, -58.5129); `tren_urquiza_devoto` TREN Urquiza (-34.5955, -58.5111) | Coincidencia de nombre sin combinacion fisica; misma zona, no combinacion directa | Sin hub |
-| Florida | `subte_b_florida` SUBTE B (-34.6031, -58.375); `tren_mitre_florida` TREN Mitre (-34.5347, -58.4915); `tren_belgrano_norte_florida` TREN Belgrano Norte (-34.5371, -58.5139) | Coincidencia de nombre sin combinacion fisica | Sin hub |
-| Independencia | `subte_c_independencia` SUBTE C (-34.6182, -58.3774); `subte_e_independencia` SUBTE E (-34.6179, -58.3812) | Combinacion fisica que deberia tener `hub_id` | Aplicado `hub-independencia` |
-| Saenz Pena | `subte_a_saenz_pena` SUBTE A (-34.6095, -58.3871); `tren_san_martin_saenz_pena` TREN San Martin (-34.6029, -58.5279) | Coincidencia de nombre sin combinacion fisica | Sin hub |
+| Caseros | `subte_h_caseros` SUBTE H (-34.6352, -58.3992); `tren_san_martin_caseros` TREN San Martin (-34.6053, -58.573) | Coincidencia de nombre sin combinacion fisica | Duplicado aceptado; sin hub |
+| Devoto | `tren_san_martin_devoto` TREN San Martin (-34.6026, -58.5129); `tren_urquiza_devoto` TREN Urquiza (-34.5953, -58.5108) | Coincidencia de nombre sin combinacion fisica; misma zona, no combinacion directa | Duplicado aceptado; sin hub |
+| Florida | `subte_b_florida` SUBTE B (-34.6032, -58.3751); `tren_mitre_florida` TREN Mitre (-34.5303, -58.4946); `tren_belgrano_norte_florida` TREN Belgrano Norte (-34.5371, -58.5139) | Coincidencia de nombre sin combinacion fisica | Duplicado aceptado; sin hub |
+| General Urquiza | `subte_e_general_urquiza` SUBTE E (-34.6246, -58.4097); `tren_mitre_general_urquiza` TREN Mitre (-34.5747, -58.4879) | Coincidencia de nombre sin combinacion fisica | Duplicado aceptado; sin hub comun; Mitre conserva `hub-rosas-general-urquiza` |
+| Saenz Pena | `subte_a_saenz_pena` SUBTE A (-34.6094, -58.3868); `tren_san_martin_saenz_pena` TREN San Martin (-34.603, -58.5274) | Coincidencia de nombre sin combinacion fisica | Duplicado aceptado; sin hub |
 
 ## Configuracion fija
 
@@ -92,11 +107,13 @@ El procesamiento inicial informo cinco nombres duplicados sin hub. Se revisaron 
 
 - `minDisplacementM: 2500`
 - `hidingZoneRadiusM: 600`
+- `escapePhaseSeconds: 2700` (45 minutos)
 - `endgameDwellSeconds: 60`
 - `captainFailoverSeconds: 60`
 - `escapeExtensionMinutes: 10`
 - `maxEscapeExtensions: 3`
 - `maxDistanceFromGeneralPazM: 1000`
+- `maxDistanceFromRiachueloM: 1000`
 
 El radio de zona no es adaptativo. Las anclas validas son estaciones.
 
@@ -115,12 +132,45 @@ Tambien hay un boton desde Home.
 Implementado:
 
 - Mapa Leaflet de CABA.
+- `maxBounds` rectangular desde `map-generator.bounds.json`, con `maxBoundsViscosity: 1`.
+- `fitBounds` inicial al area visual jugable.
+- `minZoom: 11` y `maxZoom: 18`.
+- `preferCanvas: true`.
 - Poligonos desde `barrios_caba.simplified.json`.
 - Marcadores de estaciones desde `stations.processed.json`.
 - Seleccion de estacion.
 - Circulo exacto de 600m centrado en la estacion.
 - Detalle de nombre, linea, transporte, barrio y `hub_id` diagnostico.
 - Buscador y acordeones por linea.
+
+Capas de Leaflet:
+
+- Barrios: capa GeoJSON independiente.
+- Estaciones: layer group independiente con marcadores reutilizados por `station.id`.
+- Restricciones/zona seleccionada: layer group independiente.
+
+No se dibujan los circulos de 600 m de todas las estaciones; solo se renderiza el circulo de la estacion seleccionada o inspeccionada.
+
+Assets medidos localmente:
+
+| Asset | Tamano |
+| --- | ---: |
+| `barrios_caba.json` | 763723 bytes |
+| `barrios_caba.simplified.json` | 174022 bytes |
+| `stations.processed.json` | 62971 bytes |
+| `general_paz.geojson` | 1099 bytes |
+| `riachuelo.geojson` | 972 bytes |
+| `map-generator.bounds.json` | 340 bytes |
+
+Parseo promedio local sobre 100 iteraciones con Node:
+
+| Asset | Parseo promedio |
+| --- | ---: |
+| `barrios_caba.simplified.json` | 0.394 ms |
+| `stations.processed.json` | 0.224 ms |
+| `map-generator.bounds.json` | 0.002 ms |
+
+La carga inicial renderiza 134 marcadores jugables, una capa GeoJSON de barrios y una capa vacia para restricciones. La lentitud esperable proviene principalmente de teselas OSM y del render GeoJSON simplificado; el asset nuevo de bounds no aporta costo relevante. Los cambios de seleccion ya no reconstruyen el mapa completo ni recrean todos los marcadores.
 
 No usa GPS del hider y no escribe en Firestore.
 
@@ -136,7 +186,7 @@ Implementado:
 - Recalculo desde historial.
 - Persistencia en `localStorage`.
 - Lista de estaciones individuales agrupadas por linea.
-- Eliminacion/restauracion por hub como comportamiento predeterminado cuando la estacion tiene `hub_id`.
+- Eliminacion/restauracion por hub como comportamiento predeterminado cuando la estacion tiene `hub_id` en `stations.json`.
 - Aviso previo de que estaciones del mismo hub seran afectadas.
 
 Internamente se conserva soporte para operar por estacion concreta para depuracion, pero no se presenta como eleccion habitual.
@@ -184,6 +234,6 @@ No se agregaron tests de emulator en esta fase porque el proyecto no tenia infra
 - Motor completo de Radar aplicado al asistente visual.
 - Evaluadores reales de Thermometer, Measuring, Matching y Tentacles.
 - Integracion segura de seleccion de estacion con Firestore.
-- Refinar la geometria de General Paz si se reemplaza por una fuente GIS oficial de mayor precision.
+- Refinar las geometrias de General Paz y Riachuelo si se reemplazan por una fuente GIS oficial de mayor precision.
 - Tests de Firebase Emulator.
 - UI avanzada para restricciones cartograficas y preguntas.

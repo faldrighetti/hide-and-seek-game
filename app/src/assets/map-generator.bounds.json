@@ -1,0 +1,22 @@
+{
+  "bbox": [
+    -58.5533266,
+    -34.7139662,
+    -58.3314934,
+    -34.5118298
+  ],
+  "bufferM": 2000,
+  "northEast": {
+    "lat": -34.5118298,
+    "lng": -58.3314934
+  },
+  "sources": [
+    "barrios_caba.json",
+    "general_paz.geojson",
+    "riachuelo.geojson"
+  ],
+  "southWest": {
+    "lat": -34.7139662,
+    "lng": -58.5533266
+  }
+}

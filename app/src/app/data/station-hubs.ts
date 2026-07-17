@@ -111,13 +111,6 @@ export const STATION_HUB_DEFINITIONS: StationHubDefinition[] = [
     ],
   },
   {
-    hubId: 'hub-pueyrredon-corrientes',
-    members: [
-      { name: 'Pueyrredón', line: 'B', mode: 'SUBTE' },
-      { name: 'Corrientes', line: 'H', mode: 'SUBTE' },
-    ],
-  },
-  {
     hubId: 'hub-pueyrredon-santa-fe',
     members: [
       { name: 'Pueyrredón', line: 'D', mode: 'SUBTE' },

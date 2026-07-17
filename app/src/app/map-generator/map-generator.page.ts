@@ -17,6 +17,14 @@ import { createHidingZone } from './services/hiding-zone';
 
 type CandidateStationView = Station & Pick<StationCandidateView, 'status' | 'selected'>;
 
+interface MapNavigationBoundsAsset {
+  bbox: [number, number, number, number];
+  southWest: { lat: number; lng: number };
+  northEast: { lat: number; lng: number };
+  bufferM: number;
+  sources: string[];
+}
+
 @Component({
   selector: 'app-map-generator',
   templateUrl: './map-generator.page.html',
@@ -38,7 +46,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private map?: L.Map;
   private barriosLayer?: L.GeoJSON;
   private stationsLayer = L.layerGroup();
-  private selectedZoneLayer = L.layerGroup();
+  private restrictionsLayer = L.layerGroup();
+  private stationMarkers = new Map<string, L.CircleMarker>();
+  private readonly minZoom = 11;
+  private readonly maxZoom = 18;
 
   constructor(
     private readonly seekerMapState: SeekerMapStateService,
@@ -46,7 +57,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
-    this.initMap();
     await this.loadMapData();
   }
 
@@ -172,34 +182,52 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     return 0;
   }
 
-  private initMap(): void {
+  private initMap(boundsAsset: MapNavigationBoundsAsset): void {
+    if (this.map) {
+      return;
+    }
+    const maxBounds = L.latLngBounds(
+      [boundsAsset.southWest.lat, boundsAsset.southWest.lng],
+      [boundsAsset.northEast.lat, boundsAsset.northEast.lng],
+    );
+
     this.map = L.map('map-generator-leaflet', {
       preferCanvas: true,
       zoomControl: true,
-    }).setView([-34.6037, -58.3816], 12);
+      minZoom: this.minZoom,
+      maxZoom: this.maxZoom,
+      maxBounds,
+      maxBoundsViscosity: 1,
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
+      minZoom: this.minZoom,
+      maxZoom: this.maxZoom,
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.map);
 
     this.stationsLayer.addTo(this.map);
-    this.selectedZoneLayer.addTo(this.map);
+    this.restrictionsLayer.addTo(this.map);
+    this.map.fitBounds(maxBounds, { padding: [12, 12], animate: false });
   }
 
   private async loadMapData(): Promise<void> {
     try {
-      const [barriosResponse, stationsResponse] = await Promise.all([
+      const loadStartedAt = performance.now();
+      const [boundsResponse, barriosResponse, stationsResponse] = await Promise.all([
+        fetch('assets/map-generator.bounds.json', { cache: 'no-store' }),
         fetch('assets/barrios_caba.simplified.json', { cache: 'force-cache' }),
-        fetch('assets/stations.processed.json', { cache: 'force-cache' }),
+        fetch('assets/stations.processed.json', { cache: 'no-store' }),
       ]);
 
-      if (!barriosResponse.ok || !stationsResponse.ok) {
+      if (!boundsResponse.ok || !barriosResponse.ok || !stationsResponse.ok) {
         throw new Error('Generated map assets are missing. Run npm run data:process-barrios.');
       }
 
+      const boundsAsset = (await boundsResponse.json()) as MapNavigationBoundsAsset;
       const barrios = (await barriosResponse.json()) as FeatureCollection<Geometry>;
       const stationsFile = (await stationsResponse.json()) as StationsProcessedFile;
+      this.initMap(boundsAsset);
       this.allProcessedStations = stationsFile.stations;
       this.stations = stationsFile.stations.filter(station => station.isPlayable);
       this.seekerState = this.seekerMapState.load();
@@ -207,6 +235,13 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
       this.renderBarrios(barrios);
       this.renderStations();
+      console.info('Map generator initial render', {
+        elapsedMs: Math.round(performance.now() - loadStartedAt),
+        renderedStationMarkers: this.stationMarkers.size,
+        renderedLayerGroups: 3,
+        playableStations: this.stations.length,
+        barriosFeatures: barrios.features.length,
+      });
     } catch (error) {
       this.loadError = error instanceof Error ? error.message : 'Could not load map data.';
     }
@@ -218,6 +253,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     this.barriosLayer?.remove();
     this.barriosLayer = L.geoJSON(barrios, {
+      interactive: false,
       style: {
         color: '#315f73',
         weight: 1,
@@ -225,36 +261,35 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         fillOpacity: 0.18,
       },
     }).addTo(this.map);
-    this.map.fitBounds(this.barriosLayer.getBounds(), { padding: [16, 16] });
+    this.bringLayerGroupToFront(this.stationsLayer);
+    this.bringLayerGroupToFront(this.restrictionsLayer);
   }
 
   private renderStations(): void {
-    this.stationsLayer.clearLayers();
+    const activeStationIds = new Set(this.stations.map(station => station.id));
+    for (const [stationId, marker] of this.stationMarkers.entries()) {
+      if (!activeStationIds.has(stationId)) {
+        marker.remove();
+        this.stationMarkers.delete(stationId);
+      }
+    }
+
     for (const station of this.stations) {
       const evaluation = this.getEvaluation(station.id);
       const selected = this.selectedStationIds.has(station.id);
-      const marker = L.circleMarker([station.lat, station.lng], {
-        radius: selected ? 7 : 5,
+      const marker = this.getOrCreateStationMarker(station);
+      marker.setRadius(selected ? 7 : 5);
+      marker.setStyle({
         weight: selected ? 3 : 1,
         color: this.getStationColor(evaluation?.status ?? 'POSSIBLE'),
         fillColor: this.getStationColor(evaluation?.status ?? 'POSSIBLE'),
         fillOpacity: selected ? 0.95 : 0.7,
       });
-
-      marker.bindTooltip(`${station.name} (${station.line})`);
-      marker.on('click', () => {
-        if (this.mode === 'HIDER') {
-          this.selectHiderStation(station);
-        } else {
-          this.toggleSeekerStation(station);
-        }
-      });
-      marker.addTo(this.stationsLayer);
     }
   }
 
   private renderSelectedZone(): void {
-    this.selectedZoneLayer.clearLayers();
+    this.restrictionsLayer.clearLayers();
     if (!this.selectedHidingZone) {
       return;
     }
@@ -264,7 +299,35 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       fillColor: '#2dd4bf',
       fillOpacity: 0.18,
       weight: 2,
-    }).addTo(this.selectedZoneLayer);
+    }).addTo(this.restrictionsLayer);
+  }
+
+  private getOrCreateStationMarker(station: Station): L.CircleMarker {
+    const existing = this.stationMarkers.get(station.id);
+    if (existing) {
+      return existing;
+    }
+
+    const marker = L.circleMarker([station.lat, station.lng], { radius: 5, weight: 1 });
+    marker.bindTooltip(`${station.name} (${station.line})`);
+    marker.on('click', () => {
+      if (this.mode === 'HIDER') {
+        this.selectHiderStation(station);
+      } else {
+        this.toggleSeekerStation(station);
+      }
+    });
+    marker.addTo(this.stationsLayer);
+    this.stationMarkers.set(station.id, marker);
+    return marker;
+  }
+
+  private bringLayerGroupToFront(layerGroup: L.LayerGroup): void {
+    layerGroup.eachLayer(layer => {
+      if ('bringToFront' in layer && typeof layer.bringToFront === 'function') {
+        layer.bringToFront();
+      }
+    });
   }
 
   private appendManualRecord(type: 'MANUAL_ELIMINATION' | 'MANUAL_RESTORE', reason: string): void {

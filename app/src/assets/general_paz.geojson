@@ -1,34 +1,36 @@
 {
   "type": "FeatureCollection",
   "name": "general_paz",
-  "source": "Hand-traced reference LineString following Avenida General Paz along the CABA boundary, versioned for local gameplay processing.",
+  "source": "Reference LineString derived from the official CABA barrio boundary vertices for local gameplay processing.",
   "features": [
     {
       "type": "Feature",
       "properties": {
         "name": "Avenida General Paz",
-        "source": "Local hand-traced reference from the CABA boundary corridor",
-        "version": "2026-07-17"
+        "source": "Derived from src/assets/barrios_caba.json boundary vertices",
+        "version": "2026-07-17-refined"
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [-58.467, -34.535],
-          [-58.472, -34.542],
-          [-58.478, -34.552],
-          [-58.484, -34.565],
-          [-58.493, -34.579],
-          [-58.501, -34.59],
-          [-58.509, -34.603],
-          [-58.518, -34.616],
-          [-58.526, -34.629],
-          [-58.529, -34.642],
-          [-58.5295, -34.654],
-          [-58.523, -34.666],
-          [-58.515, -34.676],
-          [-58.503, -34.684],
-          [-58.489, -34.69],
-          [-58.475, -34.696]
+          [-58.46086, -34.529796],
+          [-58.4669, -34.5346],
+          [-58.4935, -34.5464],
+          [-58.5036, -34.5559],
+          [-58.5027, -34.5665],
+          [-58.5127, -34.5753],
+          [-58.517, -34.5843],
+          [-58.5226, -34.5964],
+          [-58.5273, -34.6064],
+          [-58.5315, -34.6155],
+          [-58.5284, -34.6263],
+          [-58.5304, -34.6336],
+          [-58.5296, -34.642],
+          [-58.5292, -34.6542],
+          [-58.5132, -34.6664],
+          [-58.5026, -34.6744],
+          [-58.4901, -34.6839],
+          [-58.4741, -34.696]
         ]
       }
     }

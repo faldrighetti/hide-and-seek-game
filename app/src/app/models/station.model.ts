@@ -12,6 +12,7 @@ export interface Station {
   comuna?: number | string;
   isInsideCaba?: boolean;
   distanceToGeneralPazM?: number;
+  distanceToRiachueloM?: number;
   isPlayable?: boolean;
   exclusionReason?: string;
 }

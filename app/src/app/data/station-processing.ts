@@ -24,9 +24,45 @@ export interface PlayabilitySummary {
   playableCount: number;
   insideCabaCount: number;
   playableNearGeneralPazCount: number;
+  playableNearRiachueloCount: number;
   excludedByDistanceCount: number;
   excludedBelgranoSurCount: number;
 }
+
+export interface HubValidationReport {
+  configuredHubCount: number;
+  duplicateHubDefinitionIds: string[];
+  unmatchedHubMembers: string[];
+  conflictingHubAssignments: string[];
+  singletonHubIds: string[];
+  invalidHubStationIds: string[];
+  duplicateNamesWithoutHub: string[];
+  nearDuplicateCoordinatesWithoutHub: string[];
+}
+
+export interface CoordinateValidationReport {
+  invertedCoordinateIds: string[];
+  outsideReasonableBoundsIds: string[];
+  exactDuplicateCoordinateGroups: string[];
+  anomalousLineJumps: string[];
+  notMappableStationIds: string[];
+}
+
+export interface MapNavigationBounds {
+  bufferM: number;
+  bbox: [number, number, number, number];
+  southWest: { lat: number; lng: number };
+  northEast: { lat: number; lng: number };
+  sources: string[];
+}
+
+const ACCEPTED_DUPLICATE_VISIBLE_NAME_GROUPS = new Set([
+  'subte_h_caseros|tren_san_martin_caseros',
+  'tren_san_martin_devoto|tren_urquiza_devoto',
+  'subte_b_florida|tren_belgrano_norte_florida|tren_mitre_florida',
+  'subte_e_general_urquiza|tren_mitre_general_urquiza',
+  'subte_a_saenz_pena|tren_san_martin_saenz_pena',
+]);
 
 export function normalizeStationText(value: string): string {
   return value
@@ -55,6 +91,7 @@ export function extractStations(raw: RawStationsFile): Station[] {
             comuna: rawStation.comuna,
             isInsideCaba: rawStation.isInsideCaba,
             distanceToGeneralPazM: rawStation.distanceToGeneralPazM,
+            distanceToRiachueloM: rawStation.distanceToRiachueloM,
             isPlayable: rawStation.isPlayable,
             exclusionReason: rawStation.exclusionReason,
           });
@@ -69,7 +106,9 @@ export function extractStations(raw: RawStationsFile): Station[] {
 export function classifyPlayableStations(
   stations: Station[],
   generalPaz: FeatureCollection<LineString | MultiLineString>,
-  maxDistanceM = GAME_CONFIG.maxDistanceFromGeneralPazM,
+  riachuelo: FeatureCollection<LineString | MultiLineString>,
+  maxDistanceFromGeneralPazM = GAME_CONFIG.maxDistanceFromGeneralPazM,
+  maxDistanceFromRiachueloM = GAME_CONFIG.maxDistanceFromRiachueloM,
 ): { stations: Station[]; summary: PlayabilitySummary } {
   const processed = stations.map(station => {
     const isBelgranoSur = station.mode === 'TREN' && normalizeStationText(station.line) === 'belgrano sur';
@@ -77,12 +116,16 @@ export function classifyPlayableStations(
     const distanceToGeneralPazM = isInsideCaba || !isValidCoordinate(station)
       ? undefined
       : Math.round(distancePointToLineGeometryM([station.lng, station.lat], generalPaz));
+    const distanceToRiachueloM = isInsideCaba || !isValidCoordinate(station)
+      ? undefined
+      : Math.round(distancePointToLineGeometryM([station.lng, station.lat], riachuelo));
 
     if (isBelgranoSur) {
       return {
         ...station,
         isInsideCaba,
         distanceToGeneralPazM,
+        distanceToRiachueloM,
         isPlayable: false,
         exclusionReason: 'BELGRANO_SUR_EXCLUDED',
       };
@@ -93,18 +136,21 @@ export function classifyPlayableStations(
         ...station,
         isInsideCaba,
         distanceToGeneralPazM,
+        distanceToRiachueloM,
         isPlayable: true,
         exclusionReason: undefined,
       };
     }
 
-    const isNearGeneralPaz = distanceToGeneralPazM !== undefined && distanceToGeneralPazM <= maxDistanceM;
+    const isNearGeneralPaz = distanceToGeneralPazM !== undefined && distanceToGeneralPazM <= maxDistanceFromGeneralPazM;
+    const isNearRiachuelo = distanceToRiachueloM !== undefined && distanceToRiachueloM <= maxDistanceFromRiachueloM;
     return {
       ...station,
       isInsideCaba,
       distanceToGeneralPazM,
-      isPlayable: isNearGeneralPaz,
-      exclusionReason: isNearGeneralPaz ? undefined : 'TOO_FAR_FROM_GENERAL_PAZ',
+      distanceToRiachueloM,
+      isPlayable: isNearGeneralPaz || isNearRiachuelo,
+      exclusionReason: isNearGeneralPaz || isNearRiachuelo ? undefined : 'TOO_FAR_FROM_CABA_LIMITS',
     };
   });
 
@@ -113,8 +159,19 @@ export function classifyPlayableStations(
     summary: {
       playableCount: processed.filter(station => station.isPlayable).length,
       insideCabaCount: processed.filter(station => station.isInsideCaba).length,
-      playableNearGeneralPazCount: processed.filter(station => !station.isInsideCaba && station.isPlayable).length,
-      excludedByDistanceCount: processed.filter(station => station.exclusionReason === 'TOO_FAR_FROM_GENERAL_PAZ').length,
+      playableNearGeneralPazCount: processed.filter(station =>
+        !station.isInsideCaba
+        && Boolean(station.isPlayable)
+        && station.distanceToGeneralPazM !== undefined
+        && station.distanceToGeneralPazM <= maxDistanceFromGeneralPazM,
+      ).length,
+      playableNearRiachueloCount: processed.filter(station =>
+        !station.isInsideCaba
+        && Boolean(station.isPlayable)
+        && station.distanceToRiachueloM !== undefined
+        && station.distanceToRiachueloM <= maxDistanceFromRiachueloM,
+      ).length,
+      excludedByDistanceCount: processed.filter(station => station.exclusionReason === 'TOO_FAR_FROM_CABA_LIMITS').length,
       excludedBelgranoSurCount: processed.filter(station => station.exclusionReason === 'BELGRANO_SUR_EXCLUDED').length,
     },
   };
@@ -152,30 +209,76 @@ export function distancePointToSegmentM(pointPosition: Position, segmentStart: P
   return Math.hypot(p.x - closest.x, p.y - closest.y);
 }
 
-export function applyConfiguredHubs(stations: Station[]): { stations: Station[]; warnings: string[] } {
-  const warnings: string[] = [];
+export function deriveMapNavigationBounds(
+  barrios: FeatureCollection<Geometry>,
+  generalPaz: FeatureCollection<LineString | MultiLineString>,
+  riachuelo: FeatureCollection<LineString | MultiLineString>,
+  bufferM: number,
+): MapNavigationBounds {
+  const cabaPositions = collectFeatureCollectionPositions(barrios);
+  const boundaryPositions = [
+    ...collectFeatureCollectionPositions(generalPaz),
+    ...collectFeatureCollectionPositions(riachuelo),
+  ];
+  const allPositions = [...cabaPositions, ...boundaryPositions];
+  const referenceLat = allPositions.reduce((sum, position) => sum + position[1], 0) / allPositions.length;
+  const bufferedBoundaryBounds = expandBounds(getPositionBounds(boundaryPositions), bufferM, referenceLat);
+  const cabaBounds = getPositionBounds(cabaPositions);
+  const bbox = roundBbox(mergeBounds(cabaBounds, bufferedBoundaryBounds));
+
+  return {
+    bufferM,
+    bbox,
+    southWest: { lat: bbox[1], lng: bbox[0] },
+    northEast: { lat: bbox[3], lng: bbox[2] },
+    sources: ['barrios_caba.json', 'general_paz.geojson', 'riachuelo.geojson'],
+  };
+}
+
+export function applyConfiguredHubs(stations: Station[]): {
+  stations: Station[];
+  duplicateHubDefinitionIds: string[];
+  unmatchedHubMembers: string[];
+  conflictingHubAssignments: string[];
+} {
   const nextStations = stations.map(station => ({ ...station }));
+  const duplicateHubDefinitionIds = findDuplicates(STATION_HUB_DEFINITIONS.map(definition => definition.hubId));
+  const unmatchedHubMembers: string[] = [];
+  const conflictingHubAssignments: string[] = [];
 
   for (const hub of STATION_HUB_DEFINITIONS) {
     for (const member of hub.members) {
       const matches = nextStations.filter(station =>
-        normalizeStationText(station.name) === normalizeStationText(member.name)
+        normalizeStationNameForHubMatch(station.name) === normalizeStationNameForHubMatch(member.name)
         && normalizeStationText(station.line) === normalizeStationText(member.line)
         && station.mode === member.mode,
       );
 
       if (matches.length !== 1) {
-        warnings.push(
-          `Hub ${hub.hubId}: expected 1 match for ${member.mode} ${member.line} ${member.name}, found ${matches.length}.`,
+        unmatchedHubMembers.push(
+          `${hub.hubId}: ${member.mode} ${member.line} ${member.name} matched ${matches.length} stations`,
         );
         continue;
       }
 
-      matches[0].hub_id = hub.hubId;
+      const [station] = matches;
+      if (station.hub_id && station.hub_id !== hub.hubId) {
+        conflictingHubAssignments.push(`${station.id}: ${station.hub_id} -> ${hub.hubId}`);
+      }
+      station.hub_id = hub.hubId;
     }
   }
 
-  return { stations: nextStations, warnings };
+  return {
+    stations: nextStations,
+    duplicateHubDefinitionIds,
+    unmatchedHubMembers: unmatchedHubMembers.sort(),
+    conflictingHubAssignments: conflictingHubAssignments.sort(),
+  };
+}
+
+function normalizeStationNameForHubMatch(value: string): string {
+  return normalizeStationText(value).replace(/\s*\([a-z0-9]+\)\s*$/, '');
 }
 
 export function isValidCoordinate(station: Pick<Station, 'lat' | 'lng'>): boolean {
@@ -185,6 +288,46 @@ export function isValidCoordinate(station: Pick<Station, 'lat' | 'lng'>): boolea
     && station.lat <= 90
     && station.lng >= -180
     && station.lng <= 180;
+}
+
+export function validateHubConfiguration(stations: Station[]): HubValidationReport {
+  const hubGroups = new Map<string, Station[]>();
+  const invalidHubStationIds: string[] = [];
+
+  for (const station of stations) {
+    if (station.hub_id !== undefined) {
+      const hubId = String(station.hub_id).trim();
+      if (!isValidHubId(hubId)) {
+        invalidHubStationIds.push(station.id);
+        continue;
+      }
+      hubGroups.set(hubId, [...(hubGroups.get(hubId) ?? []), station]);
+    }
+  }
+
+  return {
+    configuredHubCount: hubGroups.size,
+    duplicateHubDefinitionIds: [],
+    unmatchedHubMembers: [],
+    conflictingHubAssignments: [],
+    singletonHubIds: [...hubGroups.entries()]
+      .filter(([, members]) => members.length === 1)
+      .map(([hubId]) => hubId)
+      .sort(),
+    invalidHubStationIds: invalidHubStationIds.sort(),
+    duplicateNamesWithoutHub: findDuplicateNamesWithoutHub(stations),
+    nearDuplicateCoordinatesWithoutHub: findNearDuplicateCoordinatesWithoutHub(stations),
+  };
+}
+
+export function validateCoordinateAnomalies(stations: Station[]): CoordinateValidationReport {
+  return {
+    invertedCoordinateIds: stations.filter(hasApparentlyInvertedCoordinates).map(station => station.id),
+    outsideReasonableBoundsIds: stations.filter(station => isValidCoordinate(station) && !isInsideReasonableAmbaBounds(station)).map(station => station.id),
+    exactDuplicateCoordinateGroups: findExactDuplicateCoordinateGroups(stations),
+    anomalousLineJumps: findAnomalousLineJumps(stations),
+    notMappableStationIds: stations.filter(station => !isValidCoordinate(station) || !isInsideReasonableAmbaBounds(station)).map(station => station.id),
+  };
 }
 
 export function assignBarriosToStations(
@@ -255,6 +398,10 @@ export function findDuplicateNamesWithoutHub(stations: Station[]): string[] {
     }
     const comparisonKeys = new Set(matches.map(station => station.hub_id ?? station.id));
     if (comparisonKeys.size > 1) {
+      const groupKey = matches.map(station => station.id).sort().join('|');
+      if (ACCEPTED_DUPLICATE_VISIBLE_NAME_GROUPS.has(groupKey)) {
+        continue;
+      }
       duplicates.push(`${name}: ${matches.map(station => station.id).join(', ')}`);
     }
   }
@@ -273,12 +420,165 @@ export function findDuplicates(values: string[]): string[] {
   return [...duplicates].sort();
 }
 
+function isValidHubId(hubId: string): boolean {
+  return /^hub-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(hubId);
+}
+
+function hasApparentlyInvertedCoordinates(station: Station): boolean {
+  return station.lat >= -59
+    && station.lat <= -57
+    && station.lng >= -35.2
+    && station.lng <= -34.2;
+}
+
+function isInsideReasonableAmbaBounds(station: Pick<Station, 'lat' | 'lng'>): boolean {
+  return station.lat >= -35.15
+    && station.lat <= -34.2
+    && station.lng >= -59.15
+    && station.lng <= -57.8;
+}
+
+function findExactDuplicateCoordinateGroups(stations: Station[]): string[] {
+  const byCoordinate = new Map<string, Station[]>();
+  for (const station of stations.filter(isValidCoordinate)) {
+    const key = `${station.lat.toFixed(7)},${station.lng.toFixed(7)}`;
+    byCoordinate.set(key, [...(byCoordinate.get(key) ?? []), station]);
+  }
+
+  return [...byCoordinate.entries()]
+    .filter(([, matches]) => matches.length > 1)
+    .map(([coordinate, matches]) => `${coordinate}: ${matches.map(station => station.id).join(', ')}`)
+    .sort();
+}
+
+function findNearDuplicateCoordinatesWithoutHub(stations: Station[]): string[] {
+  const warnings: string[] = [];
+  for (let firstIndex = 0; firstIndex < stations.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < stations.length; secondIndex += 1) {
+      const first = stations[firstIndex];
+      const second = stations[secondIndex];
+      if (!isValidCoordinate(first) || !isValidCoordinate(second)) {
+        continue;
+      }
+      if ((first.hub_id ?? first.id) === (second.hub_id ?? second.id)) {
+        continue;
+      }
+      if (normalizeStationText(first.name) === normalizeStationText(second.name)) {
+        continue;
+      }
+      const distanceM = distancePointToSegmentM(
+        [first.lng, first.lat],
+        [second.lng, second.lat],
+        [second.lng, second.lat],
+      );
+      if (distanceM <= 25) {
+        warnings.push(`${first.id} / ${second.id}: ${Math.round(distanceM)}m`);
+      }
+    }
+  }
+  return warnings.sort();
+}
+
+function findAnomalousLineJumps(stations: Station[]): string[] {
+  const byLine = new Map<string, Station[]>();
+  for (const station of stations.filter(station => station.isPlayable && isValidCoordinate(station))) {
+    const key = `${station.mode}:${station.line}`;
+    byLine.set(key, [...(byLine.get(key) ?? []), station]);
+  }
+
+  const warnings: string[] = [];
+  for (const [lineKey, lineStations] of byLine.entries()) {
+    const thresholdM = lineKey.startsWith('SUBTE:') ? 2500 : 12000;
+    for (let index = 1; index < lineStations.length; index += 1) {
+      const previous = lineStations[index - 1];
+      const current = lineStations[index];
+      const distanceM = distancePointToSegmentM(
+        [current.lng, current.lat],
+        [previous.lng, previous.lat],
+        [previous.lng, previous.lat],
+      );
+      if (distanceM > thresholdM) {
+        warnings.push(`${lineKey}: ${previous.id} -> ${current.id} = ${Math.round(distanceM)}m`);
+      }
+    }
+  }
+  return warnings.sort();
+}
+
 function isPolygonFeature(feature: Feature<Geometry>): feature is Feature<Polygon | MultiPolygon> {
   return feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon';
 }
 
 function getLineStrings(geometry: LineString | MultiLineString): Position[][] {
   return geometry.type === 'LineString' ? [geometry.coordinates] : geometry.coordinates;
+}
+
+function collectFeatureCollectionPositions(featureCollection: FeatureCollection<Geometry>): Position[] {
+  const positions: Position[] = [];
+  for (const feature of featureCollection.features) {
+    positions.push(...collectGeometryPositions(feature.geometry));
+  }
+  return positions;
+}
+
+function collectGeometryPositions(geometry: Geometry): Position[] {
+  if (geometry.type === 'GeometryCollection') {
+    const positions: Position[] = [];
+    for (const childGeometry of geometry.geometries) {
+      positions.push(...collectGeometryPositions(childGeometry));
+    }
+    return positions;
+  }
+  return collectPositionsFromCoordinates(geometry.coordinates);
+}
+
+function collectPositionsFromCoordinates(coordinates: unknown): Position[] {
+  if (!Array.isArray(coordinates)) {
+    return [];
+  }
+  if (typeof coordinates[0] === 'number' && typeof coordinates[1] === 'number') {
+    return [coordinates as Position];
+  }
+  const positions: Position[] = [];
+  for (const childCoordinates of coordinates) {
+    positions.push(...collectPositionsFromCoordinates(childCoordinates));
+  }
+  return positions;
+}
+
+function getPositionBounds(positions: Position[]): [number, number, number, number] {
+  return positions.reduce<[number, number, number, number]>((bounds, position) => [
+    Math.min(bounds[0], position[0]),
+    Math.min(bounds[1], position[1]),
+    Math.max(bounds[2], position[0]),
+    Math.max(bounds[3], position[1]),
+  ], [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]);
+}
+
+function expandBounds(bounds: [number, number, number, number], bufferM: number, referenceLat: number): [number, number, number, number] {
+  const metersPerDegreeLat = 111_320;
+  const metersPerDegreeLng = metersPerDegreeLat * Math.cos(referenceLat * Math.PI / 180);
+  const latBuffer = bufferM / metersPerDegreeLat;
+  const lngBuffer = bufferM / metersPerDegreeLng;
+  return [
+    bounds[0] - lngBuffer,
+    bounds[1] - latBuffer,
+    bounds[2] + lngBuffer,
+    bounds[3] + latBuffer,
+  ];
+}
+
+function mergeBounds(first: [number, number, number, number], second: [number, number, number, number]): [number, number, number, number] {
+  return [
+    Math.min(first[0], second[0]),
+    Math.min(first[1], second[1]),
+    Math.max(first[2], second[2]),
+    Math.max(first[3], second[3]),
+  ];
+}
+
+function roundBbox(bounds: [number, number, number, number]): [number, number, number, number] {
+  return bounds.map(value => Number(value.toFixed(7))) as [number, number, number, number];
 }
 
 function projectLonLatToMeters(position: Position, referenceLat: number): { x: number; y: number } {

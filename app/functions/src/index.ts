@@ -17,8 +17,8 @@ const db = getFirestore();
 const GAME_ID_LENGTH = 6;
 const SEAT_OFFLINE_SECONDS = 90;
 const HIDING_ZONE_RADIUS_M = 600;
+const ESCAPE_PHASE_SECONDS = 2700;
 const ENDGAME_DWELL_SECONDS = 60;
-const CAPTAIN_FAILOVER_SECONDS = 60;
 
 type GameMode = "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
@@ -102,7 +102,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   winCondition: "TOTAL_TIME",
   ukMode: false,
   intermissionSeconds: 120,
-  escapeSeconds: 3600,
+  escapeSeconds: ESCAPE_PHASE_SECONDS,
   chaseMaxSeconds: 21600,
   zoneRadiusM: HIDING_ZONE_RADIUS_M,
   eligibleBufferM: 0,
