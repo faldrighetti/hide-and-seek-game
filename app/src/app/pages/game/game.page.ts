@@ -4,22 +4,13 @@ import { Observable } from 'rxjs';
 import { GameFacadeService } from '../../services/game-facade';
 import { GameBlueprint, LobbyState, Seat } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
+import { CardCatalogService } from '../../cards/card-catalog.service';
 
 interface DrawRule {
   categoryKey: string;
   categoryName: string;
   draw: number;
   take: number;
-}
-
-interface HiderCardsCatalog {
-  maldiciones: Array<{
-    nombre: string;
-    texto_ui: {
-      efecto: string;
-      costo_lanzamiento: string;
-    };
-  }>;
 }
 
 interface QuestionsCatalog {
@@ -35,6 +26,7 @@ interface QuestionsCatalog {
 export class GamePage {
   private readonly route = inject(ActivatedRoute);
   private readonly gameFacade = inject(GameFacadeService);
+  private readonly cardCatalog = inject(CardCatalogService);
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
@@ -53,13 +45,15 @@ constructor() {
   }
 
   async loadCardsFromCatalog(): Promise<void> {
-    const res = await fetch('assets/cards/Tarjetas_CABA.json', { cache: 'force-cache' });
-    const catalog = (await res.json()) as HiderCardsCatalog;
+    const catalog = await this.cardCatalog.loadHiderDeck();
+    for (const issue of catalog.issues) {
+      console.warn(`[cards:${issue.level}] ${issue.message}`);
+    }
 
-    this.hiderDeck = catalog.maldiciones.map(card => ({
-      title: card.nombre,
-      description: card.texto_ui.efecto,
-      castingCost: card.texto_ui.costo_lanzamiento,
+    this.hiderDeck = catalog.enabledCards.map(card => ({
+      title: card.name,
+      description: card.description,
+      castingCost: card.effectType ?? '',
     }));
 
     this.hiderHand = this.hiderDeck.slice(0, 3);

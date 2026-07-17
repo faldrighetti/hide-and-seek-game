@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from '../config/game-config';
+
 export type GameMode = 'INDIVIDUAL_3' | 'TEAMS_2v2' | 'TEAMS_2v2v2';
 export type WinCondition = 'TOTAL_TIME' | 'BEST_SINGLE_RUN';
 export type Phase = 'INTERMISSION' | 'ESCAPE' | 'CHASE' | 'ENDED';
@@ -97,9 +99,9 @@ export const DEFAULT_SETTINGS: GameSettings = {
   intermissionSeconds: 120,
   escapeSeconds: 3600,
   chaseMaxSeconds: 21600,
-  zoneRadiusM: 500,
-  eligibleBufferM: 100,
+  zoneRadiusM: GAME_CONFIG.hidingZoneRadiusM,
+  eligibleBufferM: 0,
   arrivalRadiusM: 100,
-  endgameRequestCooldownSeconds: 600,
+  endgameRequestCooldownSeconds: GAME_CONFIG.escapeExtensionMinutes * 60,
   deckMaxSize: 6,
 };

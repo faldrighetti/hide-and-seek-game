@@ -1,0 +1,77 @@
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+.control-panel {
+  border-right: 1px solid var(--ion-color-step-150, #d7d8da);
+  overflow: auto;
+  padding: 12px;
+}
+
+.map-panel {
+  min-width: 0;
+}
+
+#map-generator-leaflet {
+  width: 100%;
+  height: calc(100vh - 56px);
+}
+
+.panel-section,
+.selected-detail,
+.history {
+  margin-top: 14px;
+}
+
+h2 {
+  font-size: 16px;
+  margin: 8px 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.stats-grid span {
+  border: 1px solid var(--ion-color-step-150, #d7d8da);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+}
+
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+ion-note {
+  display: block;
+  margin: 8px 0;
+}
+
+ion-item.selected {
+  --background: rgba(45, 212, 191, 0.12);
+}
+
+@media (max-width: 860px) {
+  .map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .control-panel {
+    border-right: 0;
+    max-height: 48vh;
+  }
+
+  #map-generator-leaflet {
+    height: 52vh;
+  }
+}

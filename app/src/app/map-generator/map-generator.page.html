@@ -1,0 +1,124 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Map generator</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="map-layout">
+    <aside class="control-panel">
+      <ion-segment [value]="mode" (ionChange)="setMode($any($event.detail.value))">
+        <ion-segment-button value="HIDER">
+          <ion-label>Hider</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="SEEKER">
+          <ion-label>Seeker</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <ion-note color="danger" *ngIf="loadError">{{ loadError }}</ion-note>
+
+      <ion-searchbar
+        [(ngModel)]="stationFilter"
+        debounce="150"
+        placeholder="Buscar estacion o linea"
+      ></ion-searchbar>
+
+      <section *ngIf="mode === 'HIDER'" class="panel-section">
+        <h2>Zona de escondite</h2>
+        <ion-accordion-group>
+          <ion-accordion *ngFor="let group of hiderStationGroups; trackBy: trackByGroupId" [value]="group.id">
+            <ion-item slot="header">
+              <ion-label>{{ group.label }}</ion-label>
+              <ion-note slot="end">{{ group.stations.length }}</ion-note>
+            </ion-item>
+            <ion-list slot="content" lines="full">
+              <ion-item button *ngFor="let station of group.stations" (click)="selectHiderStation(station)">
+                <ion-label>
+                  <h3>{{ station.name }}</h3>
+                  <p>{{ station.barrio || 'General Paz / AMBA' }}</p>
+                  <p *ngIf="station.hub_id">Hub: {{ station.hub_id }}</p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+        </ion-accordion-group>
+      </section>
+
+      <section *ngIf="mode === 'HIDER' && selectedStation" class="selected-detail">
+        <h2>{{ selectedStation.name }}</h2>
+        <p>{{ selectedStation.mode }} {{ selectedStation.line }}</p>
+        <p>Barrio: {{ selectedStation.barrio || 'Sin asignar' }}</p>
+        <p>Radio: {{ selectedHidingZone?.radiusM }} m</p>
+        <p *ngIf="selectedStation.hub_id">Hub: {{ selectedStation.hub_id }}</p>
+      </section>
+
+      <section *ngIf="mode === 'SEEKER'" class="panel-section">
+        <div class="stats-grid">
+          <span>Jugables<br><strong>{{ totalCount }}</strong></span>
+          <span>Posibles<br><strong>{{ possibleCount }}</strong></span>
+          <span>Eliminadas<br><strong>{{ eliminatedCount }}</strong></span>
+          <span>Dudosas<br><strong>{{ unknownCount }}</strong></span>
+        </div>
+
+        <ion-note *ngIf="selectedHubSummaries.length === 0 && selectedStationIds.size > 0">
+          La accion afectara solamente las estaciones seleccionadas que no pertenezcan a hubs.
+        </ion-note>
+        <ion-note *ngFor="let summary of selectedHubSummaries">
+          {{ summary }}
+        </ion-note>
+        <ion-note *ngIf="selectedImpactStations.length > selectedStationIds.size">
+          Total afectadas por hubs: {{ selectedImpactStations.length }}
+        </ion-note>
+
+        <div class="actions-row">
+          <ion-button size="small" color="danger" (click)="eliminateSelected()">Eliminar</ion-button>
+          <ion-button size="small" fill="outline" (click)="restoreSelected()">Restaurar</ion-button>
+          <ion-button size="small" fill="clear" [disabled]="!canUndo" (click)="undo()">Undo</ion-button>
+          <ion-button size="small" fill="clear" [disabled]="!canRedo" (click)="redo()">Redo</ion-button>
+        </div>
+
+        <ion-accordion-group>
+          <ion-accordion *ngFor="let group of seekerStationGroups; trackBy: trackByGroupId" [value]="group.id">
+            <ion-item slot="header">
+              <ion-label>{{ group.label }}</ion-label>
+              <ion-note slot="end">{{ group.stations.length }}</ion-note>
+            </ion-item>
+            <ion-list slot="content" lines="full">
+              <ion-item
+                button
+                *ngFor="let item of group.stations"
+                [class.selected]="item.selected"
+                (click)="toggleSeekerStation(item)"
+              >
+                <ion-checkbox slot="start" [checked]="item.selected"></ion-checkbox>
+                <ion-label>
+                  <h3>{{ item.name }}</h3>
+                  <p>{{ item.status }} - {{ item.barrio || 'General Paz / AMBA' }}</p>
+                  <p *ngIf="item.hub_id">Hub: {{ item.hub_id }}</p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+        </ion-accordion-group>
+      </section>
+
+      <section *ngIf="mode === 'SEEKER'" class="history">
+        <h2>Historial</h2>
+        <p *ngIf="visibleRecords.length === 0">Sin acciones.</p>
+        <ol>
+          <li *ngFor="let record of visibleRecords">
+            {{ record.data.type }} - {{ getRecordStationKeyCount(record) }} keys
+          </li>
+        </ol>
+      </section>
+    </aside>
+
+    <main class="map-panel">
+      <div id="map-generator-leaflet"></div>
+    </main>
+  </div>
+</ion-content>

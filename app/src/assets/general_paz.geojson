@@ -1,0 +1,36 @@
+{
+  "type": "FeatureCollection",
+  "name": "general_paz",
+  "source": "Hand-traced reference LineString following Avenida General Paz along the CABA boundary, versioned for local gameplay processing.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Avenida General Paz",
+        "source": "Local hand-traced reference from the CABA boundary corridor",
+        "version": "2026-07-17"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-58.467, -34.535],
+          [-58.472, -34.542],
+          [-58.478, -34.552],
+          [-58.484, -34.565],
+          [-58.493, -34.579],
+          [-58.501, -34.59],
+          [-58.509, -34.603],
+          [-58.518, -34.616],
+          [-58.526, -34.629],
+          [-58.529, -34.642],
+          [-58.5295, -34.654],
+          [-58.523, -34.666],
+          [-58.515, -34.676],
+          [-58.503, -34.684],
+          [-58.489, -34.69],
+          [-58.475, -34.696]
+        ]
+      }
+    }
+  ]
+}

@@ -16,6 +16,9 @@ const db = getFirestore();
 
 const GAME_ID_LENGTH = 6;
 const SEAT_OFFLINE_SECONDS = 90;
+const HIDING_ZONE_RADIUS_M = 600;
+const ENDGAME_DWELL_SECONDS = 60;
+const CAPTAIN_FAILOVER_SECONDS = 60;
 
 type GameMode = "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
@@ -50,6 +53,14 @@ interface ActiveEffect {
   blocksTransport: boolean;
 }
 
+interface LootOffer {
+  questionId: string;
+  categoryId: string;
+  drawnCardIds: string[];
+  takeLimit: number;
+  createdAt: Timestamp;
+}
+
 interface TurnState {
   runNumber: number;
   hiderTeamId: string;
@@ -61,6 +72,10 @@ interface TurnState {
   pendingQuestionEndsAt?: Timestamp | null;
   categoryCooldowns?: Record<string, Timestamp>;
   activeEffects?: ActiveEffect[];
+  hiderHand?: string[];
+  drawPile?: string[];
+  discardPile?: string[];
+  lootOffer?: LootOffer | null;
   expirations: number;
   foundVotes: string[];
 }
@@ -89,9 +104,63 @@ const DEFAULT_SETTINGS: GameSettings = {
   intermissionSeconds: 120,
   escapeSeconds: 3600,
   chaseMaxSeconds: 21600,
-  zoneRadiusM: 500,
-  eligibleBufferM: 100,
-  endgameRequestCooldownSeconds: 600,
+  zoneRadiusM: HIDING_ZONE_RADIUS_M,
+  eligibleBufferM: 0,
+  endgameRequestCooldownSeconds: ENDGAME_DWELL_SECONDS * 10,
+};
+
+const DECK_MAX_SIZE = 6;
+
+const QUESTION_DRAW_RULES: Record<string, {draw: number; take: number}> = {
+  matching: {draw: 3, take: 1},
+  measuring: {draw: 3, take: 1},
+  thermometer: {draw: 1, take: 1},
+  radar: {draw: 1, take: 1},
+  tentacles: {draw: 4, take: 2},
+  photos: {draw: 1, take: 1},
+};
+
+const expandCopies = (cardId: string, copies: number): string[] =>
+  Array.from({length: copies}, (_, index) => `${cardId}#${index + 1}`);
+
+const BASE_HIDER_DECK = [
+  ...expandCopies("time_bonus_red_3m", 25),
+  ...expandCopies("time_bonus_orange_5m", 15),
+  ...expandCopies("time_bonus_yellow_10m", 10),
+  ...expandCopies("time_bonus_green_15m", 3),
+  ...expandCopies("time_bonus_blue_20m", 2),
+  ...expandCopies("powerup_randomize", 4),
+  ...expandCopies("powerup_veto", 4),
+  ...expandCopies("powerup_duplicate", 2),
+  ...expandCopies("powerup_move", 1),
+  ...expandCopies("powerup_discard1_draw2", 4),
+  ...expandCopies("powerup_discard2_draw3", 4),
+  ...expandCopies("powerup_draw1_expand1", 2),
+  ...expandCopies("curse_1", 1),
+  ...expandCopies("curse_2", 1),
+  ...expandCopies("curse_3", 1),
+  ...expandCopies("curse_4", 1),
+  ...expandCopies("curse_5", 1),
+  ...expandCopies("curse_6", 1),
+  ...expandCopies("curse_7", 1),
+  ...expandCopies("curse_8", 1),
+  ...expandCopies("curse_9", 1),
+  ...expandCopies("curse_10", 1),
+  ...expandCopies("curse_11", 1),
+  ...expandCopies("curse_17", 1),
+  ...expandCopies("curse_18", 1),
+  ...expandCopies("curse_19", 1),
+  ...expandCopies("curse_24", 1),
+  ...expandCopies("curse_25", 1),
+  ...expandCopies("curse_26", 1),
+];
+
+const timeBonusSecondsByCardPrefix: Record<string, number> = {
+  time_bonus_red_3m: 180,
+  time_bonus_orange_5m: 300,
+  time_bonus_yellow_10m: 600,
+  time_bonus_green_15m: 900,
+  time_bonus_blue_20m: 1200,
 };
 
 const modeTeamIds = (mode: GameMode): string[] => {
@@ -108,6 +177,22 @@ const modeMaxSeats = (mode: GameMode): number => {
 const nowTs = (): Timestamp => Timestamp.now();
 
 const randomCode = (): string => Math.random().toString(36).slice(2, 2 + GAME_ID_LENGTH).toUpperCase();
+
+const shuffle = (items: string[]): string[] => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
+const createInitialDeckState = (): Pick<TurnState, "hiderHand" | "drawPile" | "discardPile" | "lootOffer"> => ({
+  hiderHand: [],
+  drawPile: shuffle(BASE_HIDER_DECK),
+  discardPile: [],
+  lootOffer: null,
+});
 
 const pickInitialHider = (teamOrder: string[]): string => {
   const idx = Math.floor(Math.random() * teamOrder.length);
@@ -190,6 +275,36 @@ const getNextHiderTeamId = (game: GameDoc, currentHider: string): string => {
   return order[(idx + 1) % order.length];
 };
 
+const cardBaseId = (cardId: string): string => cardId.split("#")[0];
+
+const getTimeBonusSeconds = (hand: string[] = []): number =>
+  hand.reduce((total, cardId) => total + (timeBonusSecondsByCardPrefix[cardBaseId(cardId)] ?? 0), 0);
+
+const hasDuplicates = (items: string[]): boolean => new Set(items).size !== items.length;
+
+const drawFromDeck = (
+  turn: TurnState,
+  requestedCount: number,
+): {drawnCardIds: string[]; drawPile: string[]; discardPile: string[]} => {
+  let drawPile = [...(turn.drawPile ?? [])];
+  let discardPile = [...(turn.discardPile ?? [])];
+  const drawnCardIds: string[] = [];
+
+  while (drawnCardIds.length < requestedCount) {
+    if (drawPile.length === 0) {
+      if (discardPile.length === 0) break;
+      drawPile = shuffle(discardPile);
+      discardPile = [];
+    }
+
+    const next = drawPile.shift();
+    if (!next) break;
+    drawnCardIds.push(next);
+  }
+
+  return {drawnCardIds, drawPile, discardPile};
+};
+
 const allRunsCompleted = (game: GameDoc): boolean =>
   Object.values(game.standings).every((standing) => standing.runsCompleted >= game.settings.turnsPerTeam);
 
@@ -211,8 +326,9 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   const chaseStart = turn.chaseStartedAt?.toMillis() ?? txNow.toMillis();
   const chaseEnd = txNow.toMillis();
   const chaseDurationSeconds = Math.max(0, Math.floor((chaseEnd - chaseStart) / 1000));
+  const timeBonusSeconds = getTimeBonusSeconds(turn.hiderHand);
   const timeoutPenaltySeconds = turn.expirations * 1800;
-  const finalTime = Math.max(0, chaseDurationSeconds - timeoutPenaltySeconds);
+  const finalTime = Math.max(0, chaseDurationSeconds + timeBonusSeconds - timeoutPenaltySeconds);
 
   const currentStanding = game.standings[turn.hiderTeamId] ?? {
     totalTimeSeconds: 0,
@@ -239,6 +355,7 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       pendingQuestionEndsAt: null,
       categoryCooldowns: {},
       activeEffects: [],
+      ...createInitialDeckState(),
       foundVotes: [],
     };
     game.winnerTeamIds = findWinnerIds(game);
@@ -260,6 +377,7 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     pendingQuestionEndsAt: null,
     categoryCooldowns: {},
     activeEffects: [],
+    ...createInitialDeckState(),
     expirations: 0,
     foundVotes: [],
   };
@@ -464,6 +582,7 @@ export const startGame = onCall(async (request) => {
       pendingQuestionEndsAt: null,
       categoryCooldowns: {},
       activeEffects: [],
+      ...createInitialDeckState(),
       expirations: 0,
       foundVotes: [],
     };
@@ -506,6 +625,9 @@ export const sendQuestion = onCall(async (request) => {
     }
     if (game.currentTurn.pendingQuestionId) {
       throw new HttpsError("failed-precondition", "Ya existe una pregunta pendiente.");
+    }
+    if (game.currentTurn.lootOffer) {
+      throw new HttpsError("failed-precondition", "Hay loot pendiente de resolver.");
     }
 
     const now = nowTs();
@@ -560,11 +682,21 @@ export const resolveQuestion = onCall(async (request) => {
     if (!turn?.pendingQuestionId) {
       throw new HttpsError("failed-precondition", "No hay pregunta pendiente.");
     }
+    const seatSnap = await tx.get(
+      gameRef.collection("seats").where("uid", "==", uid).limit(1),
+    );
+    const seatTeamId = String(seatSnap.docs[0]?.data()?.teamId ?? "");
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede responder.");
+    }
 
     const now = nowTs();
     const qRef = gameRef.collection("questions").doc(turn.pendingQuestionId);
     const qSnap = await tx.get(qRef);
+    if (!qSnap.exists) throw new HttpsError("not-found", "Pregunta no encontrada.");
     const categoryId = String(qSnap.data()?.categoryId ?? "").trim();
+    const drawRule = QUESTION_DRAW_RULES[categoryId] ?? {draw: 1, take: 1};
+    const deckDraw = drawFromDeck(turn, drawRule.draw);
     
     tx.update(qRef, {
       status: "RESOLVED",
@@ -584,8 +716,94 @@ export const resolveQuestion = onCall(async (request) => {
         pendingQuestionId: null,
         pendingQuestionEndsAt: null,
         categoryCooldowns,
+        drawPile: deckDraw.drawPile,
+        discardPile: deckDraw.discardPile,
+        lootOffer: {
+          questionId: qRef.id,
+          categoryId,
+          drawnCardIds: deckDraw.drawnCardIds,
+          takeLimit: drawRule.take,
+          createdAt: now,
+        },
       },
       updatedAt: now,
+    });
+  });
+
+  return {ok: true};
+});
+
+export const selectLoot = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const selectedCardIds: string[] = Array.isArray(request.data?.selectedCardIds) ?
+    request.data.selectedCardIds.map((cardId: unknown) => String(cardId)) :
+    [];
+  const discardFromHandIds: string[] = Array.isArray(request.data?.discardFromHandIds) ?
+    request.data.discardFromHandIds.map((cardId: unknown) => String(cardId)) :
+    [];
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  if (hasDuplicates(selectedCardIds) || hasDuplicates(discardFromHandIds)) {
+    throw new HttpsError("invalid-argument", "No se permiten IDs de carta duplicados.");
+  }
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn?.lootOffer) {
+      throw new HttpsError("failed-precondition", "No hay loot pendiente.");
+    }
+    const seatSnap = await tx.get(
+      gameRef.collection("seats").where("uid", "==", uid).limit(1),
+    );
+    const seatTeamId = String(seatSnap.docs[0]?.data()?.teamId ?? "");
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede elegir loot.");
+    }
+
+    const drawn = turn.lootOffer.drawnCardIds;
+    if (selectedCardIds.length > turn.lootOffer.takeLimit) {
+      throw new HttpsError("invalid-argument", "Seleccionaste mÃ¡s cartas que el lÃ­mite.");
+    }
+    if (!selectedCardIds.every((cardId) => drawn.includes(cardId))) {
+      throw new HttpsError("invalid-argument", "Solo podÃ©s elegir cartas del loot actual.");
+    }
+
+    const hand = [...(turn.hiderHand ?? [])];
+    const remainingHand = [...hand];
+    for (const cardId of discardFromHandIds) {
+      const index = remainingHand.indexOf(cardId);
+      if (index < 0) throw new HttpsError("invalid-argument", "No podÃ©s descartar una carta que no estÃ¡ en la mano.");
+      remainingHand.splice(index, 1);
+    }
+
+    const selected = [...selectedCardIds];
+    const nextHand = [...remainingHand, ...selected];
+    if (nextHand.length > DECK_MAX_SIZE) {
+      throw new HttpsError("failed-precondition", "La mano supera el mÃ¡ximo de 6 cartas.");
+    }
+
+    const selectedSet = new Set(selected);
+    const unselectedDrawn = drawn.filter((cardId) => !selectedSet.has(cardId));
+    const nextDiscardPile = [
+      ...(turn.discardPile ?? []),
+      ...unselectedDrawn,
+      ...discardFromHandIds,
+    ];
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        hiderHand: nextHand,
+        discardPile: nextDiscardPile,
+        lootOffer: null,
+      },
+      updatedAt: nowTs(),
     });
   });
 
@@ -747,6 +965,7 @@ export const nextTurn = onCall(async (request) => {
       pendingQuestionEndsAt: null,
       categoryCooldowns: {},
       activeEffects: [],
+      ...createInitialDeckState(),
       expirations: 0,
       foundVotes: [],
     };

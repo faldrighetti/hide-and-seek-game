@@ -26,6 +26,10 @@ const routes: Routes = [
     path: 'game/:gameId',
     loadChildren: () => import('../app/pages/game/game.module').then(m => m.GamePageModule),
   },
+  {
+    path: 'map-generator',
+    loadChildren: () => import('../app/map-generator/map-generator.module').then(m => m.MapGeneratorModule),
+  },
 ];
 
 @NgModule({
