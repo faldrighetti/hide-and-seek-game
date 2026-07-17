@@ -124,10 +124,6 @@
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una comisaría?"
         },
         {
-          "label": "Hipódromo",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un hipódromo?"
-        },
-        {
           "label": "Parque",
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un parque?"
         },
@@ -142,10 +138,6 @@
         {
           "label": "Hospital",
           "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un hospital?"
-        },
-        {
-          "label": "Biblioteca",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una biblioteca?"
         },
         {
           "label": "Río de la Plata",
