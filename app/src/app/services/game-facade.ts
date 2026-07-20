@@ -11,36 +11,16 @@ import {
 } from '../models/core-model';
 
 const createSeedStandings = (mode: GameMode): TeamStanding[] => {
-  if (mode === 'TEAMS_2v2') {
-    return [
-      { id: 'A', name: 'Team A', totalTimeSeconds: 0, bestSingleRunSeconds: 0, runsCompleted: 0 },
-      { id: 'B', name: 'Team B', totalTimeSeconds: 0, bestSingleRunSeconds: 0, runsCompleted: 0 },
-    ];
-  }
+  const teamIds = mode === 'INDIVIDUAL_1v1' || mode === 'TEAMS_2v2' ? ['A', 'B'] : ['A', 'B', 'C'];
+  const isIndividual = mode === 'INDIVIDUAL_1v1' || mode === 'INDIVIDUAL_3';
 
-  return [
-    {
-      id: 'A',
-      name: mode === 'INDIVIDUAL_3' ? 'Player A' : 'Team A',
-      totalTimeSeconds: 0,
-      bestSingleRunSeconds: 0,
-      runsCompleted: 0,
-    },
-    {
-      id: 'B',
-      name: mode === 'INDIVIDUAL_3' ? 'Player B' : 'Team B',
-      totalTimeSeconds: 0,
-      bestSingleRunSeconds: 0,
-      runsCompleted: 0,
-    },
-    {
-      id: 'C',
-      name: mode === 'INDIVIDUAL_3' ? 'Player C' : 'Team C',
-      totalTimeSeconds: 0,
-      bestSingleRunSeconds: 0,
-      runsCompleted: 0,
-    },
-  ];
+  return teamIds.map(teamId => ({
+    id: teamId,
+    name: `${isIndividual ? 'Player' : 'Team'} ${teamId}`,
+    totalTimeSeconds: 0,
+    bestSingleRunSeconds: 0,
+    runsCompleted: 0,
+  }));
 };
 
 const buildBlueprint = (
@@ -87,8 +67,8 @@ const buildBlueprint = (
     },
     endgamePolicy: {
       eligibleRadiusM: settings.zoneRadiusM + settings.eligibleBufferM,
-      requestCooldownSeconds: settings.endgameRequestCooldownSeconds,
-      canRequestAnytimeDuringChase: true,
+      verificationCooldownSeconds: settings.endgameVerificationCooldownSeconds,
+      canVerifyAnytimeDuringChase: true,
       tentaclesOnlyInEndgame: true,
     },
   };
@@ -97,6 +77,7 @@ const buildBlueprint = (
 const randomGameId = (): string => Math.random().toString(36).slice(2, 8).toUpperCase();
 
 const PRESET_PLAYERS_BY_MODE: Record<GameMode, string[]> = {
+  INDIVIDUAL_1v1: ['Fede', 'Nom2'],
   INDIVIDUAL_3: ['Fede', 'Nom2', 'Nom3'],
   TEAMS_2v2: ['Fede', 'Nom2', 'Nom3', 'Nom4'],
   TEAMS_2v2v2: ['Fede', 'Nom2', 'Nom3', 'Nom4', 'Nom5', 'Nom6'],
@@ -295,7 +276,7 @@ export class GameFacadeService {
   private isFoundConfirmed(current: GameBlueprint, lobby: LobbyState, votes: string[]): boolean {
     const seekerSeats = lobby.seats.filter(seat => seat.teamId !== current.currentTurn.hiderTeamId);
 
-    if (current.mode === 'INDIVIDUAL_3' || current.mode === 'TEAMS_2v2') {
+    if (current.mode === 'INDIVIDUAL_1v1' || current.mode === 'INDIVIDUAL_3' || current.mode === 'TEAMS_2v2') {
       const seekerSeatIds = seekerSeats.map(seat => seat.id);
       return seekerSeatIds.length > 0 && seekerSeatIds.every(seekerSeatId => votes.includes(seekerSeatId));
     }

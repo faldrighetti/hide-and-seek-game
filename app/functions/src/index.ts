@@ -17,10 +17,10 @@ const db = getFirestore();
 const GAME_ID_LENGTH = 6;
 const SEAT_OFFLINE_SECONDS = 90;
 const HIDING_ZONE_RADIUS_M = 600;
-const ESCAPE_PHASE_SECONDS = 2700;
+const ESCAPE_PHASE_SECONDS = 3600;
 const ENDGAME_DWELL_SECONDS = 60;
 
-type GameMode = "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
+type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
 type Phase = "INTERMISSION" | "ESCAPE" | "CHASE" | "ENDED";
 type GameStatus = "LOBBY" | "LIVE" | "FINISHED";
@@ -34,7 +34,7 @@ interface GameSettings {
   chaseMaxSeconds: number;
   zoneRadiusM: number;
   eligibleBufferM: number;
-  endgameRequestCooldownSeconds: number;
+  endgameVerificationCooldownSeconds: number;
 }
 
 interface TeamStanding {
@@ -106,7 +106,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   chaseMaxSeconds: 21600,
   zoneRadiusM: HIDING_ZONE_RADIUS_M,
   eligibleBufferM: 0,
-  endgameRequestCooldownSeconds: ENDGAME_DWELL_SECONDS * 10,
+  endgameVerificationCooldownSeconds: ENDGAME_DWELL_SECONDS * 10,
 };
 
 const DECK_MAX_SIZE = 6;
@@ -164,11 +164,12 @@ const timeBonusSecondsByCardPrefix: Record<string, number> = {
 };
 
 const modeTeamIds = (mode: GameMode): string[] => {
-  if (mode === "TEAMS_2v2") return ["A", "B"];
+  if (mode === "INDIVIDUAL_1v1" || mode === "TEAMS_2v2") return ["A", "B"];
   return ["A", "B", "C"];
 };
 
 const modeMaxSeats = (mode: GameMode): number => {
+  if (mode === "INDIVIDUAL_1v1") return 2;
   if (mode === "INDIVIDUAL_3") return 3;
   if (mode === "TEAMS_2v2") return 4;
   return 6;

@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from '../config/game-config';
 
-export type GameMode = 'INDIVIDUAL_3' | 'TEAMS_2v2' | 'TEAMS_2v2v2';
+export type GameMode = 'INDIVIDUAL_1v1' | 'INDIVIDUAL_3' | 'TEAMS_2v2' | 'TEAMS_2v2v2';
 export type WinCondition = 'TOTAL_TIME' | 'BEST_SINGLE_RUN';
 export type Phase = 'INTERMISSION' | 'ESCAPE' | 'CHASE' | 'ENDED';
 
@@ -14,7 +14,7 @@ export interface GameSettings {
   zoneRadiusM: number;
   eligibleBufferM: number;
   arrivalRadiusM: number;
-  endgameRequestCooldownSeconds: number;
+  endgameVerificationCooldownSeconds: number;
   deckMaxSize: number;
 }
 
@@ -61,8 +61,8 @@ export interface EffectPolicy {
 
 export interface EndgamePolicy {
   eligibleRadiusM: number;
-  requestCooldownSeconds: number;
-  canRequestAnytimeDuringChase: boolean;
+  verificationCooldownSeconds: number;
+  canVerifyAnytimeDuringChase: boolean;
   tentaclesOnlyInEndgame: boolean;
 }
 
@@ -102,6 +102,6 @@ export const DEFAULT_SETTINGS: GameSettings = {
   zoneRadiusM: GAME_CONFIG.hidingZoneRadiusM,
   eligibleBufferM: 0,
   arrivalRadiusM: 100,
-  endgameRequestCooldownSeconds: GAME_CONFIG.escapeExtensionMinutes * 60,
+  endgameVerificationCooldownSeconds: GAME_CONFIG.endgameVerificationCooldownMinutes * 60,
   deckMaxSize: 6,
 };

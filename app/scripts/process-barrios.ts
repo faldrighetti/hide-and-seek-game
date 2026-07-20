@@ -105,7 +105,7 @@ function main(): void {
   const processed: StationsProcessedFile = {
     version: rawStations.version ?? 'unknown',
     source: basename(stationSourcePath),
-    stations: playabilityResult.stations.sort((a, b) => a.id.localeCompare(b.id)),
+    stations: playabilityResult.stations,
     warnings,
   };
 

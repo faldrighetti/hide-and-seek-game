@@ -31,6 +31,20 @@ export interface ManualRestoreConstraint {
   reason?: string;
 }
 
+export interface ManualCircleConstraint {
+  id: string;
+  type: 'MANUAL_CIRCLE';
+  center: {
+    lat: number;
+    lng: number;
+  };
+  radiusM: number;
+  mode: 'ELIMINATE_INSIDE' | 'ELIMINATE_OUTSIDE';
+  reason?: string;
+  questionId?: string;
+  enabled: boolean;
+}
+
 export interface RadarConstraint {
   id: string;
   type: 'RADAR';
@@ -61,6 +75,7 @@ export interface TentaclesConstraint {
 export type MapConstraint =
   | ManualEliminationConstraint
   | ManualRestoreConstraint
+  | ManualCircleConstraint
   | RadarConstraint
   | ThermometerConstraint
   | MeasuringConstraint

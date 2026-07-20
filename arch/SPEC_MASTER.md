@@ -3,6 +3,7 @@ Contexto: Quiero construir una app móvil/web (Ionic Angular) para jugar un hide
 1) Modos de juego (teams)
 
 Todos los modos se modelan como teams. En “individual” cada team tiene 1 jugador. Máximo:
+INDIVIDUAL_1v1: 2 jugadores individuales (2 teams de 1). En cada turno: 1 hider vs 1 seeker.
 INDIVIDUAL_3: 3 jugadores individuales (3 teams de 1). En cada turno: 1 hider vs 2 seekers.
 TEAMS_2v2: 2 teams de 2 jugadores.
 TEAMS_2v2v2: 3 teams de 2 jugadores (6 jugadores).
@@ -17,12 +18,16 @@ Rejoin: si alguien entra con el mismo displayName, toma su lugar (takeover del s
 3) Fases y timers (turn engine)
 Cada “run” (turno donde un team es hider) tiene fases:
 INTERMISSION: 2 minutos, countdown visible para todos. Sin acciones.
-ESCAPE: 1 hora, countdown visible para todos. Prohibido preguntar. El hider se mueve libremente. No hay cartas todavía (mano inicial 0).
+ESCAPE: 60 minutos fijos en todos los runs, countdown visible para todos. Prohibido preguntar. El hider se mueve libremente. No hay cartas todavía (mano inicial 0).
 CHASE: empieza cuando termina escape, max 6 horas. Aquí se hacen preguntas, se usan cartas/curses y corre el cronómetro (tiempo transcurrido).
 Termina por:
 FOUND vote (mayoría por equipos), o timeout (6h).
 
 Todo el motor de fases debe ser server-authoritative con timestamps (phaseEndsAt) y avanzar automáticamente (Scheduled Function).
+
+Regla global de transporte:
+Permitidos: subte, tren, colectivo y caminata.
+Prohibidos: Uber, taxi, bicicleta, Ecobici, vehiculos particulares y equivalentes.
 
 4) Estaciones (HQ) y Zona
 Para AMBA se usará un JSON local stations_amba.json (luego GTFS→JSON). Líneas:
@@ -42,12 +47,13 @@ eligibleRadius = zoneRadiusM + eligibleBufferM
 default: 500 + 100 = 600m
 eligible = true si cualquier seeker (ubicación “fresh”, ej. <60s) está dentro del eligibleRadius del hqStationFinal.
 La app NO debe delatar automáticamente que eligible=true.
-Seekers pueden presionar un botón “Solicitar Endgame” (siempre visible en CHASE) con cooldown 10 min.
-Hider puede aceptar/rechazar. Rechazo solo se loguea, sin penalidad por ahora.
-Si acepta:
-anchorPoint = ubicación actual del hider en ese momento.
+Seekers pueden presionar un botón “Verificar Endgame” (siempre visible en CHASE) con cooldown 10 min.
+La verificación es server-side: si hay un seeker elegible, el sistema activa endgame sin pedir confirmación al hider.
+Si no hay seeker elegible, se rechaza silenciosamente/loguea sin revelar distancias ni estación.
+Al activarse:
+anchorPoint = ubicación actual del hider en ese momento, capturada por el servidor.
 endgameActive = true
-Hider debe quedarse fijo (regla social + UI).
+Hider debe quedarse fijo (regla social + UI). El hider no “avisa” el endgame ni puede aceptarlo/rechazarlo.
 Tentacles (cartas/endgame) solo permitidas en endgame.
 Seekers no ven lista de estaciones posibles.
 
@@ -198,8 +204,8 @@ stations_amba.json (mini hardcode primero)
 seekers publican ubicación (throttle)
 HQ final al final de ESCAPE (nearest station)
 eligibleRadius 600m silencioso
-endgame request con cooldown y aceptación/rechazo
-anchorPoint = ubicación del hider al aceptar
+endgame verification server-side con cooldown, sin aceptación/rechazo del hider
+anchorPoint = ubicación del hider al activarse
 tentacles endgame-only
 mapa recortado con repo JetLagHideAndSeek (más adelante)
 

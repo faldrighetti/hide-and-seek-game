@@ -52,6 +52,18 @@ h2 {
   margin: 10px 0;
 }
 
+.manual-circle {
+  border-top: 1px solid var(--ion-color-step-150, #d7d8da);
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.coordinate-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 ion-note {
   display: block;
   margin: 8px 0;
@@ -73,5 +85,9 @@ ion-item.selected {
 
   #map-generator-leaflet {
     height: 52vh;
+  }
+
+  .coordinate-grid {
+    grid-template-columns: 1fr;
   }
 }

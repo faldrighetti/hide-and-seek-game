@@ -1,7 +1,13 @@
 import { getStationComparisonKey, Station } from '../../models/station.model';
+import { GAME_CONFIG } from '../../config/game-config';
 import { ConstraintRecord, StationEvaluation } from '../models/map-constraints.model';
+import { GeometryService } from '../services/geometry.service';
 
-export function evaluateStationsFromHistory(stations: Station[], records: ConstraintRecord[]): StationEvaluation[] {
+export function evaluateStationsFromHistory(
+  stations: Station[],
+  records: ConstraintRecord[],
+  geometry = new GeometryService(),
+): StationEvaluation[] {
   const statusByKey = new Map<string, StationEvaluation['status']>();
   const eliminatedByKey = new Map<string, string | undefined>();
 
@@ -17,6 +23,30 @@ export function evaluateStationsFromHistory(stations: Station[], records: Constr
       for (const stationKey of record.data.stationKeys) {
         statusByKey.set(stationKey, 'POSSIBLE');
         eliminatedByKey.delete(stationKey);
+      }
+    }
+
+    if (record.data.type === 'MANUAL_CIRCLE') {
+      for (const station of stations) {
+        const relation = geometry.classifyCircleRelation(
+          {
+            center: { lat: station.lat, lng: station.lng },
+            radiusM: GAME_CONFIG.hidingZoneRadiusM,
+          },
+          {
+            center: record.data.center,
+            radiusM: record.data.radiusM,
+          },
+        );
+        const shouldEliminate =
+          (record.data.mode === 'ELIMINATE_INSIDE' && relation === 'FULLY_INSIDE')
+          || (record.data.mode === 'ELIMINATE_OUTSIDE' && relation === 'FULLY_OUTSIDE');
+
+        if (shouldEliminate) {
+          const stationKey = getStationComparisonKey(station);
+          statusByKey.set(stationKey, 'ELIMINATED');
+          eliminatedByKey.set(stationKey, record.id);
+        }
       }
     }
   }

@@ -81,6 +81,61 @@ describe('map generator logic', () => {
     expect(evaluateStationsFromHistory([retiroC, retiroE], service.load().records.slice(0, service.load().cursor)).every(item => item.status === 'ELIMINATED')).toBeTrue();
   });
 
+  it('persists manual circle records', () => {
+    const service = new SeekerMapStateService();
+    const state = service.append(service.load(), manualCircleRecord('ELIMINATE_INSIDE', 700));
+
+    expect(state.records[0].data.type).toBe('MANUAL_CIRCLE');
+    expect(service.load().records[0].data.type).toBe('MANUAL_CIRCLE');
+  });
+
+  it('can disable a persisted action without deleting it', () => {
+    const service = new SeekerMapStateService();
+    let state = service.append(service.load(), record('MANUAL_ELIMINATION', ['hub-retiro']));
+    state = service.setRecordEnabled(state, state.records[0].id, false);
+
+    expect(state.records[0].enabled).toBeFalse();
+    expect(evaluateStationsFromHistory([retiroC, retiroE], state.records).every(item => item.status === 'POSSIBLE')).toBeTrue();
+    expect(service.load().records[0].enabled).toBeFalse();
+  });
+
+  it('eliminates manual circle fully inside zones only', () => {
+    const inside: Station = { id: 'inside', name: 'Inside', line: 'A', mode: 'SUBTE', lat: 0, lng: 0 };
+    const intersecting: Station = { id: 'intersects', name: 'Intersects', line: 'A', mode: 'SUBTE', lat: 0.0107, lng: 0 };
+    const outside: Station = { id: 'outside', name: 'Outside', line: 'A', mode: 'SUBTE', lat: 0.03, lng: 0 };
+
+    const result = evaluateStationsFromHistory([inside, intersecting, outside], [
+      manualCircleRecord('ELIMINATE_INSIDE', 700),
+    ]);
+
+    expect(result.find(item => item.stationId === 'inside')?.status).toBe('ELIMINATED');
+    expect(result.find(item => item.stationId === 'intersects')?.status).toBe('POSSIBLE');
+    expect(result.find(item => item.stationId === 'outside')?.status).toBe('POSSIBLE');
+  });
+
+  it('eliminates manual circle fully outside zones only', () => {
+    const inside: Station = { id: 'inside', name: 'Inside', line: 'A', mode: 'SUBTE', lat: 0, lng: 0 };
+    const intersecting: Station = { id: 'intersects', name: 'Intersects', line: 'A', mode: 'SUBTE', lat: 0.0107, lng: 0 };
+    const outside: Station = { id: 'outside', name: 'Outside', line: 'A', mode: 'SUBTE', lat: 0.03, lng: 0 };
+
+    const result = evaluateStationsFromHistory([inside, intersecting, outside], [
+      manualCircleRecord('ELIMINATE_OUTSIDE', 700),
+    ]);
+
+    expect(result.find(item => item.stationId === 'inside')?.status).toBe('POSSIBLE');
+    expect(result.find(item => item.stationId === 'intersects')?.status).toBe('POSSIBLE');
+    expect(result.find(item => item.stationId === 'outside')?.status).toBe('ELIMINATED');
+  });
+
+  it('classifies fixed station zones conservatively', () => {
+    const geometry = new GeometryService();
+    const stationZone = { center: { lat: 0, lng: 0 }, radiusM: 600 };
+
+    expect(geometry.classifyCircleRelation(stationZone, { center: { lat: 0, lng: 0 }, radiusM: 700 })).toBe('FULLY_INSIDE');
+    expect(geometry.classifyCircleRelation(stationZone, { center: { lat: 0.03, lng: 0 }, radiusM: 700 })).toBe('FULLY_OUTSIDE');
+    expect(geometry.classifyCircleRelation(stationZone, { center: { lat: 0.0107, lng: 0 }, radiusM: 700 })).toBe('INTERSECTS');
+  });
+
   it('classifies radar relation using station hiding circles', () => {
     const geometry = new GeometryService();
     const relation = classifyRadarRelation(retiroC, {
@@ -102,5 +157,23 @@ function record(type: 'MANUAL_ELIMINATION' | 'MANUAL_RESTORE', stationKeys: stri
     createdAt: '2026-07-17T00:00:00.000Z',
     enabled: true,
     data: { type, stationKeys },
+  };
+}
+
+function manualCircleRecord(mode: 'ELIMINATE_INSIDE' | 'ELIMINATE_OUTSIDE', radiusM: number): ConstraintRecord {
+  return {
+    id: `circle-${mode}-${radiusM}`,
+    category: 'manual',
+    createdAt: '2026-07-17T00:00:00.000Z',
+    enabled: true,
+    data: {
+      id: `circle-${mode}-${radiusM}`,
+      type: 'MANUAL_CIRCLE',
+      center: { lat: 0, lng: 0 },
+      radiusM,
+      mode,
+      reason: 'test circle',
+      enabled: true,
+    },
   };
 }

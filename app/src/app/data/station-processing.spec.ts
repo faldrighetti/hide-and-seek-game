@@ -37,6 +37,31 @@ describe('station processing', () => {
     expect(findDuplicates(['a', 'b', 'a'])).toEqual(['a']);
   });
 
+  it('preserves station input order through processing steps', () => {
+    const raw: RawStationsFile = {
+      transport: [
+        {
+          SUBTE: [
+            {
+              line: 'B',
+              stations: [
+                { id: 'third', name: 'Zeta', lat: -34.6, lng: -58.4 },
+                { id: 'first', name: 'Alfa', lat: -34.61, lng: -58.41 },
+                { id: 'second', name: 'Beta', lat: -34.62, lng: -58.42 },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const extracted = extractStations(raw);
+    const barriosResult = assignBarriosToStations(extracted, barrios);
+
+    expect(extracted.map(station => station.id)).toEqual(['third', 'first', 'second']);
+    expect(barriosResult.stations.map(station => station.id)).toEqual(['third', 'first', 'second']);
+  });
+
   it('assigns barrio by point-in-polygon', () => {
     const result = assignBarriosToStations([
       { id: 'inside', name: 'Inside', line: 'A', mode: 'SUBTE', lat: -34.6, lng: -58.4 },
@@ -145,6 +170,16 @@ describe('station processing', () => {
 
     expect(groups.map(group => group.label)).toEqual(['Subte A', 'Tren Mitre']);
     expect(groups[0].stations.map(station => station.id)).toEqual(['a1', 'a2']);
+  });
+
+  it('does not alphabetically sort stations inside a line group', () => {
+    const groups = groupStationsByLine([
+      { id: 'z', name: 'Zeta', line: 'B', mode: 'SUBTE', lat: 0, lng: 0 },
+      { id: 'a', name: 'Alfa', line: 'B', mode: 'SUBTE', lat: 0, lng: 0 },
+      { id: 'm', name: 'Medio', line: 'B', mode: 'SUBTE', lat: 0, lng: 0 },
+    ]);
+
+    expect(groups[0].stations.map(station => station.id)).toEqual(['z', 'a', 'm']);
   });
 
   it('marks stations inside CABA as playable', () => {

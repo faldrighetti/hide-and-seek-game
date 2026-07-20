@@ -27,6 +27,7 @@ firestore.indexes.json
 ## 1) Modos de juego
 Todos los modos se modelan como **teams** (en individual, teams de 1).
 
+- **INDIVIDUAL_1v1**: 2 teams (A/B) de 1 jugador. En cada turno: 1 hider vs 1 seeker.
 - **INDIVIDUAL_3**: 3 teams (A/B/C) de 1 jugador. En cada turno: 1 hider vs 2 seekers.
 - **TEAMS_2v2**: 2 teams (A/B) de 2 jugadores.
 - **TEAMS_2v2v2**: 3 teams (A/B/C) de 2 jugadores.
@@ -41,13 +42,17 @@ Defaults:
 
 Timers / reglas:
 - `intermissionSeconds = 120`
-- `escapeSeconds = 3600`
+- `escapeSeconds = 3600` (60 min fijos para todos los runs)
 - `chaseMaxSeconds = 21600` (6h)
 - `zoneRadiusM = 500`
 - `eligibleBufferM = 100` → eligibleRadius = 600m
 - `arrivalRadiusM = 100`
-- `endgameRequestCooldownSeconds = 600` (10 min)
+- `endgameVerificationCooldownSeconds = 600` (10 min)
 - `deckMaxSize = 6`
+
+Transporte:
+- Permitidos: subte, tren, colectivo y caminata.
+- Prohibidos: Uber, taxi, bicicleta, Ecobici, vehiculos particulares y equivalentes.
 
 ---
 
@@ -63,7 +68,7 @@ Timers / reglas:
 ## 4) Fases del turno
 Cada turno (run) sigue:
 1) **INTERMISSION (2m)**: sin acciones (todos ven countdown).
-2) **ESCAPE (1h)**:
+2) **ESCAPE (60m fijos)**:
    - No hay preguntas.
    - Hider puede moverse.
    - Hider puede elegir estación objetivo (incentivo, no se revela).
@@ -104,12 +109,13 @@ En MVP se puede hardcodear un mini JSON de pocas estaciones.
 - `endgameEligible=true` si **cualquier seeker** (fresh location) está dentro del `eligibleRadius` del `hqStationFinal`.
 - No se muestra automáticamente (sin spoilers).
 
-### 6.2 Request
-- Botón “Solicitar Endgame” **siempre disponible** en CHASE.
+### 6.2 Verification
+- Botón “Verificar Endgame” **siempre disponible** en CHASE.
 - Cooldown: 10 minutos.
-- Hider puede aceptar o rechazar.
-  - Si acepta: `anchorPoint = ubicación actual del hider` y `endgameActive=true`.
-  - Si rechaza: solo se loguea (sin penalidad v1).
+- El servidor verifica ubicaciones fresh de seekers contra `eligibleRadius`.
+- Si hay elegibilidad: `anchorPoint = ubicación actual del hider` y `endgameActive=true`.
+- Si no hay elegibilidad: se rechaza/loguea sin revelar distancia, estación ni si estaban cerca.
+- El hider no acepta, rechaza ni anuncia el endgame.
 
 ### 6.3 Regla de movimiento
 - Cuando `endgameActive=true`, el hider debe quedarse fijo en el `anchorPoint` (regla social + UI).
@@ -279,5 +285,5 @@ UI siempre muestra ambos (`totalTime` y `bestSingleRun`), pero el ranking princi
 - stations JSON (hardcode mini)
 - HQ final al final ESCAPE
 - eligibility silenciosa
-- endgame request + anchorPoint
+- endgame verification server-side + anchorPoint
 - tentacles ENDGAME_ONLY

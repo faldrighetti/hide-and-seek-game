@@ -81,6 +81,48 @@
           <ion-button size="small" fill="clear" [disabled]="!canRedo" (click)="redo()">Redo</ion-button>
         </div>
 
+        <div class="manual-circle">
+          <h2>Círculo manual</h2>
+          <ion-note>El centro puede elegirse tocando el mapa o ingresando coordenadas.</ion-note>
+          <div class="coordinate-grid">
+            <ion-input
+              label="Lat"
+              labelPlacement="stacked"
+              type="number"
+              [(ngModel)]="circleCenterLat"
+            ></ion-input>
+            <ion-input
+              label="Lng"
+              labelPlacement="stacked"
+              type="number"
+              [(ngModel)]="circleCenterLng"
+            ></ion-input>
+            <ion-input
+              label="Radio m"
+              labelPlacement="stacked"
+              type="number"
+              min="1"
+              [(ngModel)]="circleRadiusM"
+            ></ion-input>
+          </div>
+          <ion-segment [value]="circleMode" (ionChange)="circleMode = $any($event.detail.value)">
+            <ion-segment-button value="ELIMINATE_INSIDE">
+              <ion-label>Eliminar dentro</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="ELIMINATE_OUTSIDE">
+              <ion-label>Eliminar fuera</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+          <ion-input
+            label="Motivo"
+            labelPlacement="stacked"
+            [(ngModel)]="circleReason"
+            placeholder="Ej. Hospital más cercano"
+          ></ion-input>
+          <ion-note color="danger" *ngIf="circleValidationError">{{ circleValidationError }}</ion-note>
+          <ion-button size="small" fill="outline" (click)="saveManualCircle()">Guardar círculo</ion-button>
+        </div>
+
         <ion-accordion-group>
           <ion-accordion *ngFor="let group of seekerStationGroups; trackBy: trackByGroupId" [value]="group.id">
             <ion-item slot="header">
@@ -107,13 +149,31 @@
       </section>
 
       <section *ngIf="mode === 'SEEKER'" class="history">
-        <h2>Historial</h2>
-        <p *ngIf="visibleRecords.length === 0">Sin acciones.</p>
-        <ol>
-          <li *ngFor="let record of visibleRecords">
-            {{ record.data.type }} - {{ getRecordStationKeyCount(record) }} keys
-          </li>
-        </ol>
+        <h2>Estaciones eliminadas</h2>
+        <p *ngIf="eliminationHistoryGroups.length === 0">Sin eliminaciones.</p>
+        <ion-accordion-group>
+          <ion-accordion *ngFor="let group of eliminationHistoryGroups" [value]="group.record.id">
+            <ion-item slot="header">
+              <ion-label>
+                <h3>{{ group.title }}</h3>
+                <p>{{ group.reason }} - {{ group.eliminatedStations.length }} estaciones</p>
+                <p *ngIf="!group.record.enabled">Desactivada</p>
+              </ion-label>
+              <ion-button slot="end" size="small" fill="clear" (click)="toggleRecordEnabled(group.record); $event.stopPropagation()">
+                {{ group.record.enabled ? 'Desactivar' : 'Activar' }}
+              </ion-button>
+            </ion-item>
+            <ion-list slot="content" lines="full">
+              <ion-item *ngFor="let station of group.eliminatedStations">
+                <ion-label>
+                  <h3>{{ station.name }}</h3>
+                  <p>{{ station.mode }} {{ station.line }}</p>
+                  <p *ngIf="group.propagatedHubStations.includes(station)">Eliminada por propagación de hub</p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+        </ion-accordion-group>
       </section>
     </aside>
 

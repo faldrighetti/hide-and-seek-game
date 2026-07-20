@@ -13,9 +13,10 @@ export class SeekerMapStateService {
 
     try {
       const parsed = JSON.parse(raw) as SeekerMapState;
+      const records = Array.isArray(parsed.records) ? parsed.records : [];
       return {
-        records: Array.isArray(parsed.records) ? parsed.records : [],
-        cursor: Number.isInteger(parsed.cursor) ? parsed.cursor : 0,
+        records,
+        cursor: Number.isInteger(parsed.cursor) ? Math.max(0, Math.min(parsed.cursor, records.length)) : 0,
       };
     } catch {
       return { records: [], cursor: 0 };
@@ -41,6 +42,17 @@ export class SeekerMapStateService {
 
   redo(state: SeekerMapState): SeekerMapState {
     const next = { ...state, cursor: Math.min(state.records.length, state.cursor + 1) };
+    this.save(next);
+    return next;
+  }
+
+  setRecordEnabled(state: SeekerMapState, recordId: string, enabled: boolean): SeekerMapState {
+    const next = {
+      ...state,
+      records: state.records.map(record => (
+        record.id === recordId ? { ...record, enabled } : record
+      )),
+    };
     this.save(next);
     return next;
   }

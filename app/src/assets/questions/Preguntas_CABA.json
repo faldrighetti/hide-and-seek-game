@@ -10,69 +10,71 @@
       "items": [
         {
           "label": "Línea de subte",
-          "prompt": "¿Tu línea de subte más cercana es la misma que mi línea de subte más cercana?"
+          "prompt": "¿Tu línea de subte más cercana es la misma que mi línea de subte más cercana?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Línea de trenes",
-          "prompt": "¿Tu línea de trenes más cercana es la misma que mi línea de trenes más cercana?"
+          "prompt": "¿Tu línea de trenes más cercana es la misma que mi línea de trenes más cercana?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Terminal de línea de trenes",
-          "prompt": "¿Tu terminal de línea de trenes más cercana es la misma que mi terminal de línea de trenes más cercana?"
+          "prompt": "¿Tu terminal de línea de trenes más cercana es la misma que mi terminal de línea de trenes más cercana?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "¿La longitud del nombre de la estación más cercana a vos es la misma que la de la estación más cercana a mí?"
+          "prompt": "¿La longitud del nombre de la estación más cercana a vos es la misma que la de la estación más cercana a mí?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Autopista",
-          "prompt": "¿Tu autopista más cercana es la misma que mi autopista más cercana?"
-        },
-        {
-          "label": "1.ª división administrativa (provincia)",
-          "prompt": "¿Tu provincia es la misma que mi provincia?"
-        },
-        {
-          "label": "2.ª división administrativa (partido)",
-          "prompt": "¿Tu partido es el mismo que mi partido?"
+          "prompt": "¿Tu autopista más cercana es la misma que mi autopista más cercana?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "3.ª división administrativa (localidad/comuna)",
-          "prompt": "¿Tu localidad o comuna es la misma que mi localidad o comuna?"
+          "prompt": "¿Tu localidad o comuna es la misma que mi localidad o comuna?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "4.ª división administrativa (barrio)",
-          "prompt": "¿Tu barrio es el mismo que mi barrio?"
+          "prompt": "¿Tu barrio es el mismo que mi barrio?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Cementerio",
-          "prompt": "¿Tu cementerio más cercano es el mismo que mi cementerio más cercano?"
+          "prompt": "¿Tu cementerio más cercano es el mismo que mi cementerio más cercano?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Estadio de fútbol profesional",
-          "prompt": "¿Tu estadio de fútbol profesional más cercano es el mismo que mi estadio de fútbol profesional más cercano?"
-        },
-        {
-          "label": "Comisaría",
-          "prompt": "¿Tu comisaría más cercana es la misma que mi comisaría más cercana?"
+          "prompt": "¿Tu estadio de fútbol profesional más cercano es el mismo que mi estadio de fútbol profesional más cercano?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "¿Tu parque más cercano es el mismo que mi parque más cercano?"
+          "prompt": "¿Tu parque más cercano es el mismo que mi parque más cercano?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Museo",
-          "prompt": "¿Tu museo más cercano es el mismo que mi museo más cercano?"
+          "prompt": "¿Tu museo más cercano es el mismo que mi museo más cercano?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "¿Tu cine más cercano es el mismo que mi cine más cercano?"
+          "prompt": "¿Tu cine más cercano es el mismo que mi cine más cercano?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "¿Tu hospital más cercano es el mismo que mi hospital más cercano?"
+          "prompt": "¿Tu hospital más cercano es el mismo que mi hospital más cercano?",
+          "resolutionMode": "MANUAL_CIRCLE"
         }
-      ]
+      ],
+      "resolutionMode": "AUTOMATIC"
     },
     "measuring": {
       "name": "Comparaciones",
@@ -80,86 +82,87 @@
       "time": "5 minutos",
       "items": [
         {
-          "label": "Línea de subte",
-          "prompt": "¿Tu línea de subte más cercana es la misma que mi línea de subte más cercana?"
-        },
-        {
-          "label": "Línea de trenes",
-          "prompt": "¿Tu línea de trenes más cercana es la misma que mi línea de trenes más cercana?"
-        },
-        {
           "label": "Terminal de línea de trenes",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una terminal de línea de trenes?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una terminal de línea de trenes?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "Comparado conmigo, ¿la longitud del nombre de la estación donde estás es mayor o menor?"
+          "prompt": "Comparado conmigo, ¿la longitud del nombre de la estación donde estás es mayor o menor?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Autopista",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una autopista?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una autopista?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "1.ª división administrativa (provincia)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la provincia ____?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la provincia ____?",
+          "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "2.ª división administrativa (partido)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del partido de ____?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del partido de ____?",
+          "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "3.ª división administrativa (localidad/comuna)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos la localidad/comuna de ___?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos la localidad/comuna de ___?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "4.ª división administrativa (barrio)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del barrio ___?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del barrio ___?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Estadio de fútbol",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un estadio de fútbol?"
-        },
-        {
-          "label": "Comisaría",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una comisaría?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un estadio de fútbol?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un parque?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un parque?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Museo",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un museo?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un museo?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un cine?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un cine?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un hospital?"
-        },
-        {
-          "label": "Río de la Plata",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del Río de la Plata?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un hospital?",
+          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "General Paz",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la Avenida General Paz?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la Avenida General Paz?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Riachuelo",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del Riachuelo?"
+          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del Riachuelo?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Número de comuna",
-          "prompt": "¿El número de la comuna donde estás es mayor, menor o igual al de la comuna donde estoy?"
+          "prompt": "¿El número de la comuna donde estás es mayor, menor o igual al de la comuna donde estoy?",
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Orden alfabético del barrio",
-          "prompt": "¿La inicial del barrio en el que estás está antes, después o es la misma que la del barrio donde estoy?"
+          "prompt": "¿La inicial del barrio en el que estás está antes, después o es la misma que la del barrio donde estoy?",
+          "resolutionMode": "AUTOMATIC"
         }
-      ]
+      ],
+      "resolutionMode": "AUTOMATIC"
     },
     "thermometer": {
       "name": "Termómetros",
@@ -171,29 +174,40 @@
         {
           "label": "100 m",
           "availability": "Todos los tamaños",
-          "distance": "100 m"
+          "distance": "100 m",
+          "distanceM": 100,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "200 m",
           "availability": "Todos los tamaños",
-          "distance": "200 m"
+          "distance": "200 m",
+          "distanceM": 200,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "500 m",
           "availability": "Todos los tamaños",
-          "distance": "500 m"
+          "distance": "500 m",
+          "distanceM": 500,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "1 km",
           "availability": "Todos los tamaños",
-          "distance": "1 km"
+          "distance": "1 km",
+          "distanceM": 1000,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "2 km",
           "availability": "Todos los tamaños",
-          "distance": "2 km"
+          "distance": "2 km",
+          "distanceM": 2000,
+          "resolutionMode": "AUTOMATIC"
         }
-      ]
+      ],
+      "resolutionMode": "AUTOMATIC"
     },
     "radar": {
       "name": "Radares",
@@ -204,25 +218,41 @@
       "items": [
         {
           "label": "500 metros",
-          "distance": "500 metros"
+          "distance": "500 metros",
+          "distanceM": 500,
+          "customDistance": false,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "1 kilómetro",
-          "distance": "1 kilómetro"
+          "distance": "1 kilómetro",
+          "distanceM": 1000,
+          "customDistance": false,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "2 kilómetros",
-          "distance": "2 kilómetros"
+          "distance": "2 kilómetros",
+          "distanceM": 2000,
+          "customDistance": false,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "5 kilómetros",
-          "distance": "5 kilómetros"
+          "distance": "5 kilómetros",
+          "distanceM": 5000,
+          "customDistance": false,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Elegir distancia (custom)",
-          "distance": null
+          "distance": null,
+          "distanceM": null,
+          "customDistance": true,
+          "resolutionMode": "AUTOMATIC"
         }
-      ]
+      ],
+      "resolutionMode": "AUTOMATIC"
     },
     "tentacles": {
       "name": "Tentáculos",
@@ -238,33 +268,44 @@
           "label": "McDonald's",
           "places": "McDonald's",
           "distance": "1 km",
-          "availability": "Mediano o menos"
+          "availability": "Mediano o menos",
+          "distanceM": 1000,
+          "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "Estaciones de subte",
           "places": "Estaciones de subte",
           "distance": "1 km",
-          "availability": "Mediano o menos"
+          "availability": "Mediano o menos",
+          "distanceM": 1000,
+          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Museos",
           "places": "Museos",
           "distance": "2 km",
-          "availability": "Mediano o más"
+          "availability": "Mediano o más",
+          "distanceM": 2000,
+          "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "Cines",
           "places": "Cines",
           "distance": "2 km",
-          "availability": "Mediano o más"
+          "availability": "Mediano o más",
+          "distanceM": 2000,
+          "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "Hospitales",
           "places": "Hospitales",
           "distance": "2 km",
-          "availability": "Mediano o más"
+          "availability": "Mediano o más",
+          "distanceM": 2000,
+          "resolutionMode": "MANUAL_STATIONS"
         }
-      ]
+      ],
+      "resolutionMode": "MANUAL_STATIONS"
     },
     "photos": {
       "name": "Fotos",
@@ -275,76 +316,139 @@
       "items": [
         {
           "asunto": "Un árbol",
-          "requisito": "Debe incluir el árbol completo."
+          "requisito": "Debe incluir el árbol completo.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "El cielo",
-          "requisito": "Apoyá el teléfono en el suelo y sacá la foto apuntando directamente hacia arriba."
+          "requisito": "Apoyá el teléfono en el suelo y sacá la foto apuntando directamente hacia arriba.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Vos (selfie)",
-          "requisito": "Modo selfie; brazo paralelo al suelo, completamente extendido."
+          "requisito": "Modo selfie; brazo paralelo al suelo, completamente extendido.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "La calle más ancha",
-          "requisito": "Debe incluir ambos lados de la calle."
+          "requisito": "Debe incluir ambos lados de la calle.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "La estructura más alta en tu línea de visión",
-          "requisito": "La más alta desde tu perspectiva / línea de visión actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior del encuadre."
+          "requisito": "La más alta desde tu perspectiva / línea de visión actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior del encuadre.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Cualquier edificio visible desde la estación",
-          "requisito": "Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior del edificio debe quedar en el tercio superior del encuadre."
+          "requisito": "Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior del edificio debe quedar en el tercio superior del encuadre.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "El edificio más alto visible desde la estación",
-          "requisito": "La más alta desde tu perspectiva / línea de visión. Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre."
+          "requisito": "La más alta desde tu perspectiva / línea de visión. Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Trazá la calle/sendero más cercano",
-          "requisito": "La calle/sendero debe verse en una app de mapas. Trazá de intersección a intersección."
+          "requisito": "La calle/sendero debe verse en una app de mapas. Trazá de intersección a intersección.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Dos edificios",
-          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos."
+          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Interior de un restaurante",
-          "requisito": "Sin zoom. Sacá la foto desde afuera, a través de una ventana."
+          "requisito": "Sin zoom. Sacá la foto desde afuera, a través de una ventana.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Andén de tren",
-          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos."
+          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Parque",
-          "requisito": "Sin zoom. Teléfono perpendicular al suelo. Debés estar a 1,5m de cualquier obstáculo."
+          "requisito": "Sin zoom. Teléfono perpendicular al suelo. Debés estar a 1,5m de cualquier obstáculo.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Pasillo de supermercado",
-          "requisito": "Sin zoom. Parate al final del pasillo y sacá la foto apuntando directo por el pasillo."
+          "requisito": "Sin zoom. Parate al final del pasillo y sacá la foto apuntando directo por el pasillo.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Lugar de culto",
-          "requisito": "Debe incluir una sección de 1,5 m x 1,5 m con tres elementos distintos."
+          "requisito": "Debe incluir una sección de 1,5 m x 1,5 m con tres elementos distintos.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "500 metros de calles trazadas",
-          "requisito": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas."
+          "requisito": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "La montaña más alta visible desde la estación",
-          "requisito": "La más alta desde tu perspectiva / línea de visión. Debe ser con 3x zoom. La cima debe quedar en el tercio superior del encuadre."
+          "requisito": "La más alta desde tu perspectiva / línea de visión. Debe ser con 3x zoom. La cima debe quedar en el tercio superior del encuadre.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "El cuerpo de agua más grande en tu zona",
-          "requisito": "Máximo 3x zoom. Debe incluir ambos lados del agua o el horizonte."
+          "requisito": "Máximo 3x zoom. Debe incluir ambos lados del agua o el horizonte.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         },
         {
           "asunto": "Cinco edificios",
-          "requisito": "Debe incluir la base y hasta cuatro pisos de altura."
+          "requisito": "Debe incluir la base y hasta cuatro pisos de altura.",
+          "resolutionMode": "EXTERNAL_PHOTO",
+          "storesFiles": false,
+          "storesUrls": false
         }
+      ],
+      "resolutionMode": "EXTERNAL_PHOTO",
+      "photoHandling": "WHATSAPP_EXTERNAL",
+      "metadataOnly": [
+        "question",
+        "timer",
+        "sentExternally",
+        "sentAt",
+        "resolved"
       ]
     }
   }

@@ -27,10 +27,6 @@ export function groupStationsByLine<TStation extends Station>(stations: TStation
   }
 
   return [...groups.values()]
-    .map(group => ({
-      ...group,
-      stations: [...group.stations].sort((a, b) => a.name.localeCompare(b.name)),
-    }))
     .sort((a, b) => sortGroupLabel(a.label).localeCompare(sortGroupLabel(b.label)));
 }
 

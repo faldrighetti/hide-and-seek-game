@@ -24,6 +24,7 @@ Structure:
 ---
 # 1) Game Modes
 
+- INDIVIDUAL_1v1 (2 teams of 1)
 - INDIVIDUAL_3 (3 teams of 1)
 - TEAMS_2v2 (2 teams of 2)
 - TEAMS_2v2v2 (3 teams of 2)
@@ -39,17 +40,21 @@ All modes modeled as teams. One team is Hider per turn; others are Seekers.
 
 Timers:
 - intermissionSeconds: 120
-- escapeSeconds: 3600
+- escapeSeconds: 3600 (60 min fixed for every run)
 - chaseMaxSeconds: 21600
 
 Map:
 - zoneRadiusM: 500
 - eligibleBufferM: 100
 - arrivalRadiusM: 100
-- endgameRequestCooldownSeconds: 600
+- endgameVerificationCooldownSeconds: 600
 
 Deck:
 - deckMaxSize: 6
+
+Transport:
+- Allowed: subway/subte, train, bus/colectivo, walking.
+- Prohibited: Uber, taxi, bicycle, Ecobici, private vehicles, and equivalents.
 
 ---
 # 3) Phase System
@@ -57,7 +62,7 @@ Deck:
 Each run:
 
 1) INTERMISSION (2m)
-2) ESCAPE (1h)
+2) ESCAPE (60m fixed)
 3) CHASE (max 6h)
 
 Timers are server-authoritative (timestamps).
@@ -82,8 +87,9 @@ Timers are server-authoritative (timestamps).
 - Seekers publish live location (throttled).
 - Hider location is private.
 - Endgame eligibility if ANY seeker within eligibleRadius (zoneRadius + buffer).
-- AnchorPoint = hider location at endgame acceptance.
+- AnchorPoint = hider location when the server activates endgame.
 - During endgame, hider must remain fixed (social rule + UI indicator).
+- Hider does not announce, accept, or reject endgame.
 
 ---
 # 5) Question System
@@ -167,10 +173,12 @@ System must support future `castRestriction` field.
 Eligibility:
 - Within zoneRadius + buffer
 
-Request:
-- Seekers request
+Verification:
+- Seekers can verify endgame during CHASE
 - Cooldown 10 min
-- Hider accept/reject (no penalty on reject v1)
+- Server activates endgame if any seeker is eligible
+- Failed verification is logged without revealing distance, station, or near-miss details
+- Hider does not announce, accept, or reject endgame
 
 When active:
 - AnchorPoint fixed

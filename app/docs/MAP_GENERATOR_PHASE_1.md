@@ -28,7 +28,9 @@ Salidas generadas:
 - `src/assets/barrios_caba.simplified.json`: barrios simplificados para Leaflet.
 - `src/assets/map-generator.bounds.json`: bounding box deterministico de navegacion del mapa.
 
-El script reporta IDs duplicados, coordenadas invalidas, estaciones fuera de poligonos, nombres duplicados sin hub, hubs invalidos, hubs unitarios, coordenadas duplicadas y saltos anomalos por linea jugable. El dataset actual tiene 191 estaciones; muchas estaciones de AMBA quedan fuera de barrios CABA y se reportan explicitamente.
+El script reporta IDs duplicados, coordenadas invalidas, estaciones fuera de poligonos, nombres duplicados sin hub, hubs invalidos, hubs unitarios, coordenadas duplicadas y saltos anomalos por linea jugable. El dataset actual tiene 144 estaciones; las estaciones AMBA fuera de barrios CABA se reportan explicitamente.
+
+El orden de estaciones se preserva desde `stations.json` hasta `stations.processed.json`. Los acordeones por linea respetan ese orden relativo y no ordenan alfabeticamente, por lat/lng ni por `id`; si una estacion no es jugable, su ausencia no cambia el orden relativo de las restantes.
 
 La jugabilidad se clasifica con distancia real punto-linea contra `general_paz.geojson` y `riachuelo.geojson`:
 
@@ -107,15 +109,16 @@ Los siguientes nombres repetidos no califican para hub porque no estan en ubicac
 
 - `minDisplacementM: 2500`
 - `hidingZoneRadiusM: 600`
-- `escapePhaseSeconds: 2700` (45 minutos)
+- `escapePhaseSeconds: 3600` (60 minutos)
 - `endgameDwellSeconds: 60`
 - `captainFailoverSeconds: 60`
-- `escapeExtensionMinutes: 10`
-- `maxEscapeExtensions: 3`
+- `endgameVerificationCooldownMinutes: 10`
+- `allowedTransportModes: ['SUBTE', 'TREN', 'COLECTIVO', 'CAMINATA']`
+- `prohibitedTransportModes: ['UBER', 'TAXI', 'BICICLETA', 'ECOBICI', 'VEHICULO_PARTICULAR', 'EQUIVALENTE']`
 - `maxDistanceFromGeneralPazM: 1000`
 - `maxDistanceFromRiachueloM: 1000`
 
-El radio de zona no es adaptativo. Las anclas validas son estaciones.
+La fase de escape dura siempre 60 minutos en todos los runs; no hay extensiones de escape. El radio de zona no es adaptativo. Las anclas validas son estaciones.
 
 ## Feature `/map-generator`
 
@@ -142,6 +145,7 @@ Implementado:
 - Circulo exacto de 600m centrado en la estacion.
 - Detalle de nombre, linea, transporte, barrio y `hub_id` diagnostico.
 - Buscador y acordeones por linea.
+- Orden de estaciones por linea preservado segun `stations.json`.
 
 Capas de Leaflet:
 
@@ -182,6 +186,8 @@ Implementado:
 - Estados `POSSIBLE`, `ELIMINATED`, `UNKNOWN`.
 - Seleccion manual multiple.
 - Eliminacion y restauracion.
+- Descarte manual por circulo con centro desde click en mapa o coordenadas, radio en metros, modo eliminar dentro/fuera y motivo.
+- Historial agrupado como "Estaciones eliminadas", por accion, con cantidad, lista expandible, propagacion de hub y activacion/desactivacion.
 - Historial con undo/redo.
 - Recalculo desde historial.
 - Persistencia en `localStorage`.
@@ -191,13 +197,36 @@ Implementado:
 
 Internamente se conserva soporte para operar por estacion concreta para depuracion, pero no se presenta como eleccion habitual.
 
+No se implementa dibujo manual de poligonos.
+
+Modelo actual de circulo manual:
+
+```ts
+interface ManualCircleConstraint {
+  id: string;
+  type: 'MANUAL_CIRCLE';
+  center: { lat: number; lng: number };
+  radiusM: number;
+  mode: 'ELIMINATE_INSIDE' | 'ELIMINATE_OUTSIDE';
+  reason?: string;
+  questionId?: string;
+  enabled: boolean;
+}
+```
+
 ## Motor de restricciones
 
 Implementado:
 
 - Eliminacion manual.
 - Restauracion manual.
+- Circulo manual.
 - Clasificacion geometrica base de Radar con circulos, sin descartar por distancia al centro solamente.
+
+Cada estacion representa una zona circular fija de 600 m. La relacion espacial se clasifica como `FULLY_INSIDE`, `FULLY_OUTSIDE` o `INTERSECTS`.
+
+- `ELIMINATE_INSIDE`: elimina solo estaciones cuya zona de 600 m esta `FULLY_INSIDE`; conserva `INTERSECTS` y `FULLY_OUTSIDE`.
+- `ELIMINATE_OUTSIDE`: elimina solo estaciones cuya zona esta `FULLY_OUTSIDE`; conserva `INTERSECTS` y `FULLY_INSIDE`.
 
 Preparado como stubs explicitos:
 
@@ -207,6 +236,29 @@ Preparado como stubs explicitos:
 - Tentacles.
 
 La logica geometrica y de evaluacion vive fuera del componente visual.
+
+## Preguntas CABA
+
+`src/assets/questions/Preguntas_CABA.json` conserva el texto visible de las preguntas restantes y agrega metadata tecnica:
+
+```ts
+type ResolutionMode =
+  | 'AUTOMATIC'
+  | 'MANUAL_STATIONS'
+  | 'MANUAL_CIRCLE'
+  | 'EXTERNAL_PHOTO';
+```
+
+Cambios aplicados:
+
+- Coincidencias: eliminadas `1.ª division administrativa (provincia)`, `2.ª division administrativa (partido)` y `Comisaria` si aparece.
+- Comparaciones: eliminadas `Linea de subte`, `Linea de trenes` y `Rio de la Plata`; se mantienen General Paz y Riachuelo.
+- Termometros: nombre visible `Termometros`; distancias normalizadas a `100`, `200`, `500`, `1000` y `2000` metros. La distancia representa el minimo que viajo el seeker, no un radio de zona.
+- Radares: opciones cargadas desde JSON y normalizadas a `500`, `1000`, `2000`, `5000` metros o distancia personalizada.
+- Tentaculos: se mantienen McDonald's, Estaciones de subte, Museos, Cines y Hospitales; solo Estaciones de subte queda marcado como automatizable con el dataset actual.
+- Fotos: resolucion `EXTERNAL_PHOTO`, manejo externo por WhatsApp y metadata solamente (`question`, `timer`, `sentExternally`, `sentAt`, `resolved`). No se almacenan imagenes, URLs ni miniaturas.
+
+No se agregan datasets de POIs, Google Maps, integracion con WhatsApp ni almacenamiento de fotos.
 
 ## Tarjetas
 
@@ -233,6 +285,8 @@ No se agregaron tests de emulator en esta fase porque el proyecto no tenia infra
 
 - Motor completo de Radar aplicado al asistente visual.
 - Evaluadores reales de Thermometer, Measuring, Matching y Tentacles.
+- UI dedicada para cargar cartas/preguntas desde `Preguntas_CABA.json`.
+- Automatizacion real de Coincidencias, Comparaciones, Termometros y Tentaculos.
 - Integracion segura de seleccion de estacion con Firestore.
 - Refinar las geometrias de General Paz y Riachuelo si se reemplazan por una fuente GIS oficial de mayor precision.
 - Tests de Firebase Emulator.
