@@ -109,6 +109,17 @@ constructor() {
     this.gameFacade.setPhase(phase);
   }
 
+  phaseLabel(phase: GameBlueprint['currentTurn']['phase']): string {
+    const labels: Record<GameBlueprint['currentTurn']['phase'], string> = {
+      INTERMISSION: 'Intervalo',
+      ESCAPE: 'Escape',
+      CHASE: 'Búsqueda',
+      ENDED: 'Fin',
+    };
+
+    return labels[phase];
+  }
+
   voteFound(seatId: string): void {
     this.gameFacade.voteFound(seatId);
   }

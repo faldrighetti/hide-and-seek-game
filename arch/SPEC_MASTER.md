@@ -1,5 +1,8 @@
 Contexto: Quiero construir una app móvil/web (Ionic Angular) para jugar un hide-and-seek a escala ciudad inspirado en Jet Lag: The Game. Backend Firebase (Auth anónimo + Firestore + Cloud Functions). La app debe permitir que un host cree una partida con un ID/link tipo Kahoot para que otros se unan (Firebase Hosting). Máximo 6 personas según modo. Geolocalización necesaria. Seekers comparten ubicación, hider NO comparte ubicación exacta.
 
+Fuente normativa consolidada:
+`arch/REGLAMENTO_CONSOLIDADO.md` contiene el reglamento completo vigente. Este `SPEC_MASTER.md` resume contratos técnicos y roadmap; si hay una diferencia, el reglamento consolidado prevalece y la arquitectura debe alinearse contra ese documento.
+
 1) Modos de juego (teams)
 
 Todos los modos se modelan como teams. En “individual” cada team tiene 1 jugador. Máximo:
@@ -17,11 +20,12 @@ Rejoin: si alguien entra con el mismo displayName, toma su lugar (takeover del s
 
 3) Fases y timers (turn engine)
 Cada “run” (turno donde un team es hider) tiene fases:
-INTERMISSION: 2 minutos, countdown visible para todos. Sin acciones.
+INTERMISSION / Intervalo: 5 minutos, countdown visible para todos. Sin acciones.
 ESCAPE: 60 minutos fijos en todos los runs, countdown visible para todos. Prohibido preguntar. El hider se mueve libremente. No hay cartas todavía (mano inicial 0).
-CHASE: empieza cuando termina escape, max 6 horas. Aquí se hacen preguntas, se usan cartas/curses y corre el cronómetro (tiempo transcurrido).
+CHASE: empieza cuando termina escape, max 5 horas computables. Aquí se hacen preguntas, se usan cartas/curses y corre el cronómetro computable.
 Termina por:
-FOUND vote (mayoría por equipos), o timeout (6h).
+captura FOUND confirmada, o timeout (5h computables).
+Las pausas reglamentarias, incluida Move, no cuentan para el máximo computable.
 
 Todo el motor de fases debe ser server-authoritative con timestamps (phaseEndsAt) y avanzar automáticamente (Scheduled Function).
 
@@ -35,25 +39,20 @@ Para AMBA se usará un JSON local stations_amba.json (luego GTFS→JSON). Línea
 Subte: A,B,C,D,E,H
 Tren: Mitre, San Martín, Urquiza, Roca, Belgrano Norte, Sarmiento, Belgrano Sur
 
-Durante ESCAPE el hider puede elegir estación “objetivo” (solo incentivo; no se revela).
-Al finalizar ESCAPE, se fija la estación HQ final como:
-hqStationFinal = estación más cercana a la ubicación real del hider al terminar ESCAPE
+Durante ESCAPE el hider debe seleccionar manualmente una estación jugable como estación base. Puede cambiarla mientras continúe ESCAPE y debe confirmarla antes de que terminen los 60 minutos. La selección debe contemplar hubs, distancia física entre estaciones del mismo hub, errores de GPS y diferencias entre el punto representativo y la extensión real de la estación.
+Si ESCAPE termina sin confirmación manual, el servidor asigna automáticamente la estación jugable más cercana a la última ubicación válida del hider y registra esa asignación en historial.
+Si el hider sigue viajando al terminar ESCAPE, la estación base debe ser la última estación válida por la que pasó; no puede seleccionar una estación futura a la que todavía no llegó.
 Zona del hider (hiding zone) = círculo:
-zoneRadiusM default 500m
+zoneRadiusM default 600m
 
 5) Endgame (short-game)
 Existe un estado ENDGAME dentro de CHASE.
-eligibleRadius = zoneRadiusM + eligibleBufferM
-default: 500 + 100 = 600m
-eligible = true si cualquier seeker (ubicación “fresh”, ej. <60s) está dentro del eligibleRadius del hqStationFinal.
-La app NO debe delatar automáticamente que eligible=true.
-Seekers pueden presionar un botón “Verificar Endgame” (siempre visible en CHASE) con cooldown 10 min.
-La verificación es server-side: si hay un seeker elegible, el sistema activa endgame sin pedir confirmación al hider.
-Si no hay seeker elegible, se rechaza silenciosamente/loguea sin revelar distancias ni estación.
-Al activarse:
-anchorPoint = ubicación actual del hider en ese momento, capturada por el servidor.
-endgameActive = true
-Hider debe quedarse fijo (regla social + UI). El hider no “avisa” el endgame ni puede aceptarlo/rechazarlo.
+endgameActive se activa automáticamente cuando, en modos normales, hay 2 o más seekers activos dentro de la hiding zone. En el modo 1v1 de test, alcanza con el único seeker activo. Además, sus ubicaciones deben estar fresh, la velocidad GPS debe permanecer baja durante aproximadamente 30 a 45 segundos y el desplazamiento no debe parecer compatible con transporte público.
+El hider recibe una notificación cuando empieza el endgame. Los seekers no reciben una notificación explícita de que comenzó.
+El endgame no consume cartas ni recursos.
+Durante endgame, el hider debe permanecer fijo en un punto público, legalmente accesible, en planta baja, razonablemente visible y sin accesos restringidos. Esta parte es principalmente regla social y de UI.
+El endgame se desactiva cuando los seekers permanecen fuera de la hiding zone durante 30 segundos continuos. Una única lectura GPS fuera de la zona no basta. La desactivación depende solo de posición GPS, no de velocidad ni transporte público.
+Al desactivarse, el hider recibe una notificación y vuelve a poder moverse dentro de su hiding zone.
 Tentacles (cartas/endgame) solo permitidas en endgame.
 Seekers no ven lista de estaciones posibles.
 
@@ -78,6 +77,7 @@ penalidad: -30 min al score final del turno
 Fotos:
 Seekers pueden “Rebotar foto” (si no cumple/no se ve). Máximo 1 rebote.
 Rebotar no resetea el timer.
+MVP: la app no almacena fotos ni URLs. El hider envÃ­a la foto por un canal externo y registra "foto enviada"; los seekers registran si fue recibida y vÃ¡lida.
 Randomize:
 El hider usa Randomize ⇒ el sistema reemplaza Q1 por Q2 (misma categoría) ⇒ el hider debe contestar Q2 en esa misma interacción.
 Q1 queda bloqueada el resto del turno.
@@ -132,12 +132,14 @@ Hasta que seekers manden una foto de un animal de la misma categoría, no pueden
 Hider acepta o rebota la foto de limpieza.
 No tiene duración máxima: queda bloqueado hasta limpiarla.
 
-9) Voto FOUND (anti-troll)
-Hay botón “FOUND” y el fin de turno es por votación por equipos, sin rollback.
-Mayoría por equipos:
-2 teams: 2/2
-3 teams: 2/3
-Esto evita que “un amigo trollee” terminando el turno solo.
+La foto real se comparte por fuera de la app; la app solo guarda el estado de envÃ­o/recepciÃ³n/validez.
+9) Captura FOUND
+Encontrar al hider requiere reconocimiento inequívoco en persona; la proximidad GPS solo habilita el procedimiento.
+El botón ENCONTRADO permanece visible durante CHASE/Búsqueda, pero solo se habilita cuando se cumplen condiciones de proximidad y el endgame está activo.
+Condiciones técnicas recomendadas: al menos un seeker a 25m o menos del hider, ubicaciones frescas de hider y seeker en los últimos 15 segundos, precisión GPS preferentemente menor a 30m y ningún intento de captura activo.
+Cuando un seeker pulsa ENCONTRADO, el servidor registra acción, ubicación, distancia, precisión y timestamp. El hider recibe notificación formal, queda inmovilizado y tiene 15 segundos para confirmar.
+Si el hider confirma, el estado pasa a FOUND. Si no confirma, se habilita confirmación seeker; se requieren dos confirmaciones de cuentas seeker distintas para establecer FOUND.
+La operación es idempotente y solo puede existir un intento activo. Los intentos fallidos quedan registrados y generan cooldown técnico.
 
 10) Scoring y ganador
 Por turno:
@@ -182,7 +184,7 @@ cargar JSON de preguntas ES y categorías
 pendiente única
 expiración por tipo (5/10) con penalidad y sin loot
 randomize (bloquea Q1 resto del turno, reemplaza por Q2)
-fotos + rebotar (Storage recomendable)
+fotos externas + confirmaciÃ³n manual de envÃ­o/recepciÃ³n/validez (sin Storage en MVP)
 
 D) Deck/Cards
 JSON de cartas ES
@@ -202,17 +204,29 @@ zoologist lock (bloquea preguntas)
 F) Geolocalización + Estaciones + Endgame
 stations_amba.json (mini hardcode primero)
 seekers publican ubicación (throttle)
-HQ final al final de ESCAPE (nearest station)
-eligibleRadius 600m silencioso
-endgame verification server-side con cooldown, sin aceptación/rechazo del hider
-anchorPoint = ubicación del hider al activarse
+selección manual de estación base durante ESCAPE
+asignación automática de estación jugable más cercana si no hubo confirmación manual
+hiding zone de 600m alrededor de estación base
+endgame server-side automático si todos los seekers activos están dentro de la zona, con ubicación fresh y sin indicios de transporte público
+endgame se desactiva si los seekers permanecen fuera de zona 30s continuos
 tentacles endgame-only
 mapa recortado con repo JetLagHideAndSeek (más adelante)
 
-G) Notificaciones
+G) Reglamento operativo pendiente
+GPS/conectividad: conexión degradada, desconexión temporal a 90s, abandono técnico a 5m, permisos obligatorios y bloqueo de acciones sin ubicación reciente
+salida del mapa: alerta global, gracia de 2m, congelar run si la salida es real
+intermission/Intervalo: cualquier jugador puede pausar o reanudar el contador antes del siguiente run
+sesiones/reconexión: una sesión activa por jugador y takeover controlado
+emergencias: confirmación, congelar/cancelar actividad y revelar ubicaciones por seguridad
+abandono/cancelación/stand-by: runs incompletos no cuentan; reanudar descarta el run incompleto y empieza nuevo ESCAPE; el ID queda reservado 15 días y puede eliminarse automáticamente si no se reanuda
+historial del servidor: registrar timestamps, ubicaciones, preguntas, respuestas/correcciones, vetos, cartas, curses, captura, desconexiones, pausas, intermissions, estaciones, abandonos, emergencias y stand-by
+
+H) Notificaciones
 hider recibe pregunta
 seekers reciben respuesta
 curse activada / zoologist lock (FCM)
+hider recibe inicio/desactivación de endgame
+alertas por desconexión, salida de mapa, emergencia, stand-by y captura
 
 Output esperado del asistente:
 Checklist completo con fases (MVP1, MVP2, MVP3)

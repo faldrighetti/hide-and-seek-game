@@ -58,7 +58,17 @@ describe('Preguntas_CABA', () => {
 
     expect(photos.resolutionMode).toBe('EXTERNAL_PHOTO');
     expect(photos.photoHandling).toBe('WHATSAPP_EXTERNAL');
-    expect(photos.metadataOnly).toEqual(['question', 'timer', 'sentExternally', 'sentAt', 'resolved']);
+    expect(photos.metadataOnly).toEqual([
+      'question',
+      'timer',
+      'sentExternally',
+      'sentAt',
+      'receivedExternally',
+      'receivedAt',
+      'validatedBy',
+      'validity',
+      'resolved',
+    ]);
     expect(photos.items.every(item => item.resolutionMode === 'EXTERNAL_PHOTO')).toBeTrue();
     expect(photos.items.every(item => item.storesFiles === false && item.storesUrls === false)).toBeTrue();
   });

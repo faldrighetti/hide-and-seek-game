@@ -2,6 +2,7 @@
 
 Multiplayer city-scale hide-and-seek game (Jet Lag–inspired) built with Ionic Angular + Firebase.  
 Includes lobby with join link (Kahoot-style), configurable team modes, timed turn phases, question system with penalties, deck & card engine, curse effects system, geolocation logic, and configurable scoring.
+Full normative source: `arch/REGLAMENTO_CONSOLIDADO.md`.
 
 ---
 # 0) Stack
@@ -39,13 +40,13 @@ All modes modeled as teams. One team is Hider per turn; others are Seekers.
 - ukMode: boolean (default false)
 
 Timers:
-- intermissionSeconds: 120
+- intermissionSeconds: 300 (Intervalo, 5 min)
 - escapeSeconds: 3600 (60 min fixed for every run)
-- chaseMaxSeconds: 21600
+- chaseMaxSeconds: 18000 (5 computable hours; rule pauses such as Move do not count)
 
 Map:
-- zoneRadiusM: 500
-- eligibleBufferM: 100
+- zoneRadiusM: 600
+- eligibleBufferM: 0
 - arrivalRadiusM: 100
 - endgameVerificationCooldownSeconds: 600
 
@@ -61,9 +62,9 @@ Transport:
 
 Each run:
 
-1) INTERMISSION (2m)
+1) INTERMISSION / Intervalo (5m; any player can pause or resume)
 2) ESCAPE (60m fixed)
-3) CHASE (max 6h)
+3) CHASE (max 5 computable hours)
 
 Timers are server-authoritative (timestamps).
 
@@ -71,25 +72,27 @@ Timers are server-authoritative (timestamps).
 - No questions allowed.
 - No cards usable.
 - Hider moves freely.
-- Hider may choose a target station (not revealed).
-- At end: HQ = nearest station to hider location.
+- Hider manually selects and confirms a playable base station before ESCAPE ends.
+- If not confirmed, server assigns the nearest playable station to the last valid hider location.
+- If still travelling when ESCAPE ends, base station is the last valid station the hider passed.
 
 ## CHASE
 - Questions enabled.
 - Cards enabled.
 - Curses enabled.
 - Endgame may activate.
-- Ends by majority FOUND vote or timeout.
+- Ends by confirmed FOUND capture or timeout.
 
 ---
 # 4) Realtime Location Rules
 
 - Seekers publish live location (throttled).
 - Hider location is private.
-- Endgame eligibility if ANY seeker within eligibleRadius (zoneRadius + buffer).
-- AnchorPoint = hider location when the server activates endgame.
-- During endgame, hider must remain fixed (social rule + UI indicator).
-- Hider does not announce, accept, or reject endgame.
+- Endgame activates automatically when normal modes have 2 or more active seekers inside the hiding zone. In 1v1 test mode, the single active seeker is enough. Locations must be fresh, GPS speed must remain low for roughly 30 to 45 seconds, and movement must not look like public transport.
+- Hider is notified; seekers are not explicitly notified.
+- Endgame consumes no cards or resources.
+- During endgame, hider must remain fixed in a public, accessible, ground-floor, reasonably visible point.
+- Endgame deactivates after seekers remain outside the hiding zone for 30 continuous seconds. Deactivation depends only on GPS position.
 
 ---
 # 5) Question System
@@ -162,6 +165,7 @@ Curse of the Zoologist (lock)
 - Seekers must send matching category photo
 - Until cleared, seekers cannot ask questions
 - Hider approves or rejects attempt
+- MVP stores only manual confirmation metadata; photo files are exchanged outside the app.
 
 Dice is always server-generated.
 
@@ -171,27 +175,31 @@ System must support future `castRestriction` field.
 # 8) Endgame System
 
 Eligibility:
-- Within zoneRadius + buffer
+- All active seekers are inside the hiding zone
+- Locations are fresh
+- GPS speed stays low for roughly 30 to 45 seconds
+- Movement does not look like public transport
 
-Verification:
-- Seekers can verify endgame during CHASE
-- Cooldown 10 min
-- Server activates endgame if any seeker is eligible
-- Failed verification is logged without revealing distance, station, or near-miss details
-- Hider does not announce, accept, or reject endgame
+Activation:
+- Server activates endgame automatically during CHASE
+- Hider is notified
+- Seekers are not explicitly notified
+- No cards or resources are consumed
 
 When active:
-- AnchorPoint fixed
+- Hider remains fixed in a public, accessible, ground-floor, reasonably visible point
+- Deactivates after seekers remain outside the hiding zone for 30 continuous seconds
 - Tentacles category only allowed in ENDGAME
 
 ---
-# 9) Voting (FOUND)
+# 9) Capture (FOUND)
 
-Majority by teams:
-- 2 teams: 2/2
-- 3 teams: 2/3
-
-No rollback.
+- ENCONTRADO is enabled by GPS proximity only when endgame is active
+- Capture requires unequivocal in-person recognition
+- Hider has 15 seconds to confirm
+- If hider does not confirm, two distinct seeker accounts must confirm
+- Only one active capture attempt is allowed
+- Failed attempts are logged and trigger a technical cooldown
 
 ---
 # 10) Scoring System

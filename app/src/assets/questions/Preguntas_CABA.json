@@ -448,6 +448,10 @@
         "timer",
         "sentExternally",
         "sentAt",
+        "receivedExternally",
+        "receivedAt",
+        "validatedBy",
+        "validity",
         "resolved"
       ]
     }

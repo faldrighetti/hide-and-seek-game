@@ -38,10 +38,10 @@
             <ion-card-title>Fase actual + timer</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <ion-chip color="tertiary">{{ vm.currentTurn.phase }}</ion-chip>
+            <ion-chip color="tertiary">{{ phaseLabel(vm.currentTurn.phase) }}</ion-chip>
             <p>Termina: {{ vm.currentTurn.endsAtIso | date: 'short' }}</p>
             <div class="actions">
-              <ion-button size="small" fill="outline" (click)="setPhase('INTERMISSION')">Entre turnos</ion-button>
+              <ion-button size="small" fill="outline" (click)="setPhase('INTERMISSION')">Intervalo</ion-button>
               <ion-button size="small" fill="outline" (click)="setPhase('ESCAPE')">Escape</ion-button>
               <ion-button size="small" fill="outline" (click)="setPhase('CHASE')">Búsqueda</ion-button>
               <ion-button size="small" fill="outline" color="medium" (click)="setPhase('ENDED')">Fin</ion-button>

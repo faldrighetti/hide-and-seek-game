@@ -1,6 +1,7 @@
 # Jet Lag Hide & Seek (AMBA) — Spec & Architecture v1
 
 > Documento consolidado para usar como `ARCHITECTURE.md` y pegar en Codex.
+> Fuente normativa completa: `arch/REGLAMENTO_CONSOLIDADO.md`.
 
 ## 0) Stack
 - **Frontend:** Ionic Angular
@@ -41,11 +42,11 @@ Defaults:
 - `ukMode = false`
 
 Timers / reglas:
-- `intermissionSeconds = 120`
+- `intermissionSeconds = 300` (Intervalo de 5 min)
 - `escapeSeconds = 3600` (60 min fijos para todos los runs)
-- `chaseMaxSeconds = 21600` (6h)
-- `zoneRadiusM = 500`
-- `eligibleBufferM = 100` → eligibleRadius = 600m
+- `chaseMaxSeconds = 18000` (5h computables; pausas reglamentarias como Move no cuentan)
+- `zoneRadiusM = 600`
+- `eligibleBufferM = 0`
 - `arrivalRadiusM = 100`
 - `endgameVerificationCooldownSeconds = 600` (10 min)
 - `deckMaxSize = 6`
@@ -67,18 +68,18 @@ Transporte:
 
 ## 4) Fases del turno
 Cada turno (run) sigue:
-1) **INTERMISSION (2m)**: sin acciones (todos ven countdown).
+1) **INTERMISSION / Intervalo (5m)**: sin acciones (todos ven countdown). Cualquier jugador puede pausar o reanudar.
 2) **ESCAPE (60m fijos)**:
    - No hay preguntas.
    - Hider puede moverse.
-   - Hider puede elegir estación objetivo (incentivo, no se revela).
+   - Hider debe seleccionar y confirmar estación base manualmente.
    - **No hay cartas** (mano inicial 0, no se usa nada en escape).
    - Al finalizar escape: se fija estación HQ final.
-3) **CHASE (máx 6h)**:
+3) **CHASE (máx 5h computables)**:
    - Se habilitan preguntas.
    - Se habilitan cartas/curses.
    - Puede activarse Endgame.
-   - Termina por voto FOUND (mayoría equipos) o timeout.
+   - Termina por captura FOUND confirmada o timeout.
 
 Timers son **server-authoritative** (timestamps `endsAt`).
 
@@ -93,32 +94,25 @@ Se usará `stations_amba.json` (local, versionado) derivado de GTFS, con:
 En MVP se puede hardcodear un mini JSON de pocas estaciones.
 
 ### 5.2 Elección en ESCAPE
-- El hider puede elegir una **estación objetivo** (no se revela).
-- Al final de ESCAPE se calcula:
-  - `hqStationFinal = estación más cercana a la ubicación del hider al final del ESCAPE`
-  - La estación objetivo **no influye** (es solo incentivo).
+- El hider debe elegir una **estación base** jugable y confirmarla antes de que termine ESCAPE.
+- Puede cambiar la selección mientras siga ESCAPE.
+- Si no confirma ninguna estación, el servidor asigna automáticamente la estación jugable más cercana a la última ubicación válida.
+- Si el hider sigue viajando al terminar ESCAPE, la estación base debe ser la última estación válida por la que pasó.
 
 ### 5.3 Zona
-- Zona del turno = círculo (centro = `hqStationFinal`, radio = `zoneRadiusM`=500m).
+- Zona del turno = círculo (centro = estación base, radio = `zoneRadiusM`=600m).
 
 ---
 
 ## 6) Endgame (short-game)
-### 6.1 Eligibility (silenciosa)
-- `eligibleRadius = zoneRadiusM + eligibleBufferM = 600m`.
-- `endgameEligible=true` si **cualquier seeker** (fresh location) está dentro del `eligibleRadius` del `hqStationFinal`.
-- No se muestra automáticamente (sin spoilers).
-
-### 6.2 Verification
-- Botón “Verificar Endgame” **siempre disponible** en CHASE.
-- Cooldown: 10 minutos.
-- El servidor verifica ubicaciones fresh de seekers contra `eligibleRadius`.
-- Si hay elegibilidad: `anchorPoint = ubicación actual del hider` y `endgameActive=true`.
-- Si no hay elegibilidad: se rechaza/loguea sin revelar distancia, estación ni si estaban cerca.
-- El hider no acepta, rechaza ni anuncia el endgame.
+### 6.1 Activación automática
+- `endgameActive=true` si en modos normales hay 2 o más seekers activos dentro de la hiding zone. En 1v1 de test alcanza con el único seeker activo. Además, las ubicaciones deben estar fresh, la velocidad GPS baja durante aproximadamente 30 a 45 segundos y el movimiento no debe parecer transporte público.
+- El hider recibe notificación; los seekers no reciben aviso explícito.
+- El endgame no consume cartas ni recursos.
 
 ### 6.3 Regla de movimiento
-- Cuando `endgameActive=true`, el hider debe quedarse fijo en el `anchorPoint` (regla social + UI).
+- Cuando `endgameActive=true`, el hider debe quedarse fijo en un punto público, accesible, en planta baja y razonablemente visible (regla social + UI).
+- Se desactiva si los seekers permanecen fuera de la hiding zone durante 30 segundos continuos. La desactivación depende solo de posición GPS.
 
 ### 6.4 Categorías
 - MVP: `Tentacles = ENDGAME_ONLY`.
@@ -154,6 +148,7 @@ Si expira:
 - Libera el slot para otra pregunta.
 
 ### 7.4 Fotos
+MVP: la app no sube ni almacena archivos. El hider envÃ­a la foto por un canal externo y la app registra metadata manual: enviada, recibida, vÃ¡lida/rebotada, timestamps y actor.
 - Seekers pueden “Rebotar foto” si no cumple/no se ve.
 - Máximo 1 rebote por foto.
 - Rebote **no resetea** timer.
@@ -218,14 +213,13 @@ Modelo:
 
 ---
 
-## 10) Votos: fin de turno (FOUND)
-- Turno termina por:
-  - Voto FOUND por mayoría de equipos
-  - o timeout (6h)
+La foto real viaja por fuera de la app; el servidor solo persiste el estado manual.
 
-Mayoría:
-- 2 equipos: 2/2
-- 3 equipos: 2/3
+## 10) Captura FOUND
+- El botón ENCONTRADO se habilita por proximidad GPS solo si el endgame está activo.
+- La captura requiere reconocimiento inequívoco en persona; GPS no reemplaza la confirmación visual.
+- El hider tiene 15 segundos para confirmar. Si no confirma, se requieren dos confirmaciones de cuentas seeker distintas.
+- Solo puede existir un intento activo y los intentos fallidos quedan registrados con cooldown técnico.
 
 Sin rollback.
 
@@ -274,16 +268,16 @@ UI siempre muestra ambos (`totalTime` y `bestSingleRun`), pero el ranking princi
 - Motor de fases
 - Preguntas + expiración + penalidad
 - Deck + loot + swap + reshuffle + Duplicate
-- Votos FOUND
+- Captura FOUND con confirmación
 - Scoring + ranking + fin de juego
 
 ### Iteración 2
 - Effects/Curses + dado server-side
-- Zoologist lock + fotos + rebote
+- Zoologist lock + fotos externas + confirmaciÃ³n/rebote manual
 
 ### Iteración 3
 - stations JSON (hardcode mini)
-- HQ final al final ESCAPE
-- eligibility silenciosa
-- endgame verification server-side + anchorPoint
+- estación base manual durante ESCAPE y fallback automático
+- endgame automático por ubicación fresh, baja velocidad y todos los seekers dentro de zona
+- desactivación tras 30s continuos fuera de zona
 - tentacles ENDGAME_ONLY
