@@ -6,6 +6,9 @@ export interface CardDefinition {
   name: string;
   description: string;
   effectType?: string;
+  castingCost?: string;
+  timeBonusMinutes?: number;
+  quantity: number;
   enabled: boolean;
 }
 
@@ -17,5 +20,6 @@ export interface CardValidationIssue {
 export interface CardValidationResult {
   cards: CardDefinition[];
   enabledCards: CardDefinition[];
+  deckCards: CardDefinition[];
   issues: CardValidationIssue[];
 }

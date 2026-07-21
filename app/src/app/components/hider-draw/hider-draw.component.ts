@@ -13,8 +13,16 @@ export class HiderDrawComponent {
   @Input() cardsToDraw = 1;
   @Input() cardsTaken = 1;
   @Input() drawnCards: HiderCardData[] = [];
+  @Input() deckRemaining = 0;
+
+  readonly deckBackCard: HiderCardData = {
+    id: 'deck-back',
+    type: 'BACK',
+    title: 'Mazo',
+    description: '',
+  };
 
   get pendingCards(): number {
-    return Math.max(this.cardsToDraw - this.drawnCards.length, 0);
+    return Math.max(this.deckRemaining, 0);
   }
 }

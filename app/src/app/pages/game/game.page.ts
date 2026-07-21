@@ -5,6 +5,7 @@ import { GameFacadeService } from '../../services/game-facade';
 import { GameBlueprint, LobbyState, Seat } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
+import { CardDefinition } from 'src/app/models/card-definition.model';
 
 interface DrawRule {
   categoryKey: string;
@@ -13,8 +14,36 @@ interface DrawRule {
   take: number;
 }
 
+interface QuestionItem {
+  label?: string;
+  prompt?: string;
+  asunto?: string;
+  requisito?: string;
+  places?: string;
+  distance?: string;
+  availability?: string;
+  resolutionMode?: string;
+}
+
+interface QuestionCategory {
+  key: string;
+  name: string;
+  cost: string | null;
+  time: string | null;
+  prompt?: string;
+  placeholder?: string;
+  items: QuestionItem[];
+}
+
 interface QuestionsCatalog {
-  questions: Record<string, { name: string; cost: string | null }>;
+  questions: Record<string, {
+    name: string;
+    cost: string | null;
+    time: string | null;
+    prompt?: string;
+    placeholder?: string;
+    items?: QuestionItem[];
+  }>;
 }
 
 @Component({
@@ -37,11 +66,13 @@ export class GamePage {
   hiderDeck: HiderCardData[] = [];
   hiderHand: HiderCardData[] = [];
   drawPreviewCards: HiderCardData[] = [];
+  questionCategories: QuestionCategory[] = [];
+  selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem } | null = null;
 
-constructor() {
+  constructor() {
     this.gameFacade.loadGame(this.gameId);
     void this.loadCardsFromCatalog();
-    void this.loadDrawRulesFromQuestions();
+    void this.loadQuestionsCatalog();
   }
 
   async loadCardsFromCatalog(): Promise<void> {
@@ -50,28 +81,40 @@ constructor() {
       console.warn(`[cards:${issue.level}] ${issue.message}`);
     }
 
-    this.hiderDeck = catalog.enabledCards.map(card => ({
-      title: card.name,
-      description: card.description,
-      castingCost: card.effectType ?? '',
-    }));
+    this.hiderDeck = this.deterministicShuffle(catalog.deckCards).map(card => this.toHiderCardData(card));
 
     this.hiderHand = this.hiderDeck.slice(0, 3);
     this.updateDrawPreview();
   }
 
-  async loadDrawRulesFromQuestions(): Promise<void> {
+  async loadQuestionsCatalog(): Promise<void> {
     const res = await fetch('assets/questions/Preguntas_CABA.json', { cache: 'force-cache' });
     const catalog = (await res.json()) as QuestionsCatalog;
 
     const expectedOrder = ['matching', 'measuring', 'thermometer', 'radar', 'tentacles', 'photos'];
-    this.drawRulesByCategory = expectedOrder
-      .filter(categoryKey => Boolean(catalog.questions[categoryKey]))
-      .map(categoryKey => {
-        const category = catalog.questions[categoryKey];
+    const orderedCategoryKeys = [
+      ...expectedOrder.filter(categoryKey => Boolean(catalog.questions[categoryKey])),
+      ...Object.keys(catalog.questions).filter(categoryKey => !expectedOrder.includes(categoryKey)),
+    ];
+
+    this.questionCategories = orderedCategoryKeys.map(categoryKey => {
+      const category = catalog.questions[categoryKey];
+      return {
+        key: categoryKey,
+        name: category.name,
+        cost: category.cost,
+        time: category.time,
+        prompt: category.prompt,
+        placeholder: category.placeholder,
+        items: category.items ?? [],
+      };
+    });
+
+    this.drawRulesByCategory = this.questionCategories
+      .map(category => {
         const { draw, take } = this.parseDrawTakeFromCost(category.cost);
         return {
-          categoryKey,
+          categoryKey: category.key,
           categoryName: category.name,
           draw,
           take,
@@ -100,9 +143,37 @@ constructor() {
     this.updateDrawPreview();
   }
 
+  selectSeekerQuestion(category: QuestionCategory, question: QuestionItem): void {
+    this.selectedSeekerQuestion = { category, question };
+  }
+
+  trackByQuestionCategory(_: number, category: QuestionCategory): string {
+    return category.key;
+  }
+
+  trackByQuestionItem(index: number, question: QuestionItem): string {
+    return `${question.label ?? question.asunto ?? question.prompt ?? 'question'}-${index}`;
+  }
+
+  questionTitle(question: QuestionItem): string {
+    return question.label ?? question.asunto ?? 'Pregunta';
+  }
+
+  questionText(category: QuestionCategory, question: QuestionItem): string {
+    if (question.prompt) {
+      return question.prompt;
+    }
+
+    if (category.prompt && category.placeholder && question.asunto) {
+      return category.prompt.replace(category.placeholder, question.asunto);
+    }
+
+    return question.asunto ?? '';
+  }
+
   updateDrawPreview(): void {
-    const takeCount = this.selectedRule?.take ?? 0;
-    this.drawPreviewCards = this.hiderDeck.slice(0, takeCount);
+    const drawCount = this.selectedRule?.draw ?? 0;
+    this.drawPreviewCards = this.hiderDeck.slice(this.hiderHand.length, this.hiderHand.length + drawCount);
   }
 
   setPhase(phase: GameBlueprint['currentTurn']['phase']): void {
@@ -145,5 +216,24 @@ constructor() {
     return `${sign}${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs
       .toString()
       .padStart(2, '0')}`;
+  }
+
+  private toHiderCardData(card: CardDefinition): HiderCardData {
+    return {
+      id: String(card.id),
+      type: card.type,
+      title: card.name,
+      description: card.description,
+      castingCost: card.castingCost,
+      timeBonusMinutes: card.timeBonusMinutes,
+    };
+  }
+
+  private deterministicShuffle(cards: CardDefinition[]): CardDefinition[] {
+    return [...cards].sort((a, b) => this.hashCardId(String(a.id)) - this.hashCardId(String(b.id)));
+  }
+
+  private hashCardId(value: string): number {
+    return [...value].reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) % 9973, 7);
   }
 }

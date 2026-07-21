@@ -1,14 +1,17 @@
 .draw-container {
-  background: linear-gradient(180deg, #c67777 0%, #af6060 100%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.14), transparent 18%),
+    linear-gradient(180deg, #bd7378 0%, #a85f64 100%);
   border-radius: 6px;
-  padding: 2rem;
+  padding: 1.25rem;
 
   h2 {
-    margin: 2rem 0 0;
+    margin: 1.25rem 0 0;
     text-align: center;
-    font-size: 2.3rem;
+    font-size: 1.55rem;
     font-weight: 900;
     color: #000;
+    letter-spacing: 0;
   }
 }
 
@@ -21,30 +24,24 @@
 
 .cards-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.2rem;
+  flex-wrap: nowrap;
+  gap: 1.35rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.25rem 0.75rem;
 }
 
 .deck-slot {
-  width: min(280px, 100%);
-  min-height: 420px;
+  min-width: 116px;
+  height: 208px;
   display: grid;
   place-content: center;
   place-items: center;
-  gap: 0.8rem;
-
-  .deck-card {
-    width: 180px;
-    height: 260px;
-    border-radius: 12px;
-    border: 3px solid #fff;
-    background: linear-gradient(180deg, #243753 0%, #17253b 100%);
-    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.32);
-  }
+  gap: 0.45rem;
 
   small {
-    font-size: 1rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #fff;
+    text-align: center;
   }
 }

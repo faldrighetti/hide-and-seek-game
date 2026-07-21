@@ -48,6 +48,8 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
       name: curse.nombre ?? '',
       description: curse.texto_ui?.efecto ?? '',
       effectType: curse.motor?.tipo,
+      castingCost: curse.texto_ui?.costo_lanzamiento,
+      quantity: 1,
       enabled: curse.enabled ?? true,
     })),
   ];
@@ -92,16 +94,18 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
   }
 
   const enabledCards = cards.filter(card => card.enabled);
-  return { cards, enabledCards, issues };
+  return { cards, enabledCards, deckCards: expandDeckCards(enabledCards), issues };
 }
 
 function expandTimeBonusCards(catalog: RawCardsCatalog): CardDefinition[] {
   return (catalog.mazo?.mazo_escondedor?.bonus_tiempo ?? []).map(card => ({
-    id: `time_bonus_${card.minutos ?? 0}m_${card.color ?? 'unknown'}`,
+    id: `time_bonus_${card.color ?? 'unknown'}_${card.minutos ?? 0}m`,
     type: 'TIME_BONUS' as const,
-    name: `Bonus ${card.minutos ?? 0} min ${card.color ?? ''}`.trim(),
+    name: `${card.minutos ?? 0} minute bonus`,
     description: `Suma ${card.minutos ?? 0} minutos al final del turno.`,
     effectType: 'time_bonus',
+    timeBonusMinutes: card.minutos ?? 0,
+    quantity: Math.max(card.cantidad ?? 1, 0),
     enabled: card.enabled ?? true,
   }));
 }
@@ -113,6 +117,21 @@ function expandPowerupCards(catalog: RawCardsCatalog): CardDefinition[] {
     name: card.nombre ?? '',
     description: card.pista_reglas ?? '',
     effectType: card.id,
+    quantity: Math.max(card.cantidad ?? 1, 0),
     enabled: card.enabled ?? true,
   }));
+}
+
+function expandDeckCards(cards: CardDefinition[]): CardDefinition[] {
+  const expandedCards: CardDefinition[] = [];
+  for (const card of cards) {
+    for (let index = 0; index < card.quantity; index += 1) {
+      expandedCards.push({
+      ...card,
+      id: `${card.id}#${index + 1}`,
+      quantity: 1,
+      });
+    }
+  }
+  return expandedCards;
 }

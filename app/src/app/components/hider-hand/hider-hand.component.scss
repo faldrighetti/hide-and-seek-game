@@ -1,25 +1,30 @@
 .hand-container {
-  background: linear-gradient(180deg, #9bb0c8 0%, #8ea4bd 100%);
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.18), transparent 18%),
+    linear-gradient(180deg, #9fb2c2 0%, #8399ad 100%);
   border-radius: 6px;
-  padding: 2rem;
+  padding: 1.25rem;
 
   h2 {
-    margin: 2rem 0 0;
+    margin: 1.25rem 0 0;
     text-align: center;
-    font-size: 2.3rem;
+    font-size: 1.55rem;
     font-weight: 900;
     color: #000;
+    letter-spacing: 0;
   }
 }
 
 .cards-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.2rem;
+  flex-wrap: nowrap;
+  gap: 1.35rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.25rem 0.75rem;
 }
 
 .empty-message {
-  min-height: 420px;
+  min-height: 174px;
   display: grid;
   place-content: center;
   color: #243a54;

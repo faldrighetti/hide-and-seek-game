@@ -1,10 +1,30 @@
-<ion-card class="hider-card">
-  <ion-card-header>
-    <ion-card-title>{{ card.title }}</ion-card-title>
-  </ion-card-header>
+<ion-card class="hider-card" [class.time-bonus]="isTimeBonus" [class.card-back]="isBack">
+  <ng-container *ngIf="!isBack; else cardBack">
+    <ng-container *ngIf="isTimeBonus; else effectCard">
+      <ion-card-content class="bonus-content">
+        <div class="bonus-icon">
+          <span>{{ card.timeBonusMinutes }}</span>
+        </div>
+        <h3>{{ card.timeBonusMinutes }} minute</h3>
+        <h3>bonus</h3>
+      </ion-card-content>
+    </ng-container>
 
-  <ion-card-content>
-    <p class="description">{{ card.description }}</p>
-    <p class="casting-cost">Casting cost: {{ card.castingCost }}</p>
-  </ion-card-content>
+    <ng-template #effectCard>
+      <ion-card-header>
+        <ion-card-title>{{ title }}</ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>
+        <p class="description">{{ card.description }}</p>
+        <p class="casting-cost" *ngIf="card.castingCost">Casting cost: {{ card.castingCost }}</p>
+      </ion-card-content>
+    </ng-template>
+  </ng-container>
+
+  <ng-template #cardBack>
+    <div class="back-mark">
+      <span></span>
+    </div>
+  </ng-template>
 </ion-card>

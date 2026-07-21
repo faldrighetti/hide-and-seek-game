@@ -9,4 +9,16 @@ import { HiderCardData } from 'src/app/models/hider-card-data';
 })
 export class HiderCardComponent {
   @Input({ required: true }) card!: HiderCardData;
+
+  get isTimeBonus(): boolean {
+    return this.card.type === 'TIME_BONUS';
+  }
+
+  get isBack(): boolean {
+    return this.card.type === 'BACK';
+  }
+
+  get title(): string {
+    return this.card.title.toUpperCase();
+  }
 }

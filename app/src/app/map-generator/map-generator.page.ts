@@ -391,7 +391,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       fillColor: '#2dd4bf',
       fillOpacity: 0.18,
       weight: 2,
+      interactive: false,
     }).addTo(this.restrictionsLayer);
+    this.bringLayerGroupToFront(this.stationsLayer);
   }
 
   private getOrCreateStationMarker(station: Station): L.CircleMarker {

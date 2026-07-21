@@ -9,7 +9,7 @@
     <app-hider-card *ngFor="let card of drawnCards" [card]="card"></app-hider-card>
 
     <div class="deck-slot" *ngIf="pendingCards > 0">
-      <div class="deck-card"></div>
+      <app-hider-card [card]="deckBackCard"></app-hider-card>
       <small>Mazo ({{ pendingCards }} restantes)</small>
     </div>
   </div>

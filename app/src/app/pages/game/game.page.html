@@ -27,6 +27,7 @@
     [cardsToDraw]="selectedRule.draw"
     [cardsTaken]="selectedRule.take"
     [drawnCards]="drawPreviewCards"
+    [deckRemaining]="hiderDeck.length - hiderHand.length - drawPreviewCards.length"
   ></app-hider-draw>
 
   <app-hider-hand [title]="'Mano'" [cards]="hiderHand"></app-hider-hand>
@@ -59,7 +60,44 @@
           </ion-card-header>
           <ion-card-content>
             <p>{{ vm.currentTurn.pendingQuestion ? 'Hay 1 pregunta pendiente' : 'No hay pregunta pendiente' }}</p>
-            <p>Acciones seeker/hider (MVP UI): enviar pregunta, responder, veto/randomize.</p>
+            <ion-note *ngIf="selectedSeekerQuestion" color="primary">
+              Seleccionada: {{ selectedSeekerQuestion.category.name }} / {{ questionTitle(selectedSeekerQuestion.question) }}
+            </ion-note>
+            <ion-accordion-group class="question-menu">
+              <ion-accordion
+                *ngFor="let category of questionCategories; trackBy: trackByQuestionCategory"
+                [value]="category.key"
+              >
+                <ion-item slot="header" color="light">
+                  <ion-label>
+                    <h3>{{ category.name }}</h3>
+                    <p>{{ category.time || 'Sin tiempo' }} · {{ category.cost || 'Sin robo' }}</p>
+                  </ion-label>
+                  <ion-badge slot="end" color="medium">{{ category.items.length }}</ion-badge>
+                </ion-item>
+                <div slot="content" class="question-category-content">
+                  <ion-list lines="full">
+                    <ion-item
+                      button
+                      detail
+                      *ngFor="let question of category.items; let index = index; trackBy: trackByQuestionItem"
+                      (click)="selectSeekerQuestion(category, question)"
+                    >
+                      <ion-label class="ion-text-wrap">
+                        <h3>{{ questionTitle(question) }}</h3>
+                        <p>{{ questionText(category, question) }}</p>
+                        <p *ngIf="question.requisito">Requisito: {{ question.requisito }}</p>
+                        <p *ngIf="question.places || question.distance || question.availability">
+                          {{ question.places || 'Ubicación' }}
+                          <ng-container *ngIf="question.distance"> · {{ question.distance }}</ng-container>
+                          <ng-container *ngIf="question.availability"> · {{ question.availability }}</ng-container>
+                        </p>
+                      </ion-label>
+                    </ion-item>
+                  </ion-list>
+                </div>
+              </ion-accordion>
+            </ion-accordion-group>
           </ion-card-content>
         </ion-card>
       </ion-col>
