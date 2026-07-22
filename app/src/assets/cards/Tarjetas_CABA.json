@@ -3,11 +3,31 @@
     "mazo_escondedor": {
       "nombre": "Mazo del escondedor",
       "bonus_tiempo": [
-        { "color": "Rojo", "minutos": 3, "cantidad": 25 },
-        { "color": "Naranja", "minutos": 5, "cantidad": 15 },
-        { "color": "Amarillo", "minutos": 10, "cantidad": 10 },
-        { "color": "Verde", "minutos": 15, "cantidad": 3 },
-        { "color": "Azul", "minutos": 20, "cantidad": 2 }
+        {
+          "color": "Rojo",
+          "minutos": 3,
+          "cantidad": 25
+        },
+        {
+          "color": "Naranja",
+          "minutos": 5,
+          "cantidad": 15
+        },
+        {
+          "color": "Amarillo",
+          "minutos": 10,
+          "cantidad": 10
+        },
+        {
+          "color": "Verde",
+          "minutos": 15,
+          "cantidad": 3
+        },
+        {
+          "color": "Azul",
+          "minutos": 20,
+          "cantidad": 2
+        }
       ],
       "powerups": [
         {
@@ -22,23 +42,50 @@
           "cantidad": 4,
           "pista_reglas": "Veta la pregunta: queda prohibida el resto del turno sin responderla."
         },
-        { "id": "duplicate", "nombre": "Duplicar", "cantidad": 2 },
-        { "id": "move", "nombre": "Mover", "cantidad": 1 },
-        { "id": "discard1_draw2", "nombre": "Descartar 1, robar 2", "cantidad": 4 },
-        { "id": "discard2_draw3", "nombre": "Descartar 2, robar 3", "cantidad": 4 },
-        { "id": "draw1_expand1", "nombre": "Robar 1, expandir 1", "cantidad": 2 }
+        {
+          "id": "duplicate",
+          "nombre": "Duplicar",
+          "cantidad": 2
+        },
+        {
+          "id": "move",
+          "nombre": "Mover",
+          "cantidad": 1
+        },
+        {
+          "id": "discard1_draw2",
+          "nombre": "Descartar 1, robar 2",
+          "cantidad": 4
+        },
+        {
+          "id": "discard2_draw3",
+          "nombre": "Descartar 2, robar 3",
+          "cantidad": 4
+        },
+        {
+          "id": "draw1_expand1",
+          "nombre": "Robar 1, expandir 1",
+          "cantidad": 2
+        }
       ],
-      "cantidad_maldiciones_en_mazo": 24
+      "cantidad_maldiciones_en_mazo": 11
     }
   },
   "maldiciones": [
     {
       "id": 1,
       "nombre": "Maldición del Zoólogo",
-      "etiquetas": ["foto", "animal", "igualar", "bloqueo_pregunta"],
+      "etiquetas": [
+        "foto",
+        "animal",
+        "igualar",
+        "bloqueo_pregunta"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": true,
-      "metodos_verificacion": ["foto"],
+      "metodos_verificacion": [
+        "foto"
+      ],
       "lanzamiento": {
         "descarte": null,
         "condiciones": [],
@@ -46,7 +93,14 @@
           {
             "tipo": "sacar_foto",
             "sujeto": "animal_salvaje",
-            "categorias_permitidas": ["pez", "ave", "mamifero", "reptil", "anfibio", "insecto"]
+            "categorias_permitidas": [
+              "pez",
+              "ave",
+              "mamifero",
+              "reptil",
+              "anfibio",
+              "insecto"
+            ]
           }
         ],
         "se_anula_si": null
@@ -77,10 +131,19 @@
     {
       "id": 2,
       "nombre": "Maldición del Turista Sin Guía",
-      "etiquetas": ["navegacion", "ubicacion", "street_view", "bloqueo_pregunta", "bloqueo_transporte", "verificacion"],
+      "etiquetas": [
+        "navegacion",
+        "ubicacion",
+        "street_view",
+        "bloqueo_pregunta",
+        "bloqueo_transporte",
+        "verificacion"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": true,
-      "metodos_verificacion": ["foto"],
+      "metodos_verificacion": [
+        "foto"
+      ],
       "lanzamiento": {
         "descarte": null,
         "condiciones": [
@@ -130,100 +193,13 @@
       }
     },
     {
-      "id": 3,
-      "nombre": "Maldición del Tambaleo Infinito",
-      "etiquetas": ["dado", "distancia", "bloqueo_pregunta", "bonus_tiempo", "desafio_de_habilidad"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": null,
-        "condiciones": [],
-        "acciones": [
-          {
-            "tipo": "tirar_dado"
-          }
-        ],
-        "se_anula_si": {
-          "tipo": "resultado_dado_en",
-          "valores": [5, 6]
-        }
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Tirá un dado. Si sale 5 o 6, esta carta no tiene efecto.",
-        "efecto": "Los buscadores deben tirar un dado a por lo menos 30 metros y lograr que termine mostrando 5 o 6 antes de poder hacer otra pregunta. El dado debe recorrer toda la distancia sin ayuda, usando solo el impulso del lanzamiento inicial y la gravedad. Si los buscadores golpean accidentalmente a alguien con el dado, ganás un bonus de tiempo de 10 minutos."
-      },
-      "motor": {
-        "tipo": "tirada_larga_de_dado",
-        "alcance": "hasta_completar",
-        "duracion_minutos": null,
-        "bloquea": {
-          "preguntas": true,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "tirar_dado_a_distancia",
-            "distancia_minima_metros": 30,
-            "resultados_objetivo": [5, 6],
-            "restricciones": {
-              "sin_ayuda": true,
-              "solo_lanzamiento_inicial_y_gravedad": true
-            }
-          }
-        ],
-        "recompensas": [
-          {
-            "tipo": "bonus_tiempo_por_evento",
-            "evento": "dado_golpea_persona",
-            "minutos": 10
-          }
-        ],
-        "penalizaciones": []
-      }
-    },
-    {
-      "id": 4,
-      "nombre": "Maldición del Ahorcado Oculto",
-      "etiquetas": ["descarte", "minijuego", "bloqueo_pregunta", "bloqueo_transporte"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": {
-          "cartas": 2
-        },
-        "condiciones": [],
-        "acciones": [],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Descartá 2 cartas",
-        "efecto": "Antes de hacer otra pregunta o subirse a otro medio de transporte, los buscadores deben ser los escondedores en una partida de ahorcado contra vos."
-      },
-      "motor": {
-        "tipo": "jugar_ahorcado",
-        "alcance": "hasta_completar",
-        "duracion_minutos": null,
-        "bloquea": {
-          "preguntas": true,
-          "transporte": true
-        },
-        "requisitos": [
-          {
-            "tipo": "jugar_partida",
-            "juego": "ahorcado",
-            "rol_buscadores": "escondedores"
-          }
-        ],
-        "recompensas": [],
-        "penalizaciones": []
-      }
-    },
-    {
       "id": 5,
       "nombre": "Maldición del Cáliz Desbordante",
-      "etiquetas": ["descarte", "modificador_robo", "bonus_escondedor"],
+      "etiquetas": [
+        "descarte",
+        "modificador_robo",
+        "bonus_escondedor"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": false,
       "metodos_verificacion": [],
@@ -258,70 +234,19 @@
       }
     },
     {
-      "id": 6,
-      "nombre": "Maldición del Agente de Viajes Mediocre",
-      "etiquetas": ["desvio", "ubicacion", "souvenir", "bloqueo_pregunta", "foto", "bonus_tiempo"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": true,
-      "metodos_verificacion": ["foto", "souvenir"],
-      "lanzamiento": {
-        "descarte": null,
-        "condiciones": [],
-        "acciones": [],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Sin costo",
-        "efecto": "Elegí cualquier lugar público accesible dentro de 400 m de la ubicación actual de los buscadores. No pueden estar arriba de transporte en ese momento. Deben ir ahí y pasar al menos 5 minutos antes de hacer otra pregunta. Deben enviarte al menos 3 fotos disfrutando sus vacaciones y conseguir un objeto para traértelo como souvenir. Si pierden ese souvenir antes de encontrarte, ganás 30 minutos extra."
-      },
-      "motor": {
-        "tipo": "desvio_forzado_y_souvenir",
-        "alcance": "hasta_completar_y_luego_souvenir_hasta_encontrarse",
-        "duracion_minutos": null,
-        "bloquea": {
-          "preguntas": true,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "ir_a_lugar",
-            "restricciones_lugar": {
-              "acceso_publico": true,
-              "distancia_maxima_metros": 400
-            },
-            "buscadores_no_deben_estar_en_transporte_al_asignar": true
-          },
-          {
-            "tipo": "permanecer_en_lugar",
-            "minutos_minimos": 5
-          },
-          {
-            "tipo": "enviar_fotos",
-            "cantidad_minima": 3,
-            "tema": "vacaciones"
-          },
-          {
-            "tipo": "obtener_objeto",
-            "rol_objeto": "souvenir"
-          }
-        ],
-        "recompensas": [
-          {
-            "tipo": "bonus_tiempo_por_evento",
-            "evento": "souvenir_perdido_antes_de_encontrar_al_escondedor",
-            "minutos": 30
-          }
-        ],
-        "penalizaciones": []
-      }
-    },
-    {
       "id": 7,
       "nombre": "Maldición del Auto de Lujo",
-      "etiquetas": ["foto", "comparacion", "vehiculo", "bloqueo_pregunta"],
+      "etiquetas": [
+        "foto",
+        "comparacion",
+        "vehiculo",
+        "bloqueo_pregunta"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": true,
-      "metodos_verificacion": ["foto"],
+      "metodos_verificacion": [
+        "foto"
+      ],
       "lanzamiento": {
         "descarte": null,
         "condiciones": [],
@@ -363,7 +288,11 @@
     {
       "id": 8,
       "nombre": "Maldición del Giro en U",
-      "etiquetas": ["transporte", "direccion", "movimiento_forzado"],
+      "etiquetas": [
+        "transporte",
+        "direccion",
+        "movimiento_forzado"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": false,
       "metodos_verificacion": [],
@@ -404,228 +333,20 @@
       }
     },
     {
-      "id": 9,
-      "nombre": "Maldición del Troll del Puente",
-      "etiquetas": ["restriccion_de_ubicacion", "proxima_pregunta", "puente"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": null,
-        "condiciones": [
-          {
-            "tipo": "distancia_buscadores_al_escondedor",
-            "minimo_metros": 2000
-          }
-        ],
-        "acciones": [],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Los buscadores deben estar al menos a 2000 m de vos",
-        "efecto": "Los buscadores deben hacer su próxima pregunta debajo de un puente, autopista o cualquier paso bajo nivel."
-      },
-      "motor": {
-        "tipo": "restriccion_de_ubicacion_para_proxima_pregunta",
-        "alcance": "proxima_pregunta",
-        "duracion_minutos": null,
-        "bloquea": {
-          "preguntas": false,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "hacer_pregunta_desde_ubicacion",
-            "tipos_ubicacion_permitidos": ["debajo_de_puente", "debajo_de_autopista", "paso_bajo_nivel"]
-          }
-        ],
-        "recompensas": [],
-        "penalizaciones": []
-      }
-    },
-    {
-      "id": 10,
-      "nombre": "Maldición del Peso del Agua",
-      "etiquetas": ["cargar", "recurso", "resto_del_turno", "bloqueo_pregunta", "bonus_tiempo"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": null,
-        "condiciones": [
-          {
-            "tipo": "distancia_buscadores_a_elemento",
-            "elemento": "cuerpo_de_agua",
-            "maximo_metros": 300
-          }
-        ],
-        "acciones": [],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Los buscadores deben estar a menos de 300 m de un cuerpo de agua",
-        "efecto": "Los buscadores deben conseguir y cargar al menos 2 litros de líquido por buscador durante el resto del turno. No pueden hacer otra pregunta hasta conseguir el líquido. Si el líquido se pierde o se abandona en cualquier momento, ganás un bonus de 30 minutos."
-      },
-      "motor": {
-        "tipo": "cargar_liquido_durante_resto_del_turno",
-        "alcance": "resto_del_turno",
-        "duracion_minutos": null,
-        "bloquea": {
-          "preguntas": true,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "obtener_liquido",
-            "litros_por_buscador": 2
-          },
-          {
-            "tipo": "cargar_liquido",
-            "litros_por_buscador": 2,
-            "duracion": "resto_del_turno"
-          }
-        ],
-        "recompensas": [
-          {
-            "tipo": "bonus_tiempo_por_evento",
-            "evento": "liquido_perdido_o_abandonado",
-            "minutos": 30
-          }
-        ],
-        "penalizaciones": []
-      }
-    },
-    {
-      "id": 11,
-      "nombre": "Maldición de la Puerta Atascada",
-      "etiquetas": ["descarte", "duracion", "chequeo_con_dados", "restriccion_de_entrada"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": {
-          "cartas": 2
-        },
-        "condiciones": [],
-        "acciones": [],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Descartá 2 cartas",
-        "efecto": "Durante los próximos 30 minutos, cada vez que los buscadores quieran entrar a un edificio, negocio, tren u otro vehículo deben tirar 2 dados. Si no sacan 7 o más, no pueden entrar. Pueden volver a intentar esa puerta después de 5 minutos."
-      },
-      "motor": {
-        "tipo": "chequeo_con_dados_para_entrar",
-        "alcance": "duracion",
-        "duracion_minutos": 30,
-        "bloquea": {
-          "preguntas": false,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "superar_chequeo_de_entrada",
-            "aplica_al_entrar_en": ["edificio", "negocio", "tren", "vehiculo"],
-            "chequeo": {
-              "tipo": "tirar_dados_y_sumar",
-              "cantidad_dados": 2,
-              "total_minimo": 7
-            },
-            "reintentar_misma_entrada_despues_de_minutos": 5
-          }
-        ],
-        "recompensas": [],
-        "penalizaciones": []
-      }
-    },
-    {
-      "id": 17,
-      "nombre": "Maldición de la Vuelta a la Derecha",
-      "etiquetas": ["descarte", "regla_de_movimiento", "duracion", "navegacion"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": {
-          "cartas": 1
-        },
-        "condiciones": [],
-        "acciones": [],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Descartá 1 carta",
-        "efecto": "Durante los próximos 20 minutos, los buscadores solo pueden doblar a la derecha en cualquier intersección."
-      },
-      "motor": {
-        "tipo": "restriccion_de_giro",
-        "alcance": "duracion",
-        "duracion_minutos": 20,
-        "bloquea": {
-          "preguntas": false,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "regla_de_movimiento",
-            "regla": "solo_doblar_a_la_derecha_en_intersecciones"
-          }
-        ],
-        "recompensas": [],
-        "penalizaciones": []
-      }
-    },
-    {
-      "id": 18,
-      "nombre": "Maldición del Laberinto",
-      "etiquetas": ["laberinto", "rompecabezas", "bloqueo_pregunta", "verificacion"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": true,
-      "metodos_verificacion": ["resolucion_laberinto", "foto"],
-      "lanzamiento": {
-        "descarte": null,
-        "condiciones": [],
-        "acciones": [
-          {
-            "tipo": "dibujar_laberinto",
-            "debe_ser_resoluble": true,
-            "maximo_minutos": 10,
-            "internet_para_investigar_permitido": false
-          },
-          {
-            "tipo": "enviar_foto"
-          }
-        ],
-        "se_anula_si": null
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Dibujá un laberinto",
-        "efecto": "Gastá hasta 10 minutos dibujando un laberinto resoluble y enviá una foto a los buscadores. No podés usar internet para investigar diseños. Los buscadores deben resolver el laberinto antes de hacer otra pregunta."
-      },
-      "motor": {
-        "tipo": "resolver_laberinto",
-        "alcance": "hasta_completar",
-        "duracion_minutos": null,
-        "bloquea": {
-          "preguntas": true,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "resolver_laberinto"
-          }
-        ],
-        "recompensas": [],
-        "penalizaciones": []
-      }
-    },
-    {
       "id": 19,
       "nombre": "Maldición de la Guía de Aves",
-      "etiquetas": ["ave", "video", "igualar", "bloqueo_pregunta", "desafio_temporizado"],
+      "etiquetas": [
+        "ave",
+        "video",
+        "igualar",
+        "bloqueo_pregunta",
+        "desafio_temporizado"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": true,
-      "metodos_verificacion": ["video"],
+      "metodos_verificacion": [
+        "video"
+      ],
       "lanzamiento": {
         "descarte": null,
         "condiciones": [],
@@ -662,54 +383,20 @@
       }
     },
     {
-      "id": 24,
-      "nombre": "Maldición de los Pies del Apostador",
-      "etiquetas": ["dado", "regla_de_movimiento", "duracion"],
-      "jugable_en_endgame": true,
-      "requiere_verificacion": false,
-      "metodos_verificacion": [],
-      "lanzamiento": {
-        "descarte": null,
-        "condiciones": [],
-        "acciones": [
-          {
-            "tipo": "tirar_dado"
-          }
-        ],
-        "se_anula_si": {
-          "tipo": "resultado_dado_es_par"
-        }
-      },
-      "texto_ui": {
-        "costo_lanzamiento": "Tirá un dado; si sale un número par, esta maldición no tiene efecto.",
-        "efecto": "Durante los próximos 20 minutos, los buscadores deben tirar un dado antes de dar cualquier paso. Pueden dar esa cantidad de pasos antes de volver a tirar."
-      },
-      "motor": {
-        "tipo": "tirar_antes_de_caminar",
-        "alcance": "duracion",
-        "duracion_minutos": 20,
-        "bloquea": {
-          "preguntas": false,
-          "transporte": false
-        },
-        "requisitos": [
-          {
-            "tipo": "regla_de_movimiento",
-            "regla": "tirar_dado_antes_de_moverse",
-            "pasos_permitidos_igual_al_resultado_del_dado": true
-          }
-        ],
-        "recompensas": [],
-        "penalizaciones": []
-      }
-    },
-    {
       "id": 25,
       "nombre": "Maldición de la bandera",
-      "etiquetas": ["foto", "bandera", "igualar", "bloqueo_pregunta", "verificacion"],
+      "etiquetas": [
+        "foto",
+        "bandera",
+        "igualar",
+        "bloqueo_pregunta",
+        "verificacion"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": true,
-      "metodos_verificacion": ["foto"],
+      "metodos_verificacion": [
+        "foto"
+      ],
       "lanzamiento": {
         "descarte": null,
         "condiciones": [],
@@ -731,7 +418,11 @@
         "requisitos": [
           {
             "tipo": "sacar_foto",
-            "patron_colores": ["celeste", "blanco", "celeste"],
+            "patron_colores": [
+              "celeste",
+              "blanco",
+              "celeste"
+            ],
             "orden_importa": true,
             "restricciones": {
               "no_desde_pantalla_de_celular": true
@@ -745,7 +436,12 @@
     {
       "id": 26,
       "nombre": "Maldición del Cambio de Barrio",
-      "etiquetas": ["ubicacion", "barrio", "movimiento_forzado", "bloqueo_pregunta"],
+      "etiquetas": [
+        "ubicacion",
+        "barrio",
+        "movimiento_forzado",
+        "bloqueo_pregunta"
+      ],
       "jugable_en_endgame": true,
       "requiere_verificacion": false,
       "metodos_verificacion": [],
@@ -778,6 +474,232 @@
             "jurisdiccion": "CABA",
             "referencia": "barrio_actual_al_lanzar"
           }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
+    },
+    {
+      "id": 27,
+      "nombre": "Maldición de las Malvinas",
+      "etiquetas": [
+        "foto",
+        "malvinas",
+        "silueta",
+        "bloqueo_pregunta",
+        "verificacion"
+      ],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": [
+        "foto"
+      ],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Sin costo",
+        "efecto": "Los buscadores deben encontrar una representación reconocible de las Islas Malvinas y enviarte una foto antes de poder hacer otra pregunta. Puede aparecer en una patente, cartel, mural, calcomanía u otro objeto físico. No puede ser una imagen mostrada en una pantalla."
+      },
+      "motor": {
+        "tipo": "foto_silueta_islas_malvinas",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "sacar_foto",
+            "objeto": "representacion_islas_malvinas",
+            "restricciones": {
+              "debe_ser_objeto_fisico": true,
+              "no_desde_pantalla": true
+            }
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
+    },
+    {
+      "id": 28,
+      "nombre": "Maldición del Número Consecutivo",
+      "etiquetas": [
+        "foto",
+        "numeros",
+        "secuencia",
+        "bloqueo_pregunta",
+        "verificacion"
+      ],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": [
+        "foto"
+      ],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Sin costo",
+        "efecto": "Los buscadores deben enviar una foto en la que aparezcan, sobre objetos físicos, tres números consecutivos en orden ascendente antes de poder hacer otra pregunta. Los números pueden estar en carteles, direcciones, patentes u otros elementos, pero deben ser visibles simultáneamente en una sola foto."
+      },
+      "motor": {
+        "tipo": "foto_numeros_consecutivos",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "sacar_foto",
+            "cantidad_numeros": 3,
+            "relacion": "consecutivos_ascendentes",
+            "misma_foto": true,
+            "restricciones": {
+              "no_desde_pantalla": true,
+              "no_agregados_por_buscadores": true
+            }
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
+    },
+    {
+      "id": 29,
+      "nombre": "Maldición de la Avenida",
+      "etiquetas": [
+        "ubicacion",
+        "avenida",
+        "movimiento_forzado",
+        "bloqueo_pregunta"
+      ],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": false,
+      "metodos_verificacion": [
+        "gps"
+      ],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [
+          {
+            "tipo": "distancia_a_avenida",
+            "debe_ser_menor_o_igual_metros": 1200
+          }
+        ],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Debe existir una avenida a menos de 1200 metros de los buscadores.",
+        "efecto": "Los buscadores deben llegar a cualquier avenida antes de poder hacer otra pregunta. Pueden desplazarse y usar transporte normalmente."
+      },
+      "motor": {
+        "tipo": "llegar_a_avenida",
+        "alcance": "hasta_completar",
+        "duracion_minutos": null,
+        "bloquea": {
+          "preguntas": true,
+          "transporte": false
+        },
+        "requisitos": [
+          {
+            "tipo": "entrar_a_via_clasificada",
+            "clasificacion": "avenida",
+            "radio_verificacion_metros": 35
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
+    },
+    {
+      "id": 34,
+      "nombre": "Maldición del Zoológico Vocal en Equipo",
+      "etiquetas": ["audio", "animal", "equipo", "comunicacion", "desafio_gracioso"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["audio", "texto"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Sin costo",
+        "efecto": "Durante las próximas 5 preguntas, cada mensaje debe empezar con un audio por cada integrante del equipo, imitando cada uno a un animal distinto. Ningún animal se puede repetir en toda la duración de la maldición (si son 2 integrantes y 5 preguntas, son 10 animales distintos en total). Además de los audios, deben mandarme un texto listando qué animal imitó cada uno en esa pregunta."
+      },
+      "motor": {
+        "tipo": "audio_imitacion_animal_por_equipo",
+        "alcance": "proximas_5_preguntas",
+        "duracion_minutos": null,
+        "bloquea": { "preguntas": false, "transporte": false },
+        "requisitos": [
+          {
+            "tipo": "enviar_audio_imitacion_por_integrante",
+            "sujeto": "animal",
+            "un_audio_por_integrante_del_equipo": true,
+            "sin_repetir_en_toda_la_duracion": true,
+            "cantidad_total_requerida": "tamano_equipo * numero_de_preguntas_restantes",
+            "reporte_adicional": {
+              "tipo": "texto",
+              "contenido": "lista_animal_por_integrante_y_pregunta"
+            }
+          }
+        ],
+        "recompensas": [],
+        "penalizaciones": []
+      }
+    },
+    {
+      "id": 39,
+      "nombre": "Maldición del Personaje Vocal",
+      "etiquetas": ["audio", "roleplay", "comunicacion", "desafio_gracioso", "azar"],
+      "jugable_en_endgame": true,
+      "requiere_verificacion": true,
+      "metodos_verificacion": ["audio"],
+      "lanzamiento": {
+        "descarte": null,
+        "condiciones": [],
+        "acciones": [
+          { "tipo": "sortear_personaje_de_lista" }
+        ],
+        "se_anula_si": null
+      },
+      "texto_ui": {
+        "costo_lanzamiento": "Sin costo",
+        "efecto": "Se sortea un personaje de una lista predefinida. Durante los próximos 15 minutos, todo lo que me quieran decir lo tienen que mandar en un audio actuando como ese personaje. Nada de texto."
+      },
+      "motor": {
+        "tipo": "audio_roleplay_personaje_aleatorio",
+        "alcance": "duracion_fija",
+        "duracion_minutos": 15,
+        "bloquea": { "preguntas": false, "transporte": false },
+        "lista_personajes": [
+          "Cristina Fernández de Kirchner",
+          "Javier Milei",
+          "Néstor Kirchner",
+          "Lionel Messi",
+          "Susana Giménez",
+          "Charly García",
+          "Ricardo Fort",
+          "L-Gante"
+        ],
+        "seleccion_aleatoria": true,
+        "usos_maximos_por_partida": 1,
+        "requisitos": [
+          { "tipo": "enviar_audio_en_personaje", "formato": "audio", "excluye_texto": true }
         ],
         "recompensas": [],
         "penalizaciones": []
