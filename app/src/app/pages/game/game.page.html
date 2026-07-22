@@ -8,32 +8,54 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
-  <div class="draw-rule-selector">
-    <ion-button
-      size="small"
-      fill="outline"
-      *ngFor="let rule of drawRulesByCategory"
-      [color]="rule.categoryKey === selectedRule?.categoryKey ? 'primary' : 'medium'"
-      (click)="selectDrawRule(rule)"
-    >
-      {{ rule.categoryKey }} (saca {{ rule.draw }} / toma {{ rule.take }})
-    </ion-button>
-  </div>
-
-  <app-hider-draw
-    *ngIf="selectedRule"
-    [title]="'Draw'"
-    [category]="selectedRule.categoryName"
-    [cardsToDraw]="selectedRule.draw"
-    [cardsTaken]="selectedRule.take"
-    [drawnCards]="drawPreviewCards"
-    [deckRemaining]="hiderDeck.length - hiderHand.length - drawPreviewCards.length"
-  ></app-hider-draw>
-
-  <app-hider-hand [title]="'Mano'" [cards]="hiderHand"></app-hider-hand>
   <ion-grid *ngIf="blueprint$ | async as vm">
+    <ng-container *ngIf="playerRole$ | async as role">
     <ion-row>
-      <ion-col size="12">
+      <ion-col size="12" *ngIf="role.isHider">
+        <ng-container *ngIf="vm.currentTurn.lootOffer as lootOffer">
+          <app-hider-draw
+            [title]="'Loot pendiente'"
+            [category]="lootOffer.categoryId"
+            [cardsToDraw]="lootOffer.drawnCardIds.length"
+            [cardsTaken]="lootOffer.takeLimit"
+            [drawnCards]="cardsForIds(lootOffer.drawnCardIds)"
+            [deckRemaining]="vm.currentTurn.drawPileCount"
+            [selectable]="true"
+            [selectedCardIds]="selectedLootCardIds"
+            [disabled]="selectingLoot"
+            (cardToggle)="toggleLootSelection($event, lootOffer.takeLimit)"
+          ></app-hider-draw>
+          <div class="loot-actions">
+            <ion-note>
+              Elegidas: {{ selectedLootCardIds.length }} / {{ lootOffer.takeLimit }}.
+              Descartar de mano: {{ discardFromHandIds.length }}.
+              Mano final: {{ projectedHandSize(vm.currentTurn.hiderHandIds.length) }} / 6.
+            </ion-note>
+            <ion-button
+              size="small"
+              color="success"
+              [disabled]="selectingLoot || projectedHandSize(vm.currentTurn.hiderHandIds.length) > 6"
+              (click)="confirmLootSelection(role)"
+            >
+              {{ selectingLoot ? 'Guardando...' : 'Llevar al mazo' }}
+            </ion-button>
+            <ion-note *ngIf="lootErrorMessage" color="danger">{{ lootErrorMessage }}</ion-note>
+          </div>
+        </ng-container>
+
+        <app-hider-hand
+          [title]="vm.currentTurn.lootOffer ? 'Mano (tocá para descartar)' : 'Mano'"
+          [cards]="cardsForIds(vm.currentTurn.hiderHandIds)"
+          [selectable]="vm.currentTurn.lootOffer !== null"
+          [selectedCardIds]="discardFromHandIds"
+          [disabled]="selectingLoot"
+          (cardToggle)="toggleHandDiscard($event)"
+        ></app-hider-hand>
+      </ion-col>
+    </ion-row>
+
+    <ion-row>
+      <ion-col size="12" *ngIf="role.isHost">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Fase actual + timer</ion-card-title>
@@ -60,6 +82,48 @@
           </ion-card-header>
           <ion-card-content>
             <p>{{ vm.currentTurn.pendingQuestion ? 'Hay 1 pregunta pendiente' : 'No hay pregunta pendiente' }}</p>
+            <ng-container *ngIf="pendingQuestion$ | async as pendingQuestion">
+              <div class="pending-question-detail">
+                <ion-chip color="warning">{{ pendingQuestion.isPhoto ? 'Foto' : pendingQuestion.categoryId }}</ion-chip>
+                <h3>{{ pendingQuestion.prompt }}</h3>
+                <p *ngIf="pendingQuestion.expiresAtIso">
+                  Vence: {{ pendingQuestion.expiresAtIso | date: 'shortTime' }}
+                </p>
+                <div class="actions">
+                  <ion-button
+                    *ngIf="role.isHider"
+                    size="small"
+                    color="success"
+                    [disabled]="resolvingQuestion !== null"
+                    (click)="resolvePendingQuestion('ANSWER', role)"
+                  >
+                    {{ resolvingQuestion === 'ANSWER' ? 'Enviando...' : resolutionLabel('ANSWER') }}
+                  </ion-button>
+                  <ion-button
+                    *ngIf="role.isHider"
+                    size="small"
+                    fill="outline"
+                    color="warning"
+                    [disabled]="resolvingQuestion !== null"
+                    (click)="resolvePendingQuestion('VETO', role)"
+                  >
+                    {{ resolvingQuestion === 'VETO' ? 'Enviando...' : resolutionLabel('VETO') }}
+                  </ion-button>
+                  <ion-button
+                    *ngIf="role.isHider"
+                    size="small"
+                    fill="outline"
+                    color="tertiary"
+                    [disabled]="resolvingQuestion !== null"
+                    (click)="resolvePendingQuestion('RANDOMIZE', role)"
+                  >
+                    {{ resolvingQuestion === 'RANDOMIZE' ? 'Enviando...' : resolutionLabel('RANDOMIZE') }}
+                  </ion-button>
+                </div>
+                <ion-note *ngIf="resolveQuestionErrorMessage" color="danger">{{ resolveQuestionErrorMessage }}</ion-note>
+              </div>
+            </ng-container>
+            <ng-container *ngIf="role.isSeeker">
             <ion-note *ngIf="selectedSeekerQuestion" color="primary">
               Seleccionada: {{ selectedSeekerQuestion.category.name }} / {{ questionTitle(selectedSeekerQuestion.question) }}
             </ion-note>
@@ -68,7 +132,7 @@
               expand="block"
               size="small"
               [disabled]="vm.currentTurn.pendingQuestion || vm.currentTurn.phase !== 'CHASE' || sendingQuestion"
-              (click)="sendSelectedQuestion()"
+              (click)="sendSelectedQuestion(role)"
             >
               {{ sendingQuestion ? 'Enviando...' : 'Enviar pregunta' }}
             </ion-button>
@@ -108,21 +172,22 @@
                 </div>
               </ion-accordion>
             </ion-accordion-group>
+            </ng-container>
           </ion-card-content>
         </ion-card>
       </ion-col>
 
-      <ion-col size="12" size-md="6">
+      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHost">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Voto FOUND</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <div class="actions">
-              <ion-button size="small" fill="outline" color="success" (click)="setEndgameActive(true)">
+              <ion-button *ngIf="role.isHost" size="small" fill="outline" color="success" (click)="setEndgameActive(true)">
                 Activar Endgame
               </ion-button>
-              <ion-button size="small" fill="outline" color="medium" (click)="setEndgameActive(false)">
+              <ion-button *ngIf="role.isHost" size="small" fill="outline" color="medium" (click)="setEndgameActive(false)">
                 Desactivar Endgame
               </ion-button>
             </div>
@@ -131,7 +196,7 @@
               <ion-button
                 size="small"
                 fill="outline"
-                *ngFor="let seat of getSeekerSeats(vm, lobby)"
+                *ngFor="let seat of role.isHost ? getSeekerSeats(vm, lobby) : currentSeekerSeat(role)"
                 (click)="voteFound(seat.id)"
               >
                 Vote {{ seat.displayName }} ({{ seat.teamId }})
@@ -164,5 +229,6 @@
         </ion-card>
       </ion-col>
     </ion-row>
+    </ng-container>
   </ion-grid>
 </ion-content>

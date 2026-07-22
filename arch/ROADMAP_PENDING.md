@@ -11,28 +11,32 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
 
 ## Proximo tramo recomendado
 
-1. Conectar flujo de preguntas real.
+1. Conectar flujo de preguntas real. Parcialmente conectado en frontend.
    - Seekers envian pregunta con `sendQuestion`.
    - UI muestra pregunta pendiente desde Firestore.
    - Hider responde con `resolveQuestion`.
-   - Se genera `lootOffer` real.
+   - `resolveQuestion` genera `lootOffer` real en backend.
+   - Pendiente: pulir UX de respuesta.
 
 2. Conectar deck/loot real.
    - Mostrar cartas robadas desde `currentTurn.lootOffer.drawnCardIds`.
    - Hider elige cartas con `selectLoot`.
-   - Aplicar limite de mano de 6 y descarte/swap.
+   - Aplicar limite de mano de 6 con descarte manual desde la mano.
    - Reemplazar el mazo mock local por el estado server-side.
+   - Pendiente: pulir UX de swap/descarte.
 
-3. Roles reales en UI.
+3. Roles reales en UI. Parcialmente conectado.
    - Detectar equipo del usuario actual.
    - Mostrar preguntas solo a seekers.
    - Mostrar mano/loot/respuesta solo al hider.
    - Mantener validacion server-side como fuente autoritativa.
+   - Lobby bloquea acciones no-host en UI.
+   - Pendiente: revisar pantallas restantes y mensajes para usuarios sin seat.
 
 4. Lobby real completo.
    - Randomizar equipos via Function o eliminar accion mock.
    - Mostrar errores de `setTeams`, `lockTeams` y `startGame`.
-   - Bloquear acciones no-host en UI.
+   - Pendiente: propagar errores de `setTeams` y `lockTeams` en UI.
 
 5. Curses/effects MVP.
    - Activacion desde mano del hider.

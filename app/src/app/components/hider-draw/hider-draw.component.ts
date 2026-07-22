@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 
 @Component({
@@ -14,6 +14,10 @@ export class HiderDrawComponent {
   @Input() cardsTaken = 1;
   @Input() drawnCards: HiderCardData[] = [];
   @Input() deckRemaining = 0;
+  @Input() selectable = false;
+  @Input() selectedCardIds: string[] = [];
+  @Input() disabled = false;
+  @Output() cardToggle = new EventEmitter<string>();
 
   readonly deckBackCard: HiderCardData = {
     id: 'deck-back',
@@ -24,5 +28,17 @@ export class HiderDrawComponent {
 
   get pendingCards(): number {
     return Math.max(this.deckRemaining, 0);
+  }
+
+  isSelected(cardId: string): boolean {
+    return this.selectedCardIds.includes(cardId);
+  }
+
+  toggleCard(cardId: string): void {
+    if (!this.selectable || this.disabled) {
+      return;
+    }
+
+    this.cardToggle.emit(cardId);
   }
 }

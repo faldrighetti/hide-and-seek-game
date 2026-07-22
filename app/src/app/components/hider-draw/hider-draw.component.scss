@@ -30,6 +30,25 @@
   padding: 0.25rem 0.25rem 0.75rem;
 }
 
+.card-choice {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.card-choice.selected {
+  border-color: #2dd36f;
+  box-shadow: 0 0 0 3px rgba(45, 211, 111, 0.25);
+}
+
+.card-choice:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
 .deck-slot {
   min-width: 116px;
   height: 208px;

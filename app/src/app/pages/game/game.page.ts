@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { GameFacadeService } from '../../services/game-facade';
-import { GameBlueprint, LobbyState, Seat } from '../../models/core-model';
+import { GameBlueprint, LobbyState, PendingQuestion, PlayerRole, QuestionResolution, Seat } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
 import { CardDefinition } from 'src/app/models/card-definition.model';
@@ -60,16 +60,22 @@ export class GamePage {
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$;
+  readonly pendingQuestion$: Observable<PendingQuestion | null> = this.gameFacade.pendingQuestion$;
+  readonly playerRole$: Observable<PlayerRole> = this.gameFacade.playerRole$;
 
   drawRulesByCategory: DrawRule[] = [];
-  selectedRule: DrawRule | null = null;
-  hiderDeck: HiderCardData[] = [];
-  hiderHand: HiderCardData[] = [];
-  drawPreviewCards: HiderCardData[] = [];
+  cardById = new Map<string, HiderCardData>();
+  fallbackCardByBaseId = new Map<string, HiderCardData>();
   questionCategories: QuestionCategory[] = [];
   selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem } | null = null;
   sendingQuestion = false;
+  resolvingQuestion: QuestionResolution | null = null;
+  selectingLoot = false;
+  selectedLootCardIds: string[] = [];
+  discardFromHandIds: string[] = [];
+  lootErrorMessage = '';
   questionErrorMessage = '';
+  resolveQuestionErrorMessage = '';
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
@@ -83,10 +89,14 @@ export class GamePage {
       console.warn(`[cards:${issue.level}] ${issue.message}`);
     }
 
-    this.hiderDeck = this.deterministicShuffle(catalog.deckCards).map(card => this.toHiderCardData(card));
-
-    this.hiderHand = this.hiderDeck.slice(0, 3);
-    this.updateDrawPreview();
+    const deckCards = catalog.deckCards.map(card => this.toHiderCardData(card));
+    this.cardById = new Map(deckCards.map(card => [card.id, card]));
+    this.fallbackCardByBaseId = new Map(
+      catalog.enabledCards.map(card => {
+        const data = this.toHiderCardData(card);
+        return [String(card.id), data];
+      }),
+    );
   }
 
   async loadQuestionsCatalog(): Promise<void> {
@@ -123,8 +133,6 @@ export class GamePage {
         };
       });
 
-    this.selectedRule = this.drawRulesByCategory[0] ?? null;
-    this.updateDrawPreview();
   }
 
   parseDrawTakeFromCost(cost: string | null): { draw: number; take: number } {
@@ -140,17 +148,17 @@ export class GamePage {
     return { draw, take };
   }
 
-  selectDrawRule(rule: DrawRule): void {
-    this.selectedRule = rule;
-    this.updateDrawPreview();
-  }
-
   selectSeekerQuestion(category: QuestionCategory, question: QuestionItem): void {
     this.selectedSeekerQuestion = { category, question };
     this.questionErrorMessage = '';
   }
 
-  async sendSelectedQuestion(): Promise<void> {
+  async sendSelectedQuestion(role: PlayerRole): Promise<void> {
+    if (!role.isSeeker) {
+      this.questionErrorMessage = 'Solo los seekers pueden enviar preguntas.';
+      return;
+    }
+
     if (!this.selectedSeekerQuestion) {
       return;
     }
@@ -172,6 +180,81 @@ export class GamePage {
     } finally {
       this.sendingQuestion = false;
     }
+  }
+
+  async resolvePendingQuestion(resolution: QuestionResolution, role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.resolveQuestionErrorMessage = 'Solo el hider puede responder preguntas.';
+      return;
+    }
+
+    this.resolvingQuestion = resolution;
+    this.resolveQuestionErrorMessage = '';
+    try {
+      await this.gameFacade.resolveQuestion(this.gameId, resolution);
+    } catch (error) {
+      this.resolveQuestionErrorMessage = error instanceof Error ? error.message : 'No se pudo resolver la pregunta.';
+    } finally {
+      this.resolvingQuestion = null;
+    }
+  }
+
+  toggleLootSelection(cardId: string, takeLimit: number): void {
+    this.lootErrorMessage = '';
+    if (this.selectedLootCardIds.includes(cardId)) {
+      this.selectedLootCardIds = this.selectedLootCardIds.filter(selectedId => selectedId !== cardId);
+      return;
+    }
+
+    if (this.selectedLootCardIds.length >= takeLimit) {
+      this.lootErrorMessage = `Podés elegir hasta ${takeLimit} carta${takeLimit === 1 ? '' : 's'}.`;
+      return;
+    }
+
+    this.selectedLootCardIds = [...this.selectedLootCardIds, cardId];
+  }
+
+  async confirmLootSelection(role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.lootErrorMessage = 'Solo el hider puede elegir loot.';
+      return;
+    }
+
+    this.selectingLoot = true;
+    this.lootErrorMessage = '';
+    try {
+      await this.gameFacade.selectLoot(this.gameId, this.selectedLootCardIds, this.discardFromHandIds);
+      this.selectedLootCardIds = [];
+      this.discardFromHandIds = [];
+    } catch (error) {
+      this.lootErrorMessage = error instanceof Error ? error.message : 'No se pudo elegir loot.';
+    } finally {
+      this.selectingLoot = false;
+    }
+  }
+
+  toggleHandDiscard(cardId: string): void {
+    this.lootErrorMessage = '';
+    if (this.discardFromHandIds.includes(cardId)) {
+      this.discardFromHandIds = this.discardFromHandIds.filter(selectedId => selectedId !== cardId);
+      return;
+    }
+
+    this.discardFromHandIds = [...this.discardFromHandIds, cardId];
+  }
+
+  projectedHandSize(currentHandSize: number): number {
+    return currentHandSize - this.discardFromHandIds.length + this.selectedLootCardIds.length;
+  }
+
+  resolutionLabel(resolution: QuestionResolution): string {
+    const labels: Record<QuestionResolution, string> = {
+      ANSWER: 'Responder',
+      VETO: 'Vetar',
+      RANDOMIZE: 'Randomizar',
+    };
+
+    return labels[resolution];
   }
 
   trackByQuestionCategory(_: number, category: QuestionCategory): string {
@@ -198,9 +281,8 @@ export class GamePage {
     return question.asunto ?? '';
   }
 
-  updateDrawPreview(): void {
-    const drawCount = this.selectedRule?.draw ?? 0;
-    this.drawPreviewCards = this.hiderDeck.slice(this.hiderHand.length, this.hiderHand.length + drawCount);
+  cardsForIds(cardIds: string[]): HiderCardData[] {
+    return cardIds.map(cardId => this.cardForId(cardId));
   }
 
   setPhase(phase: GameBlueprint['currentTurn']['phase']): void {
@@ -234,6 +316,10 @@ export class GamePage {
     return lobby.seats.filter(seat => seat.teamId !== vm.currentTurn.hiderTeamId);
   }
 
+  currentSeekerSeat(role: PlayerRole): Seat[] {
+    return role.isSeeker && role.seat ? [role.seat] : [];
+  }
+
   formatTime(seconds: number): string {
     const sign = seconds < 0 ? '-' : '';
     const absolute = Math.abs(seconds);
@@ -256,11 +342,23 @@ export class GamePage {
     };
   }
 
-  private deterministicShuffle(cards: CardDefinition[]): CardDefinition[] {
-    return [...cards].sort((a, b) => this.hashCardId(String(a.id)) - this.hashCardId(String(b.id)));
-  }
+  private cardForId(cardId: string): HiderCardData {
+    const card = this.cardById.get(cardId);
+    if (card) {
+      return card;
+    }
 
-  private hashCardId(value: string): number {
-    return [...value].reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) % 9973, 7);
+    const baseId = cardId.split('#')[0];
+    const fallback = this.fallbackCardByBaseId.get(baseId);
+    if (fallback) {
+      return { ...fallback, id: cardId };
+    }
+
+    return {
+      id: cardId,
+      type: 'POWERUP',
+      title: cardId,
+      description: 'Carta no encontrada en Tarjetas_CABA.json.',
+    };
   }
 }

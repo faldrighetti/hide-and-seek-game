@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GameFacadeService } from '../../services/game-facade';
-import { GameBlueprint, LobbyState, Seat } from '../../models/core-model';
+import { GameBlueprint, LobbyState, PlayerRole, Seat } from '../../models/core-model';
 
 interface TeamGroup {
   id: string;
@@ -14,6 +14,7 @@ interface TeamGroup {
 
 interface LobbyViewModel {
   lobby: LobbyState;
+  role: PlayerRole;
   teams: TeamGroup[];
   hasCompleteTeams: boolean;
 }
@@ -39,8 +40,9 @@ export class LobbyPage {
   readonly vm$: Observable<LobbyViewModel | null> = combineLatest([
     this.lobby$,
     this.gameFacade.blueprint$,
+    this.gameFacade.playerRole$,
     ]).pipe(
-    map(([lobby, blueprint]) => {
+    map(([lobby, blueprint, role]) => {
       if (!lobby) {
         return null;
       }
@@ -48,7 +50,7 @@ export class LobbyPage {
       const teams = this.buildTeamGroups(lobby, blueprint);
       const hasCompleteTeams = teams.every(team => team.isComplete);
 
-      return { lobby, teams, hasCompleteTeams };
+      return { lobby, role, teams, hasCompleteTeams };
     }),
   );
 
@@ -56,19 +58,35 @@ export class LobbyPage {
     this.gameFacade.loadGame(this.gameId);
   }
 
-  assignSeatToTeam(seatId: string, teamId: string): void {
+  assignSeatToTeam(seatId: string, teamId: string, isHost: boolean): void {
+    if (!isHost) {
+      return;
+    }
+
     this.gameFacade.assignSeatToTeam(this.gameId, seatId, teamId);
   }
 
-  randomizeTeams(): void {
+  randomizeTeams(isHost: boolean): void {
+    if (!isHost) {
+      return;
+    }
+
     this.gameFacade.randomizeTeams(this.gameId);
   }
 
-  toggleLock(): void {
+  toggleLock(isHost: boolean): void {
+    if (!isHost) {
+      return;
+    }
+
     this.gameFacade.toggleTeamsLock(this.gameId);
   }
 
-  async startGame(): Promise<void> {
+  async startGame(isHost: boolean): Promise<void> {
+    if (!isHost) {
+      return;
+    }
+
     this.starting = true;
     this.errorMessage = '';
     try {

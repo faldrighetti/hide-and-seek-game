@@ -43,7 +43,7 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
     ...expandTimeBonusCards(catalog),
     ...expandPowerupCards(catalog),
     ...(catalog.maldiciones ?? []).map(curse => ({
-      id: curse.id ?? '',
+      id: typeof curse.id === 'number' ? `curse_${curse.id}` : '',
       type: 'CURSE' as const,
       name: curse.nombre ?? '',
       description: curse.texto_ui?.efecto ?? '',
@@ -99,7 +99,7 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
 
 function expandTimeBonusCards(catalog: RawCardsCatalog): CardDefinition[] {
   return (catalog.mazo?.mazo_escondedor?.bonus_tiempo ?? []).map(card => ({
-    id: `time_bonus_${card.color ?? 'unknown'}_${card.minutos ?? 0}m`,
+    id: `time_bonus_${normalizeBonusColor(card.color)}_${card.minutos ?? 0}m`,
     type: 'TIME_BONUS' as const,
     name: `${card.minutos ?? 0} minute bonus`,
     description: `Suma ${card.minutos ?? 0} minutos al final del turno.`,
@@ -108,6 +108,19 @@ function expandTimeBonusCards(catalog: RawCardsCatalog): CardDefinition[] {
     quantity: Math.max(card.cantidad ?? 1, 0),
     enabled: card.enabled ?? true,
   }));
+}
+
+function normalizeBonusColor(color: string | undefined): string {
+  const normalized = (color ?? 'unknown').trim().toLowerCase();
+  const backendColors: Record<string, string> = {
+    rojo: 'red',
+    naranja: 'orange',
+    amarillo: 'yellow',
+    verde: 'green',
+    azul: 'blue',
+  };
+
+  return backendColors[normalized] ?? normalized;
 }
 
 function expandPowerupCards(catalog: RawCardsCatalog): CardDefinition[] {

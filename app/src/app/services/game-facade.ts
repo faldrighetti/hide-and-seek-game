@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, combineLatest, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 import {
   DEFAULT_SETTINGS,
   GameBlueprint,
   GameMode,
   LobbyState,
+  PendingQuestion,
+  PlayerRole,
+  QuestionResolution,
   Seat,
   TeamStanding,
   WinCondition,
@@ -41,7 +45,13 @@ const buildBlueprint = (
       hiderTeamId: 'A',
       phase: 'INTERMISSION',
       endsAtIso: new Date(Date.now() + settings.intermissionSeconds * 1000).toISOString(),
+      pendingQuestionId: null,
+      pendingQuestionEndsAtIso: null,
       pendingQuestion: false,
+      hiderHandIds: [],
+      drawPileCount: 0,
+      discardPileCount: 0,
+      lootOffer: null,
       expirations: 0,
       foundVotes: [],
       foundConfirmed: false,
@@ -98,6 +108,8 @@ export class GameFacadeService {
   private readonly games = new Map<string, { blueprint: GameBlueprint; lobby: LobbyState }>();
   private loadedGameId: string | null = null;
   private gameSubscription: Subscription | null = null;
+  private questionSubscription: Subscription | null = null;
+  private loadedPendingQuestionKey: string | null = null;
 
   private readonly blueprintSubject = new BehaviorSubject<GameBlueprint>(
     buildBlueprint('INDIVIDUAL_3', 2, 'TOTAL_TIME'),
@@ -106,6 +118,17 @@ export class GameFacadeService {
 
   private readonly lobbySubject = new BehaviorSubject<LobbyState | null>(null);
   readonly lobby$ = this.lobbySubject.asObservable();
+
+  private readonly pendingQuestionSubject = new BehaviorSubject<PendingQuestion | null>(null);
+  readonly pendingQuestion$ = this.pendingQuestionSubject.asObservable();
+
+  readonly playerRole$ = combineLatest([
+    this.firebaseClient.user$,
+    this.lobby$,
+    this.blueprint$,
+  ]).pipe(
+    map(([user, lobby, blueprint]) => this.buildPlayerRole(user?.uid ?? null, lobby, blueprint)),
+  );
 
   async createGame(
     mode: GameMode,
@@ -156,8 +179,10 @@ export class GameFacadeService {
     ]).subscribe({
       next: ([game, seats]) => {
         if (!game) {
+          this.syncPendingQuestion(gameId, null);
           return;
         }
+        this.syncPendingQuestion(gameId, this.getPendingQuestionId(game));
         this.blueprintSubject.next(this.mapGameDocToBlueprint(game));
         this.lobbySubject.next(this.mapGameDocToLobby(gameId, game, seats));
       },
@@ -300,6 +325,24 @@ export class GameFacadeService {
     >('sendQuestion', { gameId, categoryId, prompt, isPhoto });
   }
 
+  resolveQuestion(gameId: string, resolution: QuestionResolution): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; resolution: QuestionResolution }, { ok: boolean }>(
+      'resolveQuestion',
+      { gameId, resolution },
+    );
+  }
+
+  selectLoot(
+    gameId: string,
+    selectedCardIds: string[],
+    discardFromHandIds: string[],
+  ): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; selectedCardIds: string[]; discardFromHandIds: string[] },
+      { ok: boolean }
+    >('selectLoot', { gameId, selectedCardIds, discardFromHandIds });
+  }
+
   private isFoundConfirmed(current: GameBlueprint, lobby: LobbyState, votes: string[]): boolean {
     const seekerSeats = lobby.seats.filter(seat => seat.teamId !== current.currentTurn.hiderTeamId);
 
@@ -325,6 +368,7 @@ export class GameFacadeService {
       joinLink: `${window.location.origin}/join/${gameId}`,
       seats: seats.map(seat => ({
         id: seat.id,
+        uid: String(seat['uid'] ?? seat.id),
         displayName: String(seat['displayName'] ?? 'Jugador'),
         teamId: String(seat['teamId'] ?? ''),
         host: Boolean(seat['isHost']),
@@ -363,7 +407,13 @@ export class GameFacadeService {
         hiderTeamId: String(currentTurn?.['hiderTeamId'] ?? fallback.currentTurn.hiderTeamId),
         phase: (currentTurn?.['phase'] as GameBlueprint['currentTurn']['phase'] | undefined) ?? fallback.currentTurn.phase,
         endsAtIso: this.timestampToIso(currentTurn?.['phaseEndsAt']) ?? fallback.currentTurn.endsAtIso,
+        pendingQuestionId: this.getPendingQuestionId(game),
+        pendingQuestionEndsAtIso: this.timestampToIso(currentTurn?.['pendingQuestionEndsAt']),
         pendingQuestion: Boolean(currentTurn?.['pendingQuestionId']),
+        hiderHandIds: this.stringArray(currentTurn?.['hiderHand']),
+        drawPileCount: this.stringArray(currentTurn?.['drawPile']).length,
+        discardPileCount: this.stringArray(currentTurn?.['discardPile']).length,
+        lootOffer: this.mapLootOffer(currentTurn?.['lootOffer']),
         expirations: Number(currentTurn?.['expirations'] ?? 0),
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
         endgameActive: Boolean(currentTurn?.['endgameActive']),
@@ -376,5 +426,83 @@ export class GameFacadeService {
       return value.toDate().toISOString();
     }
     return null;
+  }
+
+  private getPendingQuestionId(game: Record<string, unknown>): string | null {
+    const currentTurn = game['currentTurn'] as Record<string, unknown> | undefined;
+    const pendingQuestionId = currentTurn?.['pendingQuestionId'];
+    return typeof pendingQuestionId === 'string' && pendingQuestionId.trim() ? pendingQuestionId : null;
+  }
+
+  private syncPendingQuestion(gameId: string, questionId: string | null): void {
+    const questionKey = questionId ? `${gameId}/${questionId}` : null;
+    if (this.loadedPendingQuestionKey === questionKey) {
+      return;
+    }
+
+    this.loadedPendingQuestionKey = questionKey;
+    this.questionSubscription?.unsubscribe();
+    this.questionSubscription = null;
+
+    if (!questionId) {
+      this.pendingQuestionSubject.next(null);
+      return;
+    }
+
+    this.questionSubscription = this.firebaseClient.questionDoc$(gameId, questionId).subscribe({
+      next: question => this.pendingQuestionSubject.next(question ? this.mapQuestionDoc(question) : null),
+      error: error => {
+        console.warn('[firebase-game] No se pudo cargar la pregunta pendiente', error);
+        this.pendingQuestionSubject.next(null);
+      },
+    });
+  }
+
+  private mapQuestionDoc(question: Record<string, unknown> & { id: string }): PendingQuestion {
+    return {
+      id: question.id,
+      categoryId: String(question['categoryId'] ?? ''),
+      prompt: String(question['prompt'] ?? ''),
+      isPhoto: Boolean(question['isPhoto']),
+      status: (question['status'] as PendingQuestion['status'] | undefined) ?? 'PENDING',
+      createdAtIso: this.timestampToIso(question['createdAt']),
+      expiresAtIso: this.timestampToIso(question['expiresAt']),
+    };
+  }
+
+  private mapLootOffer(value: unknown): GameBlueprint['currentTurn']['lootOffer'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const lootOffer = value as Record<string, unknown>;
+    return {
+      questionId: String(lootOffer['questionId'] ?? ''),
+      categoryId: String(lootOffer['categoryId'] ?? ''),
+      drawnCardIds: this.stringArray(lootOffer['drawnCardIds']),
+      takeLimit: Number(lootOffer['takeLimit'] ?? 0),
+      createdAtIso: this.timestampToIso(lootOffer['createdAt']),
+    };
+  }
+
+  private stringArray(value: unknown): string[] {
+    return Array.isArray(value) ? value.map(item => String(item)) : [];
+  }
+
+  private buildPlayerRole(uid: string | null, lobby: LobbyState | null, blueprint: GameBlueprint): PlayerRole {
+    const seat = uid && lobby ? lobby.seats.find(item => item.uid === uid || item.id === uid) ?? null : null;
+    const teamId = seat?.teamId || null;
+    const isParticipant = Boolean(seat);
+    const isHider = Boolean(teamId && teamId === blueprint.currentTurn.hiderTeamId);
+
+    return {
+      uid,
+      seat,
+      teamId,
+      isHost: Boolean(seat?.host),
+      isHider,
+      isSeeker: isParticipant && !isHider,
+      isParticipant,
+    };
   }
 }

@@ -7,7 +7,7 @@ import {
   getAuth,
   onAuthStateChanged,
   signInWithPopup,
-  signOut,
+  signOut as firebaseSignOut,
 } from 'firebase/auth';
 import {
   Firestore,
@@ -43,7 +43,7 @@ export class FirebaseGameClientService {
   }
 
   async signOut(): Promise<void> {
-    await signOut(this.auth);
+    await firebaseSignOut(this.auth);
   }
 
   requireCurrentUser(): User {
@@ -67,11 +67,11 @@ export class FirebaseGameClientService {
 
       try {
         this.requireCurrentUser();
-          unsubscribe = onSnapshot(
-            doc(this.firestore, `games/${gameId}`),
-            snapshot => subscriber.next(snapshot.exists() ? snapshot.data() : null),
-            error => subscriber.error(error),
-          );
+        unsubscribe = onSnapshot(
+          doc(this.firestore, `games/${gameId}`),
+          snapshot => subscriber.next(snapshot.exists() ? snapshot.data() : null),
+          error => subscriber.error(error),
+        );
       } catch (error) {
         subscriber.error(error);
       }
@@ -86,11 +86,30 @@ export class FirebaseGameClientService {
 
       try {
         this.requireCurrentUser();
-          unsubscribe = onSnapshot(
-            query(collection(this.firestore, `games/${gameId}/seats`)),
-            snapshot => subscriber.next(snapshot.docs.map(seat => ({ id: seat.id, ...seat.data() }))),
-            error => subscriber.error(error),
-          );
+        unsubscribe = onSnapshot(
+          query(collection(this.firestore, `games/${gameId}/seats`)),
+          snapshot => subscriber.next(snapshot.docs.map(seat => ({ id: seat.id, ...seat.data() }))),
+          error => subscriber.error(error),
+        );
+      } catch (error) {
+        subscriber.error(error);
+      }
+
+      return () => unsubscribe?.();
+    });
+  }
+
+  questionDoc$(gameId: string, questionId: string): Observable<(Record<string, unknown> & { id: string }) | null> {
+    return new Observable(subscriber => {
+      let unsubscribe: Unsubscribe | null = null;
+
+      try {
+        this.requireCurrentUser();
+        unsubscribe = onSnapshot(
+          doc(this.firestore, `games/${gameId}/questions/${questionId}`),
+          snapshot => subscriber.next(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null),
+          error => subscriber.error(error),
+        );
       } catch (error) {
         subscriber.error(error);
       }

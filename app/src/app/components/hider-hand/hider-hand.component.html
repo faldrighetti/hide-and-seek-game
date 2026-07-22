@@ -1,6 +1,20 @@
 <section class="hand-container">
   <div class="cards-row" *ngIf="cards.length; else emptyState">
-    <app-hider-card *ngFor="let card of cards" [card]="card"></app-hider-card>
+    <ng-container *ngFor="let card of cards">
+      <button
+        *ngIf="selectable; else staticCard"
+        type="button"
+        class="card-choice"
+        [class.selected]="isSelected(card.id)"
+        [disabled]="disabled"
+        (click)="toggleCard(card.id)"
+      >
+        <app-hider-card [card]="card"></app-hider-card>
+      </button>
+      <ng-template #staticCard>
+        <app-hider-card [card]="card"></app-hider-card>
+      </ng-template>
+    </ng-container>
   </div>
 
   <ng-template #emptyState>

@@ -10,7 +10,25 @@ describe('validateCardsCatalog', () => {
     });
 
     expect(result.cards.length).toBe(2);
-    expect(result.enabledCards.map(card => card.id)).toEqual([1]);
+    expect(result.enabledCards.map(card => card.id)).toEqual(['curse_1']);
+  });
+
+  it('normalizes frontend catalog ids to backend deck ids', () => {
+    const result = validateCardsCatalog({
+      mazo: {
+        mazo_escondedor: {
+          bonus_tiempo: [{ color: 'Rojo', minutos: 3, cantidad: 1 }],
+          powerups: [{ id: 'veto', nombre: 'Veto', cantidad: 1, pista_reglas: 'Desc' }],
+        },
+      },
+      maldiciones: [{ id: 1, nombre: 'A', texto_ui: { efecto: 'Desc' } }],
+    });
+
+    expect(result.deckCards.map(card => card.id)).toEqual([
+      'time_bonus_red_3m#1',
+      'powerup_veto#1',
+      'curse_1#1',
+    ]);
   });
 
   it('reports duplicate ids and declared curse count mismatch', () => {

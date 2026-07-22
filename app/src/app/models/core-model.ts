@@ -31,12 +31,38 @@ export interface TurnStatus {
   hiderTeamId: string;
   phase: Phase;
   endsAtIso: string;
+  pendingQuestionId: string | null;
+  pendingQuestionEndsAtIso: string | null;
   pendingQuestion: boolean;
+  hiderHandIds: string[];
+  drawPileCount: number;
+  discardPileCount: number;
+  lootOffer: LootOffer | null;
   expirations: number;
   foundVotes: string[];
   foundConfirmed: boolean;
   endgameEligible: boolean;
   endgameActive: boolean;
+}
+
+export type QuestionResolution = 'ANSWER' | 'VETO' | 'RANDOMIZE';
+
+export interface PendingQuestion {
+  id: string;
+  categoryId: string;
+  prompt: string;
+  isPhoto: boolean;
+  status: 'PENDING' | 'RESOLVED' | 'EXPIRED';
+  createdAtIso: string | null;
+  expiresAtIso: string | null;
+}
+
+export interface LootOffer {
+  questionId: string;
+  categoryId: string;
+  drawnCardIds: string[];
+  takeLimit: number;
+  createdAtIso: string | null;
 }
 
 export interface QuestionPolicy {
@@ -68,9 +94,20 @@ export interface EndgamePolicy {
 
 export interface Seat {
   id: string;
+  uid: string;
   displayName: string;
   teamId: string;
   host: boolean;
+}
+
+export interface PlayerRole {
+  uid: string | null;
+  seat: Seat | null;
+  teamId: string | null;
+  isHost: boolean;
+  isHider: boolean;
+  isSeeker: boolean;
+  isParticipant: boolean;
 }
 
 export interface LobbyState {

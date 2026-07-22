@@ -20,12 +20,13 @@
             <p class="player-chip__name">{{ seat.displayName }}</p>
             <p class="player-chip__seat">Jugador {{ index + 1 }}</p>
             <ion-badge *ngIf="seat.host" color="primary">Host</ion-badge>
+            <ion-badge *ngIf="seat.uid === vm.role.uid" color="success">Vos</ion-badge>
             <ion-item lines="none" class="player-chip__team-select">
               <ion-select
                 label="Equipo"
-                [disabled]="vm.lobby.teamsLocked"
+                [disabled]="vm.lobby.teamsLocked || !vm.role.isHost"
                 [value]="seat.teamId"
-                (ionChange)="assignSeatToTeam(seat.id, $event.detail.value)"
+                (ionChange)="assignSeatToTeam(seat.id, $event.detail.value, vm.role.isHost)"
               >
                 <ion-select-option value="">Sin asignar</ion-select-option>
                 <ion-select-option *ngFor="let team of vm.teams" [value]="team.id">
@@ -53,11 +54,11 @@
           </div>
 
           <div class="actions">
-            <ion-button expand="block" fill="outline" (click)="randomizeTeams()">Asignar al azar</ion-button>
-            <ion-button expand="block" fill="outline" (click)="toggleLock()">
+            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost || vm.lobby.teamsLocked" (click)="randomizeTeams(vm.role.isHost)">Asignar al azar</ion-button>
+            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost" (click)="toggleLock(vm.role.isHost)">
               {{ vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)' }}
             </ion-button>
-            <ion-button expand="block" [disabled]="!vm.hasCompleteTeams || starting" (click)="startGame()">
+            <ion-button expand="block" [disabled]="!vm.role.isHost || !vm.hasCompleteTeams || starting" (click)="startGame(vm.role.isHost)">
               {{ starting ? 'Iniciando...' : 'Iniciar juego' }}
             </ion-button>
             <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
