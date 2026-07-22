@@ -30,6 +30,8 @@ export class LobbyPage {
   private readonly gameFacade = inject(GameFacadeService);
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
+  starting = false;
+  errorMessage = '';
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$.pipe(
     map(lobby => (lobby?.gameId === this.gameId ? lobby : null)),
   );
@@ -66,8 +68,17 @@ export class LobbyPage {
     this.gameFacade.toggleTeamsLock(this.gameId);
   }
 
-  startGame(): void {
-    this.router.navigate(['/game', this.gameId]);
+  async startGame(): Promise<void> {
+    this.starting = true;
+    this.errorMessage = '';
+    try {
+      await this.gameFacade.startGame(this.gameId);
+      this.router.navigate(['/game', this.gameId]);
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'No se pudo iniciar la partida.';
+    } finally {
+      this.starting = false;
+    }
   }
 
   private buildTeamGroups(lobby: LobbyState, blueprint: GameBlueprint): TeamGroup[] {

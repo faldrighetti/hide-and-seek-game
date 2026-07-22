@@ -1,4 +1,4 @@
-Contexto: Quiero construir una app móvil/web (Ionic Angular) para jugar un hide-and-seek a escala ciudad inspirado en Jet Lag: The Game. Backend Firebase (Auth anónimo + Firestore + Cloud Functions). La app debe permitir que un host cree una partida con un ID/link tipo Kahoot para que otros se unan (Firebase Hosting). Máximo 6 personas según modo. Geolocalización necesaria. Seekers comparten ubicación, hider NO comparte ubicación exacta.
+Contexto: Quiero construir una app móvil/web (Ionic Angular) para jugar un hide-and-seek a escala ciudad inspirado en Jet Lag: The Game. Backend Firebase (Auth con Google como login principal + Firestore + Cloud Functions). La app debe permitir que un host cree una partida con un ID/link tipo Kahoot para que otros se unan (Firebase Hosting). Máximo 6 personas según modo. Geolocalización necesaria. Seekers comparten ubicación, hider NO comparte ubicación exacta.
 
 Fuente normativa consolidada:
 `arch/REGLAMENTO_CONSOLIDADO.md` contiene el reglamento completo vigente. Este `SPEC_MASTER.md` resume contratos técnicos y roadmap; si hay una diferencia, el reglamento consolidado prevalece y la arquitectura debe alinearse contra ese documento.
@@ -14,7 +14,7 @@ TEAMS_2v2v2: 3 teams de 2 jugadores (6 jugadores).
 En el lobby los jugadores eligen equipos manualmente o se asignan al azar. También se define/elige al azar el orden inicial.
 
 2) Identidad / Rejoin
-Auth Firebase anónimo (uid).
+Auth Firebase con Google como login principal. Cada cuenta de Google representa a un jugador y su `uid` es la identidad estable para seats, permisos, reconexión y takeover. Auth anónimo puede quedar solo como fallback de desarrollo/testing, no como flujo principal de juego.
 La identidad social es un Seat (displayName único case-insensitive dentro de la partida).
 Rejoin: si alguien entra con el mismo displayName, toma su lugar (takeover del seat). Para evitar dos dispositivos simultáneos con el mismo nombre: takeover permitido si el seat está “offline” (lastSeenAt viejo) o mismo uid; si está online se rechaza (o se requiere confirmación).
 

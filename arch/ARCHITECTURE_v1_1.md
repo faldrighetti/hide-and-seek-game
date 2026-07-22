@@ -8,7 +8,7 @@ Full normative source: `arch/REGLAMENTO_CONSOLIDADO.md`.
 # 0) Stack
 
 - Frontend: Ionic Angular
-- Backend: Firebase (Auth anónimo + Firestore + Cloud Functions)
+- Backend: Firebase (Google Auth as the primary login + Firestore + Cloud Functions)
 - Hosting: Firebase Hosting
 - Architecture: Monorepo
 

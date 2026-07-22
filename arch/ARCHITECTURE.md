@@ -5,7 +5,7 @@
 
 ## 0) Stack
 - **Frontend:** Ionic Angular
-- **Backend:** Firebase (Auth anónimo + Firestore + Cloud Functions)
+- **Backend:** Firebase (Auth con Google como login principal + Firestore + Cloud Functions)
 - **Hosting:** Firebase Hosting (links tipo Kahoot)
 - **Arquitectura:** Monorepo
 
@@ -58,7 +58,7 @@ Transporte:
 ---
 
 ## 3) Identidad, lobby y rejoin (“toma su lugar”)
-- Auth Firebase: **anónimo** (uid).
+- Auth Firebase: **Google como login principal**. Cada cuenta de Google representa a un jugador; su `uid` es la identidad estable para seats, permisos, reconexión y takeover. Auth anónimo queda solo como fallback de desarrollo/testing.
 - Identidad social: **Seat** (displayName único case-insensitive por partida).
 - Join con `gameId + displayName`.
   - Si displayName ya existe: el usuario **toma el seat** si el anterior está offline (p.ej. `lastSeenAt` viejo) o es el mismo uid.

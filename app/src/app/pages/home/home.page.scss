@@ -1,6 +1,41 @@
 .actions {
   display: grid;
   gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.auth-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ion-color-step-150, #d7d8da);
+  border-radius: 8px;
+}
+
+.auth-panel--signed-out {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.auth-panel ion-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.auth-panel h2,
+.auth-panel p {
+  margin: 0;
+}
+
+.auth-panel h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.auth-panel p {
+  color: var(--ion-color-medium);
+  font-size: 0.85rem;
 }
 
 .questions-test {

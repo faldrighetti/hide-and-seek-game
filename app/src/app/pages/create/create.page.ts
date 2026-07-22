@@ -18,17 +18,27 @@ export class CreatePage {
   winCondition: WinCondition = 'TOTAL_TIME';
   ukMode = false;
   hostDisplayName = '';
+  creating = false;
+  errorMessage = '';
 
   createdLobby: LobbyState | null = null;
 
-  create(): void {
-    this.createdLobby = this.gameFacade.createGame(
-      this.mode,
-      this.turnsPerTeam,
-      this.winCondition,
-      this.ukMode,
-      this.hostDisplayName,
-    );
+  async create(): Promise<void> {
+    this.creating = true;
+    this.errorMessage = '';
+    try {
+      this.createdLobby = await this.gameFacade.createGame(
+        this.mode,
+        this.turnsPerTeam,
+        this.winCondition,
+        this.ukMode,
+        this.hostDisplayName,
+      );
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'No se pudo crear la partida.';
+    } finally {
+      this.creating = false;
+    }
   }
 
   goToLobby(): void {

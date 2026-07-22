@@ -57,9 +57,10 @@
             <ion-button expand="block" fill="outline" (click)="toggleLock()">
               {{ vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)' }}
             </ion-button>
-            <ion-button expand="block" [disabled]="!vm.hasCompleteTeams" (click)="startGame()">
-              Iniciar juego
+            <ion-button expand="block" [disabled]="!vm.hasCompleteTeams || starting" (click)="startGame()">
+              {{ starting ? 'Iniciando...' : 'Iniciar juego' }}
             </ion-button>
+            <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
           </div>
         </div>
       </ion-card-content>

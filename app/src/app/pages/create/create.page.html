@@ -40,7 +40,10 @@
     </ion-item>
   </ion-list>
 
-  <ion-button expand="block" (click)="create()">Crear</ion-button>
+  <ion-button expand="block" [disabled]="creating" (click)="create()">
+    {{ creating ? 'Creando...' : 'Crear' }}
+  </ion-button>
+  <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
 
   <ion-card *ngIf="createdLobby as lobby">
     <ion-card-header>

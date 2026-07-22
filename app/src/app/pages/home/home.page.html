@@ -11,7 +11,34 @@
       <ion-card-subtitle>Elegí una acción para comenzar</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
-      <div class="actions">
+      <ng-container *ngIf="user$ | async as user; else signedOut">
+        <div class="auth-panel">
+          <ion-avatar *ngIf="user.photoURL">
+            <img [src]="user.photoURL" alt="" />
+          </ion-avatar>
+          <ion-label>
+            <h2>{{ user.displayName || 'Jugador' }}</h2>
+            <p>{{ user.email }}</p>
+          </ion-label>
+          <ion-button size="small" fill="clear" [disabled]="authLoading" (click)="signOut()">Salir</ion-button>
+        </div>
+      </ng-container>
+
+      <ng-template #signedOut>
+        <div class="auth-panel auth-panel--signed-out">
+          <ion-label>
+            <h2>Entrá con Google</h2>
+            <p>Tu cuenta identifica tu jugador, permisos y reconexión.</p>
+          </ion-label>
+          <ion-button size="small" [disabled]="authLoading" (click)="signInWithGoogle()">
+            {{ authLoading ? 'Entrando...' : 'Entrar' }}
+          </ion-button>
+        </div>
+      </ng-template>
+
+      <ion-note *ngIf="authErrorMessage" color="danger">{{ authErrorMessage }}</ion-note>
+
+      <div class="actions" *ngIf="user$ | async as user">
         <ion-button expand="block" routerLink="/create">Crear partida</ion-button>
         <ion-button expand="block" fill="outline" routerLink="/join">Unirse a partida</ion-button>
         <ion-button expand="block" fill="outline" routerLink="/map-generator">Generador de mapa</ion-button>

@@ -13,9 +13,12 @@
       <ion-input label="gameId" [(ngModel)]="gameId"></ion-input>
     </ion-item>
     <ion-item>
-      <ion-input label="displayName" [(ngModel)]="displayName"></ion-input>
+      <ion-input label="displayName" placeholder="Opcional; usa Google si queda vacío" [(ngModel)]="displayName"></ion-input>
     </ion-item>
   </ion-list>
 
-  <ion-button expand="block" (click)="join()">Unirse</ion-button>
+  <ion-button expand="block" [disabled]="joining" (click)="join()">
+    {{ joining ? 'Uniendo...' : 'Unirse' }}
+  </ion-button>
+  <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
 </ion-content>

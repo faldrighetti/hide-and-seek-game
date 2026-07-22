@@ -15,19 +15,29 @@ export class JoinPage implements OnInit {
 
   gameId = '';
   displayName = '';
+  joining = false;
+  errorMessage = '';
 
   ngOnInit(): void {
     const gameId = this.route.snapshot.paramMap.get('gameId');
     if (gameId) this.gameId = gameId.toUpperCase();
   }
 
-  join(): void {
+  async join(): Promise<void> {
     const normalizedGameId = this.gameId.trim().toUpperCase();
     const name = this.displayName.trim();
 
-    if (!normalizedGameId || !name) return;
+    if (!normalizedGameId) return;
 
-    this.gameFacade.joinGame(normalizedGameId, name);
-    this.router.navigate(['/lobby', normalizedGameId]);
+    this.joining = true;
+    this.errorMessage = '';
+    try {
+      await this.gameFacade.joinGame(normalizedGameId, name);
+      this.router.navigate(['/lobby', normalizedGameId]);
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'No se pudo unir a la partida.';
+    } finally {
+      this.joining = false;
+    }
   }
 }

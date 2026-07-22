@@ -68,6 +68,8 @@ export class GamePage {
   drawPreviewCards: HiderCardData[] = [];
   questionCategories: QuestionCategory[] = [];
   selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem } | null = null;
+  sendingQuestion = false;
+  questionErrorMessage = '';
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
@@ -145,6 +147,31 @@ export class GamePage {
 
   selectSeekerQuestion(category: QuestionCategory, question: QuestionItem): void {
     this.selectedSeekerQuestion = { category, question };
+    this.questionErrorMessage = '';
+  }
+
+  async sendSelectedQuestion(): Promise<void> {
+    if (!this.selectedSeekerQuestion) {
+      return;
+    }
+
+    const { category, question } = this.selectedSeekerQuestion;
+    const prompt = this.questionText(category, question);
+    if (!prompt.trim()) {
+      this.questionErrorMessage = 'La pregunta seleccionada no tiene texto.';
+      return;
+    }
+
+    this.sendingQuestion = true;
+    this.questionErrorMessage = '';
+    try {
+      await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos');
+      this.selectedSeekerQuestion = null;
+    } catch (error) {
+      this.questionErrorMessage = error instanceof Error ? error.message : 'No se pudo enviar la pregunta.';
+    } finally {
+      this.sendingQuestion = false;
+    }
   }
 
   trackByQuestionCategory(_: number, category: QuestionCategory): string {

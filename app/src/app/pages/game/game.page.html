@@ -63,6 +63,16 @@
             <ion-note *ngIf="selectedSeekerQuestion" color="primary">
               Seleccionada: {{ selectedSeekerQuestion.category.name }} / {{ questionTitle(selectedSeekerQuestion.question) }}
             </ion-note>
+            <ion-button
+              *ngIf="selectedSeekerQuestion"
+              expand="block"
+              size="small"
+              [disabled]="vm.currentTurn.pendingQuestion || vm.currentTurn.phase !== 'CHASE' || sendingQuestion"
+              (click)="sendSelectedQuestion()"
+            >
+              {{ sendingQuestion ? 'Enviando...' : 'Enviar pregunta' }}
+            </ion-button>
+            <ion-note *ngIf="questionErrorMessage" color="danger">{{ questionErrorMessage }}</ion-note>
             <ion-accordion-group class="question-menu">
               <ion-accordion
                 *ngFor="let category of questionCategories; trackBy: trackByQuestionCategory"
