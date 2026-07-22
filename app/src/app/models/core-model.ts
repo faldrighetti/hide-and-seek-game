@@ -38,6 +38,7 @@ export interface TurnStatus {
   drawPileCount: number;
   discardPileCount: number;
   lootOffer: LootOffer | null;
+  activeEffects: ActiveEffect[];
   expirations: number;
   foundVotes: string[];
   foundConfirmed: boolean;
@@ -63,6 +64,16 @@ export interface LootOffer {
   drawnCardIds: string[];
   takeLimit: number;
   createdAtIso: string | null;
+}
+
+export interface ActiveEffect {
+  id: string;
+  curseId: string;
+  createdByUid: string;
+  createdAtIso: string | null;
+  expiresAtIso: string | null;
+  blocksQuestions: boolean;
+  blocksTransport: boolean;
 }
 
 export interface QuestionPolicy {

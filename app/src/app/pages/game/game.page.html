@@ -51,6 +51,74 @@
           [disabled]="selectingLoot"
           (cardToggle)="toggleHandDiscard($event)"
         ></app-hider-hand>
+
+        <ion-card *ngIf="curseCards(vm.currentTurn.hiderHandIds).length">
+          <ion-card-header>
+            <ion-card-title>Maldiciones</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="full">
+              <ion-item *ngFor="let card of curseCards(vm.currentTurn.hiderHandIds)">
+                <ion-label class="ion-text-wrap">
+                  <h3>{{ card.title }}</h3>
+                  <p>{{ card.castingCost || 'Sin costo declarado' }}</p>
+                  <p>
+                    <ng-container *ngIf="card.blocksQuestions">Bloquea preguntas</ng-container>
+                    <ng-container *ngIf="card.blocksQuestions && card.blocksTransport"> · </ng-container>
+                    <ng-container *ngIf="card.blocksTransport">Bloquea transporte</ng-container>
+                    <ng-container *ngIf="card.durationMinutes"> · {{ card.durationMinutes }} min</ng-container>
+                  </p>
+                </ion-label>
+                <ion-button
+                  slot="end"
+                  size="small"
+                  [disabled]="playingCurseCardId !== null"
+                  (click)="playCurse(card, role)"
+                >
+                  {{ playingCurseCardId === card.id ? 'Activando...' : 'Activar' }}
+                </ion-button>
+              </ion-item>
+            </ion-list>
+            <ion-note *ngIf="curseErrorMessage" color="danger">{{ curseErrorMessage }}</ion-note>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <ion-row *ngIf="vm.currentTurn.activeEffects.length">
+      <ion-col size="12">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Efectos activos</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="full">
+              <ion-item *ngFor="let effect of vm.currentTurn.activeEffects">
+                <ion-label>
+                  <h3>{{ effectTitle(effect.curseId) }}</h3>
+                  <p>
+                    <ng-container *ngIf="effect.blocksQuestions">Bloquea preguntas</ng-container>
+                    <ng-container *ngIf="effect.blocksQuestions && effect.blocksTransport"> · </ng-container>
+                    <ng-container *ngIf="effect.blocksTransport">Bloquea transporte</ng-container>
+                    <ng-container *ngIf="!effect.blocksQuestions && !effect.blocksTransport">Activo</ng-container>
+                  </p>
+                  <p *ngIf="effect.expiresAtIso">Hasta {{ effect.expiresAtIso | date: 'shortTime' }}</p>
+                </ion-label>
+                <ion-button
+                  *ngIf="role.isSeeker"
+                  slot="end"
+                  size="small"
+                  fill="outline"
+                  [disabled]="completingEffectId !== null"
+                  (click)="completeCurseEffect(effect, role)"
+                >
+                  {{ completingEffectId === effect.id ? 'Enviando...' : 'Cumplida' }}
+                </ion-button>
+              </ion-item>
+            </ion-list>
+            <ion-note *ngIf="effectErrorMessage" color="danger">{{ effectErrorMessage }}</ion-note>
+          </ion-card-content>
+        </ion-card>
       </ion-col>
     </ion-row>
 
@@ -131,11 +199,19 @@
               *ngIf="selectedSeekerQuestion"
               expand="block"
               size="small"
-              [disabled]="vm.currentTurn.pendingQuestion || vm.currentTurn.phase !== 'CHASE' || sendingQuestion"
+              [disabled]="
+                vm.currentTurn.pendingQuestion
+                || vm.currentTurn.phase !== 'CHASE'
+                || sendingQuestion
+                || hasQuestionBlockingEffect(vm.currentTurn.activeEffects)
+              "
               (click)="sendSelectedQuestion(role)"
             >
               {{ sendingQuestion ? 'Enviando...' : 'Enviar pregunta' }}
             </ion-button>
+            <ion-note *ngIf="hasQuestionBlockingEffect(vm.currentTurn.activeEffects)" color="warning">
+              Hay una maldicion activa que bloquea preguntas.
+            </ion-note>
             <ion-note *ngIf="questionErrorMessage" color="danger">{{ questionErrorMessage }}</ion-note>
             <ion-accordion-group class="question-menu">
               <ion-accordion

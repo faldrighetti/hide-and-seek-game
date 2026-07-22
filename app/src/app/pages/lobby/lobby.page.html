@@ -24,7 +24,7 @@
             <ion-item lines="none" class="player-chip__team-select">
               <ion-select
                 label="Equipo"
-                [disabled]="vm.lobby.teamsLocked || !vm.role.isHost"
+                [disabled]="vm.lobby.teamsLocked || !vm.role.isHost || assigningSeatId === seat.id"
                 [value]="seat.teamId"
                 (ionChange)="assignSeatToTeam(seat.id, $event.detail.value, vm.role.isHost)"
               >
@@ -54,13 +54,16 @@
           </div>
 
           <div class="actions">
-            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost || vm.lobby.teamsLocked" (click)="randomizeTeams(vm.role.isHost)">Asignar al azar</ion-button>
-            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost" (click)="toggleLock(vm.role.isHost)">
-              {{ vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)' }}
+            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost || vm.lobby.teamsLocked || randomizing" (click)="randomizeTeams(vm.role.isHost)">
+              {{ randomizing ? 'Asignando...' : 'Asignar al azar' }}
             </ion-button>
-            <ion-button expand="block" [disabled]="!vm.role.isHost || !vm.hasCompleteTeams || starting" (click)="startGame(vm.role.isHost)">
+            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost || locking" (click)="toggleLock(vm.role.isHost)">
+              {{ locking ? 'Guardando...' : (vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)') }}
+            </ion-button>
+            <ion-button expand="block" [disabled]="!vm.role.isHost || !vm.canStart || starting" (click)="startGame(vm.role.isHost)">
               {{ starting ? 'Iniciando...' : 'Iniciar juego' }}
             </ion-button>
+            <ion-note *ngIf="vm.startBlockedReason" color="medium">{{ vm.startBlockedReason }}</ion-note>
             <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
           </div>
         </div>

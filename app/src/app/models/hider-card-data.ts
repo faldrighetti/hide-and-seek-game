@@ -5,4 +5,7 @@ export interface HiderCardData {
   description: string;
   castingCost?: string;
   timeBonusMinutes?: number;
+  blocksQuestions?: boolean;
+  blocksTransport?: boolean;
+  durationMinutes?: number | null;
 }

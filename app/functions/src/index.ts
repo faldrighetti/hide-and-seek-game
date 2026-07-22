@@ -198,11 +198,33 @@ const modeMaxSeats = (mode: GameMode): number => {
   return 6;
 };
 
+const validateLobbyTeams = (mode: GameMode, seats: DocumentData[]): void => {
+  const teamIds = modeTeamIds(mode);
+  const validTeams = new Set(teamIds);
+  if (seats.length < teamIds.length) {
+    throw new HttpsError("failed-precondition", "Faltan jugadores para cubrir todos los equipos.");
+  }
+
+  const countsByTeam = new Map(teamIds.map((teamId) => [teamId, 0]));
+  for (const seat of seats) {
+    const teamId = String(seat.teamId ?? "");
+    if (!validTeams.has(teamId)) {
+      throw new HttpsError("failed-precondition", "Todos los jugadores deben tener un equipo vÃ¡lido.");
+    }
+    countsByTeam.set(teamId, (countsByTeam.get(teamId) ?? 0) + 1);
+  }
+
+  const emptyTeamIds = teamIds.filter((teamId) => (countsByTeam.get(teamId) ?? 0) === 0);
+  if (emptyTeamIds.length > 0) {
+    throw new HttpsError("failed-precondition", `Hay equipos sin jugadores: ${emptyTeamIds.join(", ")}.`);
+  }
+};
+
 const nowTs = (): Timestamp => Timestamp.now();
 
 const randomCode = (): string => Math.random().toString(36).slice(2, 2 + GAME_ID_LENGTH).toUpperCase();
 
-const shuffle = (items: string[]): string[] => {
+const shuffle = <T>(items: T[]): T[] => {
   const shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index--) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
@@ -667,6 +689,37 @@ export const setTeams = onCall(async (request) => {
   return {ok: true};
 });
 
+export const randomizeTeams = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) {
+    throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  }
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    if (game.teamsLocked) throw new HttpsError("failed-precondition", "Los equipos estÃ¡n bloqueados.");
+
+    const teamIds = modeTeamIds(game.mode);
+    const seatsSnap = await tx.get(gameRef.collection("seats"));
+    const shuffledSeats = shuffle(seatsSnap.docs);
+
+    shuffledSeats.forEach((seatDoc, index) => {
+      tx.update(seatDoc.ref, {
+        teamId: teamIds[index % teamIds.length],
+        updatedAt: nowTs(),
+      });
+    });
+    tx.update(gameRef, {updatedAt: nowTs()});
+  });
+
+  return {ok: true};
+});
+
 export const lockTeams = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
@@ -691,6 +744,9 @@ export const startGame = onCall(async (request) => {
     if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = gameSnap.data() as GameDoc;
     if (game.status !== "LOBBY") throw new HttpsError("failed-precondition", "La partida ya comenzó.");
+
+    const seatsSnap = await tx.get(gameRef.collection("seats"));
+    validateLobbyTeams(game.mode, seatsSnap.docs.map((seatDoc) => seatDoc.data()));
 
     const now = nowTs();
     const hiderTeamId = pickInitialHider(game.teamOrder);
@@ -901,6 +957,13 @@ export const sendQuestion = onCall(async (request) => {
     }
 
     const now = nowTs();
+    const activeEffects = (game.currentTurn.activeEffects ?? []).filter((effect) =>
+      !effect.expiresAt || effect.expiresAt.toMillis() > now.toMillis(),
+    );
+    if (activeEffects.some((effect) => effect.blocksQuestions)) {
+      throw new HttpsError("failed-precondition", "CURSE_QUESTIONS_BLOCKED");
+    }
+
     const cooldownUntil = game.currentTurn.categoryCooldowns?.[categoryId];
     if (cooldownUntil && cooldownUntil.toMillis() > now.toMillis()) {
       throw new HttpsError("failed-precondition", "CATEGORY_COOLDOWN_ACTIVE");
@@ -1083,14 +1146,15 @@ export const selectLoot = onCall(async (request) => {
 export const playCurse = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-  const curseId = String(request.data?.curseId ?? "").trim();
+  const cardId = String(request.data?.cardId ?? request.data?.curseId ?? "").trim();
+  const curseId = cardId.split("#")[0];
   const blocksQuestions = Boolean(request.data?.blocksQuestions);
   const blocksTransport = Boolean(request.data?.blocksTransport);
   const expiresAtMillisRaw = request.data?.expiresAtMillis;
   const expiresAtMillis = typeof expiresAtMillisRaw === "number" ? expiresAtMillisRaw : null;
 
-  if (!gameId || !curseId) {
-    throw new HttpsError("invalid-argument", "gameId y curseId son obligatorios.");
+  if (!gameId || !cardId || !curseId.startsWith("curse_")) {
+    throw new HttpsError("invalid-argument", "gameId y cardId de maldiciÃ³n son obligatorios.");
   }
 
   await requireGameMembership(db, gameId, uid);
@@ -1103,6 +1167,20 @@ export const playCurse = onCall(async (request) => {
     const turn = game.currentTurn;
     if (game.status !== "LIVE" || !turn) {
       throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
+    }
+
+    const seatSnap = await tx.get(
+      gameRef.collection("seats").where("uid", "==", uid).limit(1),
+    );
+    const seatTeamId = String(seatSnap.docs[0]?.data()?.teamId ?? "");
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede activar maldiciones.");
+    }
+
+    const hand = [...(turn.hiderHand ?? [])];
+    const cardIndex = hand.indexOf(cardId);
+    if (cardIndex < 0) {
+      throw new HttpsError("invalid-argument", "La carta no esta en la mano del hider.");
     }
 
     const now = nowTs();
@@ -1127,7 +1205,58 @@ export const playCurse = onCall(async (request) => {
     tx.update(gameRef, {
       currentTurn: {
         ...turn,
+        hiderHand: hand.filter((_, index) => index !== cardIndex),
+        discardPile: [...(turn.discardPile ?? []), cardId],
         activeEffects: [...activeEffects, newEffect],
+      },
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true};
+});
+
+export const completeCurseEffect = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const effectId = String(request.data?.effectId ?? "").trim();
+
+  if (!gameId || !effectId) {
+    throw new HttpsError("invalid-argument", "gameId y effectId son obligatorios.");
+  }
+
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn) {
+      throw new HttpsError("failed-precondition", "La partida no estÃ¡ en juego activo.");
+    }
+
+    const seatSnap = await tx.get(
+      gameRef.collection("seats").where("uid", "==", uid).limit(1),
+    );
+    const seatTeamId = String(seatSnap.docs[0]?.data()?.teamId ?? "");
+    if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo los seekers pueden completar maldiciones.");
+    }
+
+    const now = nowTs();
+    const activeEffects = (turn.activeEffects ?? []).filter((effect) =>
+      !effect.expiresAt || effect.expiresAt.toMillis() > now.toMillis(),
+    );
+    if (!activeEffects.some((effect) => effect.id === effectId)) {
+      throw new HttpsError("not-found", "Efecto activo no encontrado.");
+    }
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        activeEffects: activeEffects.filter((effect) => effect.id !== effectId),
       },
       updatedAt: now,
     });

@@ -52,6 +52,7 @@ const buildBlueprint = (
       drawPileCount: 0,
       discardPileCount: 0,
       lootOffer: null,
+      activeEffects: [],
       expirations: 0,
       foundVotes: [],
       foundConfirmed: false,
@@ -197,57 +198,23 @@ export class GameFacadeService {
     this.lobbySubject.next(entry.lobby);
   }
 
-  toggleTeamsLock(gameId: string): void {
+  toggleTeamsLock(gameId: string): Promise<{ ok: boolean; teamsLocked: boolean }> {
     const current = this.lobbySubject.value;
-    void this.firebaseClient.callFunction<{ gameId: string; lock: boolean }, { ok: boolean; teamsLocked: boolean }>(
+    return this.firebaseClient.callFunction<{ gameId: string; lock: boolean }, { ok: boolean; teamsLocked: boolean }>(
       'lockTeams',
       { gameId, lock: !current?.teamsLocked },
     );
-
-    const entry = this.games.get(gameId);
-    if (!entry) {
-      return;
-    }
-    entry.lobby = { ...entry.lobby, teamsLocked: !entry.lobby.teamsLocked };
-    this.games.set(gameId, entry);
-    this.lobbySubject.next(entry.lobby);
   }
 
-  randomizeTeams(gameId: string): void {
-    const entry = this.games.get(gameId);
-    if (!entry || entry.lobby.teamsLocked) {
-      return;
-    }
-
-    const teams = entry.blueprint.standings.map(team => team.id);
-    const shuffled = [...entry.lobby.seats].sort(() => Math.random() - 0.5);
-    entry.lobby = {
-      ...entry.lobby,
-      seats: shuffled.map((seat, index) => ({ ...seat, teamId: teams[index % teams.length] })),
-    };
-
-    this.games.set(gameId, entry);
-    this.lobbySubject.next(entry.lobby);
+  randomizeTeams(gameId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('randomizeTeams', { gameId });
   }
 
-  assignSeatToTeam(gameId: string, seatId: string, teamId: string): void {
-    void this.firebaseClient.callFunction<{ gameId: string; assignments: Record<string, string> }, { ok: boolean }>(
+  assignSeatToTeam(gameId: string, seatId: string, teamId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; assignments: Record<string, string> }, { ok: boolean }>(
       'setTeams',
       { gameId, assignments: { [seatId]: teamId } },
     );
-
-    const entry = this.games.get(gameId);
-    if (!entry || entry.lobby.teamsLocked) {
-      return;
-    }
-
-    entry.lobby = {
-      ...entry.lobby,
-      seats: entry.lobby.seats.map(seat => (seat.id === seatId ? { ...seat, teamId } : seat)),
-    };
-
-    this.games.set(gameId, entry);
-    this.lobbySubject.next(entry.lobby);
   }
 
   configure(mode: GameMode, turnsPerTeam: 1 | 2 | 3, winCondition: WinCondition): void {
@@ -343,6 +310,32 @@ export class GameFacadeService {
     >('selectLoot', { gameId, selectedCardIds, discardFromHandIds });
   }
 
+  playCurse(
+    gameId: string,
+    cardId: string,
+    blocksQuestions: boolean,
+    blocksTransport: boolean,
+    expiresAtMillis: number | null,
+  ): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<
+      {
+        gameId: string;
+        cardId: string;
+        blocksQuestions: boolean;
+        blocksTransport: boolean;
+        expiresAtMillis: number | null;
+      },
+      { ok: boolean }
+    >('playCurse', { gameId, cardId, blocksQuestions, blocksTransport, expiresAtMillis });
+  }
+
+  completeCurseEffect(gameId: string, effectId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; effectId: string }, { ok: boolean }>(
+      'completeCurseEffect',
+      { gameId, effectId },
+    );
+  }
+
   private isFoundConfirmed(current: GameBlueprint, lobby: LobbyState, votes: string[]): boolean {
     const seekerSeats = lobby.seats.filter(seat => seat.teamId !== current.currentTurn.hiderTeamId);
 
@@ -414,6 +407,7 @@ export class GameFacadeService {
         drawPileCount: this.stringArray(currentTurn?.['drawPile']).length,
         discardPileCount: this.stringArray(currentTurn?.['discardPile']).length,
         lootOffer: this.mapLootOffer(currentTurn?.['lootOffer']),
+        activeEffects: this.mapActiveEffects(currentTurn?.['activeEffects']),
         expirations: Number(currentTurn?.['expirations'] ?? 0),
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
         endgameActive: Boolean(currentTurn?.['endgameActive']),
@@ -483,6 +477,25 @@ export class GameFacadeService {
       takeLimit: Number(lootOffer['takeLimit'] ?? 0),
       createdAtIso: this.timestampToIso(lootOffer['createdAt']),
     };
+  }
+
+  private mapActiveEffects(value: unknown): GameBlueprint['currentTurn']['activeEffects'] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.map(effect => {
+      const effectRecord = effect as Record<string, unknown>;
+      return {
+        id: String(effectRecord['id'] ?? ''),
+        curseId: String(effectRecord['curseId'] ?? ''),
+        createdByUid: String(effectRecord['createdByUid'] ?? ''),
+        createdAtIso: this.timestampToIso(effectRecord['createdAt']),
+        expiresAtIso: this.timestampToIso(effectRecord['expiresAt']),
+        blocksQuestions: Boolean(effectRecord['blocksQuestions']),
+        blocksTransport: Boolean(effectRecord['blocksTransport']),
+      };
+    });
   }
 
   private stringArray(value: unknown): string[] {

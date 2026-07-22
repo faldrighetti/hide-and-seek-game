@@ -25,6 +25,11 @@ interface RawCardsCatalog {
     };
     motor?: {
       tipo?: string;
+      duracion_minutos?: number | null;
+      bloquea?: {
+        preguntas?: boolean;
+        transporte?: boolean;
+      };
     };
   }>;
 }
@@ -49,6 +54,9 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
       description: curse.texto_ui?.efecto ?? '',
       effectType: curse.motor?.tipo,
       castingCost: curse.texto_ui?.costo_lanzamiento,
+      blocksQuestions: Boolean(curse.motor?.bloquea?.preguntas),
+      blocksTransport: Boolean(curse.motor?.bloquea?.transporte),
+      durationMinutes: curse.motor?.duracion_minutos ?? null,
       quantity: 1,
       enabled: curse.enabled ?? true,
     })),

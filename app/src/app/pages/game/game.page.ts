@@ -2,7 +2,15 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { GameFacadeService } from '../../services/game-facade';
-import { GameBlueprint, LobbyState, PendingQuestion, PlayerRole, QuestionResolution, Seat } from '../../models/core-model';
+import {
+  ActiveEffect,
+  GameBlueprint,
+  LobbyState,
+  PendingQuestion,
+  PlayerRole,
+  QuestionResolution,
+  Seat,
+} from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
 import { CardDefinition } from 'src/app/models/card-definition.model';
@@ -71,9 +79,13 @@ export class GamePage {
   sendingQuestion = false;
   resolvingQuestion: QuestionResolution | null = null;
   selectingLoot = false;
+  playingCurseCardId: string | null = null;
+  completingEffectId: string | null = null;
   selectedLootCardIds: string[] = [];
   discardFromHandIds: string[] = [];
   lootErrorMessage = '';
+  curseErrorMessage = '';
+  effectErrorMessage = '';
   questionErrorMessage = '';
   resolveQuestionErrorMessage = '';
 
@@ -233,6 +245,58 @@ export class GamePage {
     }
   }
 
+  async playCurse(card: HiderCardData, role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.curseErrorMessage = 'Solo el hider puede activar maldiciones.';
+      return;
+    }
+
+    this.playingCurseCardId = card.id;
+    this.curseErrorMessage = '';
+    try {
+      await this.gameFacade.playCurse(
+        this.gameId,
+        card.id,
+        Boolean(card.blocksQuestions),
+        Boolean(card.blocksTransport),
+        this.expiresAtMillis(card.durationMinutes),
+      );
+    } catch (error) {
+      this.curseErrorMessage = error instanceof Error ? error.message : 'No se pudo activar la maldición.';
+    } finally {
+      this.playingCurseCardId = null;
+    }
+  }
+
+  async completeCurseEffect(effect: ActiveEffect, role: PlayerRole): Promise<void> {
+    if (!role.isSeeker) {
+      this.effectErrorMessage = 'Solo los seekers pueden completar maldiciones.';
+      return;
+    }
+
+    this.completingEffectId = effect.id;
+    this.effectErrorMessage = '';
+    try {
+      await this.gameFacade.completeCurseEffect(this.gameId, effect.id);
+    } catch (error) {
+      this.effectErrorMessage = error instanceof Error ? error.message : 'No se pudo completar la maldicion.';
+    } finally {
+      this.completingEffectId = null;
+    }
+  }
+
+  curseCards(cardIds: string[]): HiderCardData[] {
+    return this.cardsForIds(cardIds).filter(card => card.type === 'CURSE');
+  }
+
+  hasQuestionBlockingEffect(effects: ActiveEffect[]): boolean {
+    return effects.some(effect => effect.blocksQuestions);
+  }
+
+  effectTitle(curseId: string): string {
+    return this.fallbackCardByBaseId.get(curseId)?.title ?? curseId;
+  }
+
   toggleHandDiscard(cardId: string): void {
     this.lootErrorMessage = '';
     if (this.discardFromHandIds.includes(cardId)) {
@@ -339,7 +403,16 @@ export class GamePage {
       description: card.description,
       castingCost: card.castingCost,
       timeBonusMinutes: card.timeBonusMinutes,
+      blocksQuestions: card.blocksQuestions,
+      blocksTransport: card.blocksTransport,
+      durationMinutes: card.durationMinutes,
     };
+  }
+
+  private expiresAtMillis(durationMinutes: number | null | undefined): number | null {
+    return typeof durationMinutes === 'number' && durationMinutes > 0
+      ? Date.now() + durationMinutes * 60 * 1000
+      : null;
   }
 
   private cardForId(cardId: string): HiderCardData {

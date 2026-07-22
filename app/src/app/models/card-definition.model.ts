@@ -8,6 +8,9 @@ export interface CardDefinition {
   effectType?: string;
   castingCost?: string;
   timeBonusMinutes?: number;
+  blocksQuestions?: boolean;
+  blocksTransport?: boolean;
+  durationMinutes?: number | null;
   quantity: number;
   enabled: boolean;
 }

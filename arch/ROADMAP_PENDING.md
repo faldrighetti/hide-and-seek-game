@@ -33,17 +33,19 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
    - Lobby bloquea acciones no-host en UI.
    - Pendiente: revisar pantallas restantes y mensajes para usuarios sin seat.
 
-4. Lobby real completo.
-   - Randomizar equipos via Function o eliminar accion mock.
+4. Lobby real completo. Parcialmente conectado.
+   - Randomizar equipos via Function host-only.
    - Mostrar errores de `setTeams`, `lockTeams` y `startGame`.
-   - Pendiente: propagar errores de `setTeams` y `lockTeams` en UI.
+   - Validar composicion de equipos antes de iniciar en backend y UI.
+   - Pendiente: revisar takeover/reconexion visual de seats.
 
-5. Curses/effects MVP.
-   - Activacion desde mano del hider.
-   - Timed effects con `endsAt`.
-   - Lock effects con condicion manual de limpieza.
-   - Dado server-side.
-   - Zoologist con confirmacion manual de foto externa.
+5. Curses/effects MVP. Parcialmente conectado.
+   - Activacion desde mano del hider con `playCurse`.
+   - Timed effects con `expiresAt` desde duracion de `Tarjetas_CABA.json`.
+   - Mostrar `activeEffects` en pantalla de partida.
+   - Lock effects bloquean preguntas en `sendQuestion` y los seekers pueden limpiarlos manualmente con `completeCurseEffect`.
+   - Pendiente: Dado server-side.
+   - Pendiente: Zoologist con confirmacion manual de foto externa.
 
 6. Geolocalizacion + estacion base + endgame.
    - Publicacion throttleada de ubicacion seeker.
