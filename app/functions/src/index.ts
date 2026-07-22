@@ -26,6 +26,7 @@ const ESCAPE_PHASE_SECONDS = 3600;
 const CHASE_MAX_SECONDS = 18000;
 const ENDGAME_DWELL_SECONDS = 60;
 const LOCATION_FRESH_SECONDS = 60;
+const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
 
 type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
@@ -99,6 +100,8 @@ interface TurnState {
   endgameAnchorPoint?: LatLng | null;
   endgameLastChangedAt?: Timestamp | null;
   lastEndgameVerificationAt?: Timestamp | null;
+  endgameQuestionsUnlocked?: boolean;
+  lastEndgameQuestionsConsultAt?: Timestamp | null;
   expirations: number;
   foundVotes: string[];
 }
@@ -140,6 +143,7 @@ const QUESTION_DRAW_RULES: Record<string, {draw: number; take: number}> = {
   thermometer: {draw: 1, take: 1},
   radar: {draw: 1, take: 1},
   tentacles: {draw: 4, take: 2},
+  endgame: {draw: 1, take: 1},
   photos: {draw: 1, take: 1},
 };
 
@@ -291,6 +295,8 @@ const setNextPhase = (turn: TurnState, settings: GameSettings, phase: Phase, bas
     endgameAnchorPoint: phase === "CHASE" ? null : turn.endgameAnchorPoint,
     endgameLastChangedAt: phase === "CHASE" ? null : turn.endgameLastChangedAt,
     lastEndgameVerificationAt: phase === "CHASE" ? null : turn.lastEndgameVerificationAt,
+    endgameQuestionsUnlocked: phase === "CHASE" ? false : turn.endgameQuestionsUnlocked,
+    lastEndgameQuestionsConsultAt: phase === "CHASE" ? null : turn.lastEndgameQuestionsConsultAt,
   };
 };
 
@@ -411,6 +417,7 @@ const refreshEndgameStateInTx = async (
     endgameActive: nextEndgameActive,
     endgameAnchorPoint: null,
     endgameLastChangedAt: txNow,
+    endgameQuestionsUnlocked: nextEndgameActive ? turn.endgameQuestionsUnlocked ?? false : false,
     foundVotes: nextEndgameActive ? turn.foundVotes : [],
   };
   return true;
@@ -495,6 +502,8 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       endgameAnchorPoint: null,
       endgameLastChangedAt: null,
       lastEndgameVerificationAt: null,
+      endgameQuestionsUnlocked: false,
+      lastEndgameQuestionsConsultAt: null,
       foundVotes: [],
     };
     game.winnerTeamIds = findWinnerIds(game);
@@ -522,6 +531,8 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     endgameAnchorPoint: null,
     endgameLastChangedAt: null,
     lastEndgameVerificationAt: null,
+    endgameQuestionsUnlocked: false,
+    lastEndgameQuestionsConsultAt: null,
     expirations: 0,
     foundVotes: [],
   };
@@ -766,6 +777,8 @@ export const startGame = onCall(async (request) => {
       endgameAnchorPoint: null,
       endgameLastChangedAt: null,
       lastEndgameVerificationAt: null,
+      endgameQuestionsUnlocked: false,
+      lastEndgameQuestionsConsultAt: null,
       expirations: 0,
       foundVotes: [],
     };
@@ -820,6 +833,8 @@ export const setTurnHidingZone = onCall(async (request) => {
         endgameAnchorPoint: null,
         endgameLastChangedAt: null,
         lastEndgameVerificationAt: null,
+        endgameQuestionsUnlocked: false,
+        lastEndgameQuestionsConsultAt: null,
         foundVotes: [],
       },
       updatedAt: now,
@@ -925,6 +940,56 @@ export const verifyEndgame = onCall(async (request) => {
   return {ok: true};
 });
 
+export const consultEndgameQuestions = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  let unlocked = false;
+  let cooldownActive = false;
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "Las preguntas de endgame solo se consultan en CHASE.");
+    }
+    if (!turn.hidingZone) {
+      throw new HttpsError("failed-precondition", "La zona del hider todavÃƒÂ­a no estÃƒÂ¡ fijada.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo seekers pueden consultar preguntas de endgame.");
+    }
+
+    const now = nowTs();
+    await refreshEndgameStateInTx(tx, gameRef, game, now);
+    const refreshedTurn = game.currentTurn!;
+    unlocked = Boolean(refreshedTurn.endgameActive);
+
+    if (!unlocked) {
+      const lastConsultMillis = refreshedTurn.lastEndgameQuestionsConsultAt?.toMillis() ?? 0;
+      cooldownActive = lastConsultMillis > 0 &&
+        now.toMillis() - lastConsultMillis < ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS * 1000;
+    }
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...refreshedTurn,
+        endgameQuestionsUnlocked: unlocked ? true : refreshedTurn.endgameQuestionsUnlocked ?? false,
+        lastEndgameQuestionsConsultAt: cooldownActive ? refreshedTurn.lastEndgameQuestionsConsultAt ?? null : now,
+      },
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true, unlocked, cooldownActive};
+});
+
 export const sendQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
@@ -954,6 +1019,9 @@ export const sendQuestion = onCall(async (request) => {
     }
     if (game.currentTurn.lootOffer) {
       throw new HttpsError("failed-precondition", "Hay loot pendiente de resolver.");
+    }
+    if (categoryId === "endgame" && (!game.currentTurn.endgameActive || !game.currentTurn.endgameQuestionsUnlocked)) {
+      throw new HttpsError("failed-precondition", "ENDGAME_QUESTIONS_LOCKED");
     }
 
     const now = nowTs();
@@ -1370,6 +1438,8 @@ export const nextTurn = onCall(async (request) => {
       endgameAnchorPoint: null,
       endgameLastChangedAt: null,
       lastEndgameVerificationAt: null,
+      endgameQuestionsUnlocked: false,
+      lastEndgameQuestionsConsultAt: null,
       expirations: 0,
       foundVotes: [],
     };

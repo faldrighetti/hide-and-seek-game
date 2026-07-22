@@ -361,7 +361,7 @@
   },
   "deck": {
     "hider_deck": {
-      "name_es": "Mazo del escondedor",
+      "name_es": "Mazo del escondido",
       "time_bonus": [
         {
           "color_en": "Red",
@@ -480,7 +480,7 @@
       "casting_cost_en": "Seker(s) must be outside",
       "casting_cost_es": "Los buscadores deben estar afuera",
       "effect_en": "Send the seeker(s) an unzoomed google Street View image from a street within 500ft (152m) of where they are now. The shot has to be parallel to the horizon and include at least one human-built structure other than a road. Without using the internet for research, they must find what you sent them in real life before they can use transportation or ask another question. They must send a picture the hiders for verification.",
-      "effect_es": "Enviá a los buscadores una imagen de Google Street View **sin zoom** de una calle dentro de 500 ft (152 m) de donde están ahora. La toma tiene que ser paralela al horizonte e incluir al menos una estructura construida por humanos (no cuenta solo la calle). Sin usar internet para investigar, deben encontrar ese lugar en la vida real antes de poder usar transporte o hacer otra pregunta. Deben enviarte una foto a vos (escondedor) como verificación."
+      "effect_es": "Enviá a los buscadores una imagen de Google Street View **sin zoom** de una calle dentro de 500 ft (152 m) de donde están ahora. La toma tiene que ser paralela al horizonte e incluir al menos una estructura construida por humanos (no cuenta solo la calle). Sin usar internet para investigar, deben encontrar ese lugar en la vida real antes de poder usar transporte o hacer otra pregunta. Deben enviarte una foto a vos (escondido) como verificación."
     },
     {
       "id": 3,
@@ -498,7 +498,7 @@
       "casting_cost_en": "Discard 2 cards",
       "casting_cost_es": "Descartá 2 cartas",
       "effect_en": "Before asking another question or boarding another form of transportation, seeker(s) must be the hider(s) in game of hangman.",
-      "effect_es": "Antes de hacer otra pregunta o subirse a otro medio de transporte, los buscadores deben ser los “escondedores” en una partida de ahorcado contra vos."
+      "effect_es": "Antes de hacer otra pregunta o subirse a otro medio de transporte, los buscadores deben ser los “escondidos” en una partida de ahorcado contra vos."
     },
     {
       "id": 5,
@@ -507,7 +507,7 @@
       "casting_cost_en": "Discard a card",
       "casting_cost_es": "Descartá 1 carta",
       "effect_en": "For the next three questions, you may draw (not keep) an additional card when drawing from the hider deck",
-      "effect_es": "Para las próximas 3 preguntas, cuando robes del mazo del escondedor podés robar **1 carta adicional** (pero **no** la conservás; es solo para mirar y decidir/usar según tus reglas)."
+      "effect_es": "Para las próximas 3 preguntas, cuando robes del mazo del escondido podés robar **1 carta adicional** (pero **no** la conservás; es solo para mirar y decidir/usar según tus reglas)."
     },
     {
       "id": 6,

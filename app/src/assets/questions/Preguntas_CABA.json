@@ -258,7 +258,7 @@
       "name": "Tentáculos",
       "cost": "Robá 4, elegí 2",
       "time": "5 minutos",
-      "prompt": "De todos/as los/las [Lugares] dentro de [Distancia] de mí, ¿de cuál estás más cerca?",
+      "prompt": "De todos/as los/las [Lugares] dentro de un kilómetro de mí, ¿de cuál estás más cerca?",
       "placeholders": [
         "[Lugares]",
         "[Distancia]"
@@ -281,31 +281,130 @@
           "resolutionMode": "AUTOMATIC"
         },
         {
-          "label": "Museos",
-          "places": "Museos",
-          "distance": "2 km",
-          "availability": "Mediano o más",
-          "distanceM": 2000,
-          "resolutionMode": "MANUAL_STATIONS"
-        },
-        {
           "label": "Cines",
           "places": "Cines",
-          "distance": "2 km",
+          "distance": "1 km",
           "availability": "Mediano o más",
-          "distanceM": 2000,
+          "distanceM": 1000,
           "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "Hospitales",
           "places": "Hospitales",
-          "distance": "2 km",
+          "distance": "1 km",
           "availability": "Mediano o más",
-          "distanceM": 2000,
+          "distanceM": 1000,
+          "resolutionMode": "MANUAL_STATIONS"
+        },
+        {
+          "label": "Heladerías",
+          "places": "Heladerías",
+          "distance": "1 km",
+          "availability": "Mediano o más",
+          "distanceM": 1000,
+          "resolutionMode": "MANUAL_STATIONS"
+        },
+        {
+          "label": "Pizzerías",
+          "places": "Pizzerías",
+          "distance": "1 km",
+          "availability": "Mediano o más",
+          "distanceM": 1000,
           "resolutionMode": "MANUAL_STATIONS"
         }
       ],
       "resolutionMode": "MANUAL_STATIONS"
+    },
+    "endgame": {
+      "name": "Endgame",
+      "cost": "Robá 4, elegí 2",
+      "time": "5 minutos",
+      "items": [
+        {
+          "label": "Dirección de calle/avenida",
+          "prompt": "¿En qué dirección va la calle/avenida en donde te estás parando?",
+          "answerGroups": [
+            {
+              "label": "Respuesta 1",
+              "options": [
+                "diagonal",
+                "horizontal o vertical"
+              ]
+            },
+            {
+              "label": "Respuesta 2",
+              "dependsOn": "Respuesta 1",
+              "options": [
+                "noreste",
+                "noroeste",
+                "sudeste",
+                "sudoeste",
+                "norte",
+                "sur",
+                "este",
+                "oeste",
+                "doble mano"
+              ],
+              "optionsByAnswer": {
+                "diagonal": [
+                  "noreste",
+                  "noroeste",
+                  "sudeste",
+                  "sudoeste",
+                  "doble mano"
+                ],
+                "horizontal o vertical": [
+                  "norte",
+                  "sur",
+                  "este",
+                  "oeste",
+                  "doble mano"
+                ]
+              }
+            }
+          ],
+          "availability": "Solo endgame",
+          "endgameOnly": true,
+          "resolutionMode": "MANUAL"
+        },
+        {
+          "label": "Parada o estación en la cuadra",
+          "prompt": "¿Hay una parada de colectivos o un acceso a una estación en la cuadra en la que estás?",
+          "answerGroups": [
+            {
+              "label": "Respuesta",
+              "options": [
+                "Parada de colectivos",
+                "Acceso a estación de subte o tren",
+                "Ambos",
+                "Ninguno"
+              ]
+            }
+          ],
+          "availability": "Solo endgame",
+          "endgameOnly": true,
+          "resolutionMode": "MANUAL"
+        },
+        {
+          "label": "Tipo de vía",
+          "prompt": "¿Sobre qué tipo de vía estás?",
+          "answerGroups": [
+            {
+              "label": "Respuesta",
+              "options": [
+                "Calle",
+                "Avenida",
+                "Otro"
+              ]
+            }
+          ],
+          "availability": "Solo endgame",
+          "endgameOnly": true,
+          "resolutionMode": "MANUAL"
+        }
+      ],
+      "resolutionMode": "MANUAL",
+      "endgameOnly": true
     },
     "photos": {
       "name": "Fotos",

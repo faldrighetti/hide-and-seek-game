@@ -190,7 +190,55 @@ No son lugares válidos:
 
 Aunque todos los participantes pudieran entrar a un baño determinado, ese lugar sigue siendo inválido.
 
-### 8.4 Desactivación
+### 8.4 Preguntas de endgame
+
+Los seekers pueden consultar el endgame desde la aplicación. Si el servidor confirma que el endgame está activo, se desbloquea la categoría de preguntas de endgame. Si la consulta no desbloquea endgame, el botón tiene un cooldown de 60 segundos.
+
+Durante el endgame, los seekers pueden preguntar:
+
+**¿En qué dirección va la calle/avenida en donde te estás parando?**
+
+El hider debe responder en dos partes:
+
+1. si la calle/avenida es **diagonal** u **horizontal o vertical**;
+2. el punto cardinal/intercardinal correspondiente, o **doble mano**.
+
+Si la primera respuesta es **diagonal**, la segunda debe ser una de:
+
+- noreste;
+- noroeste;
+- sudeste;
+- sudoeste;
+- doble mano.
+
+Si la primera respuesta es **horizontal o vertical**, la segunda debe ser una de:
+
+- norte;
+- sur;
+- este;
+- oeste;
+- doble mano.
+
+También pueden preguntar:
+
+**¿Hay una parada de colectivos o un acceso a una estación en la cuadra en la que estás?**
+
+Respuestas posibles:
+
+- parada de colectivos;
+- acceso a estación de subte o tren;
+- ambos;
+- ninguno.
+
+**¿Sobre qué tipo de vía estás?**
+
+Respuestas posibles:
+
+- calle;
+- avenida;
+- otro.
+
+### 8.5 Desactivación
 
 El endgame se desactiva cuando los seekers permanecen fuera de la hiding zone durante **30 segundos continuos**.
 

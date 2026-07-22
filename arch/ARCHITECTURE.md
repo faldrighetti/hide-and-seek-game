@@ -116,6 +116,8 @@ En MVP se puede hardcodear un mini JSON de pocas estaciones.
 
 ### 6.4 Categorías
 - MVP: `Tentacles = ENDGAME_ONLY`.
+- `Endgame = ENDGAME_ONLY`, desbloqueada por un botón seeker de consulta server-side (`consultEndgameQuestions`) cuando el servidor confirma `endgameActive`; si no desbloquea, cooldown de 60s.
+- Incluye preguntas de dirección de calle/avenida, parada/acceso a estación en la cuadra y tipo de vía.
 - El resto `BOTH` hasta refinar.
 
 ---

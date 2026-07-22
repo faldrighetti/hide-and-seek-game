@@ -30,7 +30,16 @@ interface QuestionItem {
   places?: string;
   distance?: string;
   availability?: string;
+  answerGroups?: AnswerGroup[];
+  endgameOnly?: boolean;
   resolutionMode?: string;
+}
+
+interface AnswerGroup {
+  label: string;
+  options: string[];
+  dependsOn?: string;
+  optionsByAnswer?: Record<string, string[]>;
 }
 
 interface QuestionCategory {
@@ -40,6 +49,7 @@ interface QuestionCategory {
   time: string | null;
   prompt?: string;
   placeholder?: string;
+  endgameOnly?: boolean;
   items: QuestionItem[];
 }
 
@@ -50,6 +60,7 @@ interface QuestionsCatalog {
     time: string | null;
     prompt?: string;
     placeholder?: string;
+    endgameOnly?: boolean;
     items?: QuestionItem[];
   }>;
 }
@@ -81,11 +92,13 @@ export class GamePage {
   selectingLoot = false;
   playingCurseCardId: string | null = null;
   completingEffectId: string | null = null;
+  consultingEndgameQuestions = false;
   selectedLootCardIds: string[] = [];
   discardFromHandIds: string[] = [];
   lootErrorMessage = '';
   curseErrorMessage = '';
   effectErrorMessage = '';
+  endgameQuestionsMessage = '';
   questionErrorMessage = '';
   resolveQuestionErrorMessage = '';
 
@@ -115,7 +128,7 @@ export class GamePage {
     const res = await fetch('assets/questions/Preguntas_CABA.json', { cache: 'force-cache' });
     const catalog = (await res.json()) as QuestionsCatalog;
 
-    const expectedOrder = ['matching', 'measuring', 'thermometer', 'radar', 'tentacles', 'photos'];
+    const expectedOrder = ['matching', 'measuring', 'thermometer', 'radar', 'tentacles', 'endgame', 'photos'];
     const orderedCategoryKeys = [
       ...expectedOrder.filter(categoryKey => Boolean(catalog.questions[categoryKey])),
       ...Object.keys(catalog.questions).filter(categoryKey => !expectedOrder.includes(categoryKey)),
@@ -130,6 +143,7 @@ export class GamePage {
         time: category.time,
         prompt: category.prompt,
         placeholder: category.placeholder,
+        endgameOnly: category.endgameOnly,
         items: category.items ?? [],
       };
     });
@@ -165,6 +179,33 @@ export class GamePage {
     this.questionErrorMessage = '';
   }
 
+  visibleQuestionCategories(vm: GameBlueprint): QuestionCategory[] {
+    return this.questionCategories.filter(category => !category.endgameOnly || vm.currentTurn.endgameQuestionsUnlocked);
+  }
+
+  async consultEndgameQuestions(role: PlayerRole): Promise<void> {
+    if (!role.isSeeker) {
+      this.endgameQuestionsMessage = 'Solo los seekers pueden consultar endgame.';
+      return;
+    }
+
+    this.consultingEndgameQuestions = true;
+    this.endgameQuestionsMessage = '';
+    try {
+      const result = await this.gameFacade.consultEndgameQuestions(this.gameId);
+      this.endgameQuestionsMessage = result.cooldownActive
+        ? 'Esperá un momento antes de volver a consultar endgame.'
+        : result.unlocked
+        ? 'Preguntas de endgame disponibles.'
+        : 'Todavía no hay preguntas de endgame disponibles.';
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo consultar endgame.';
+      this.endgameQuestionsMessage = message;
+    } finally {
+      this.consultingEndgameQuestions = false;
+    }
+  }
+
   async sendSelectedQuestion(role: PlayerRole): Promise<void> {
     if (!role.isSeeker) {
       this.questionErrorMessage = 'Solo los seekers pueden enviar preguntas.';
@@ -176,7 +217,7 @@ export class GamePage {
     }
 
     const { category, question } = this.selectedSeekerQuestion;
-    const prompt = this.questionText(category, question);
+    const prompt = this.questionPromptText(category, question);
     if (!prompt.trim()) {
       this.questionErrorMessage = 'La pregunta seleccionada no tiene texto.';
       return;
@@ -343,6 +384,33 @@ export class GamePage {
     }
 
     return question.asunto ?? '';
+  }
+
+  questionPromptText(category: QuestionCategory, question: QuestionItem): string {
+    const questionText = this.questionText(category, question);
+    const answerText = this.answerGroupsText(question);
+    return answerText ? `${questionText} ${answerText}` : questionText;
+  }
+
+  answerGroupsText(question: QuestionItem): string {
+    if (!question.answerGroups?.length) {
+      return '';
+    }
+
+    return question.answerGroups
+      .map(group => this.answerGroupText(group))
+      .join(' ');
+  }
+
+  answerGroupText(group: AnswerGroup): string {
+    if (group.optionsByAnswer) {
+      const options = Object.entries(group.optionsByAnswer)
+        .map(([answer, values]) => `si ${answer}: ${values.join(' / ')}`)
+        .join('; ');
+      return `${group.label}: ${options}.`;
+    }
+
+    return `${group.label}: ${group.options.join(' / ')}.`;
   }
 
   cardsForIds(cardIds: string[]): HiderCardData[] {

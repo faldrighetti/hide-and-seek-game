@@ -58,6 +58,7 @@ const buildBlueprint = (
       foundConfirmed: false,
       endgameEligible: false,
       endgameActive: false,
+      endgameQuestionsUnlocked: false,
     },
     standings: createSeedStandings(mode),
     questionPolicy: {
@@ -292,6 +293,16 @@ export class GameFacadeService {
     >('sendQuestion', { gameId, categoryId, prompt, isPhoto });
   }
 
+  consultEndgameQuestions(gameId: string): Promise<{ ok: boolean; unlocked: boolean; cooldownActive?: boolean }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string },
+      { ok: boolean; unlocked: boolean; cooldownActive?: boolean }
+    >(
+      'consultEndgameQuestions',
+      { gameId },
+    );
+  }
+
   resolveQuestion(gameId: string, resolution: QuestionResolution): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<{ gameId: string; resolution: QuestionResolution }, { ok: boolean }>(
       'resolveQuestion',
@@ -411,6 +422,7 @@ export class GameFacadeService {
         expirations: Number(currentTurn?.['expirations'] ?? 0),
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
         endgameActive: Boolean(currentTurn?.['endgameActive']),
+        endgameQuestionsUnlocked: Boolean(currentTurn?.['endgameQuestionsUnlocked']),
       },
     };
   }

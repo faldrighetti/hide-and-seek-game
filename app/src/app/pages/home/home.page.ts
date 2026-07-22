@@ -15,6 +15,13 @@ type QuestionCategory = {
 type QuestionItem = {
   label?: string;
   prompt?: string;
+  answerGroups?: AnswerGroup[];
+};
+
+type AnswerGroup = {
+  label: string;
+  options: string[];
+  optionsByAnswer?: Record<string, string[]>;
 };
 
 type QuestionsFile = {
@@ -92,7 +99,7 @@ export class HomePage implements OnInit {
   }
 
   public async onQuestionClick(question: QuestionItem): Promise<void> {
-    const questionText = question.prompt ?? question.label ?? 'Pregunta sin texto';
+    const questionText = this.questionText(question);
     const alert = await this.alertController.create({
       header: 'Confirmar pregunta',
       message: questionText,
@@ -109,5 +116,32 @@ export class HomePage implements OnInit {
     });
 
     await alert.present();
+  }
+
+  public questionText(question: QuestionItem): string {
+    const text = question.prompt ?? question.label ?? 'Pregunta sin texto';
+    const answerText = this.answerGroupsText(question);
+    return answerText ? `${text} ${answerText}` : text;
+  }
+
+  public answerGroupsText(question: QuestionItem): string {
+    if (!question.answerGroups?.length) {
+      return '';
+    }
+
+    return question.answerGroups
+      .map(group => this.answerGroupText(group))
+      .join(' ');
+  }
+
+  public answerGroupText(group: AnswerGroup): string {
+    if (group.optionsByAnswer) {
+      const options = Object.entries(group.optionsByAnswer)
+        .map(([answer, values]) => `si ${answer}: ${values.join(' / ')}`)
+        .join('; ');
+      return `${group.label}: ${options}.`;
+    }
+
+    return `${group.label}: ${group.options.join(' / ')}.`;
   }
 }

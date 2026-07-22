@@ -1,7 +1,7 @@
 {
   "mazo": {
-    "mazo_escondedor": {
-      "nombre": "Mazo del escondedor",
+    "mazo_escondido": {
+      "nombre": "Mazo del escondido",
       "bonus_tiempo": [
         {
           "color": "Rojo",
@@ -198,7 +198,7 @@
       "etiquetas": [
         "descarte",
         "modificador_robo",
-        "bonus_escondedor"
+        "bonus_escondido"
       ],
       "jugable_en_endgame": true,
       "requiere_verificacion": false,
@@ -213,7 +213,7 @@
       },
       "texto_ui": {
         "costo_lanzamiento": "Descartá 1 carta",
-        "efecto": "Para las próximas 3 preguntas, cuando robes del mazo del escondedor podés robar 1 carta adicional, pero no la conservás; es solo para mirar."
+        "efecto": "Para las próximas 3 preguntas, cuando robes del mazo del escondido podés robar 1 carta adicional, pero no la conservás; es solo para mirar."
       },
       "motor": {
         "tipo": "robo_extra_solo_vista_previa",
@@ -300,7 +300,7 @@
         "descarte": null,
         "condiciones": [
           {
-            "tipo": "direccion_buscadores_respecto_al_escondedor",
+            "tipo": "direccion_buscadores_respecto_al_escondido",
             "debe_ser": "alejandose"
           }
         ],

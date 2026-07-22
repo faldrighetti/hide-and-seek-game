@@ -54,6 +54,9 @@ Durante endgame, el hider debe permanecer fijo en un punto público, legalmente 
 El endgame se desactiva cuando los seekers permanecen fuera de la hiding zone durante 30 segundos continuos. Una única lectura GPS fuera de la zona no basta. La desactivación depende solo de posición GPS, no de velocidad ni transporte público.
 Al desactivarse, el hider recibe una notificación y vuelve a poder moverse dentro de su hiding zone.
 Tentacles (cartas/endgame) solo permitidas en endgame.
+Los seekers pueden usar un botón "Consultar endgame"; si el servidor confirma que el endgame está activo, se desbloquea la categoría Endgame. La categoría no se muestra automáticamente antes de esa consulta. Si la consulta no desbloquea endgame, el botón tiene un cooldown de 60 segundos.
+La pregunta de endgame "¿En qué dirección va la calle/avenida en donde te estás parando?" se responde en dos partes: primero "diagonal" u "horizontal o vertical". Si la primera respuesta es "diagonal", la segunda debe ser noreste, noroeste, sudeste, sudoeste o doble mano. Si la primera respuesta es "horizontal o vertical", la segunda debe ser norte, sur, este, oeste o doble mano.
+La categoría Endgame también incluye preguntas sobre parada de colectivos/acceso a estación en la cuadra y tipo de vía.
 Seekers no ven lista de estaciones posibles.
 
 6) Preguntas (core loop)

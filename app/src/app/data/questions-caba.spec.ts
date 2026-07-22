@@ -3,6 +3,8 @@ interface QuestionItem {
   asunto?: string;
   distanceM?: number | null;
   customDistance?: boolean;
+  answerGroups?: Array<{ label: string; options: string[]; optionsByAnswer?: Record<string, string[]> }>;
+  endgameOnly?: boolean;
   resolutionMode?: string;
   storesFiles?: boolean;
   storesUrls?: boolean;
@@ -12,6 +14,7 @@ interface QuestionsFile {
   questions: Record<string, {
     name: string;
     resolutionMode?: string;
+    endgameOnly?: boolean;
     photoHandling?: string;
     metadataOnly?: string[];
     items: QuestionItem[];
@@ -51,6 +54,34 @@ describe('Preguntas_CABA', () => {
   it('normalizes radar options to meters including custom distance', () => {
     expect(questionsFile.questions['radar'].items.map(item => item.distanceM)).toEqual([500, 1000, 2000, 5000, null]);
     expect(questionsFile.questions['radar'].items[4].customDistance).toBeTrue();
+  });
+
+  it('includes endgame-only questions with constrained answers', () => {
+    const endgame = questionsFile.questions['endgame'];
+    const streetDirection = endgame.items.find(item => item.label === 'Dirección de calle/avenida');
+    const blockTransit = endgame.items.find(item => item.label === 'Parada o estación en la cuadra');
+    const streetType = endgame.items.find(item => item.label === 'Tipo de vía');
+
+    expect(endgame.endgameOnly).toBeTrue();
+    expect(endgame.items.every(item => item.endgameOnly)).toBeTrue();
+    expect(endgame.items.map(item => item.label)).toEqual([
+      'Dirección de calle/avenida',
+      'Parada o estación en la cuadra',
+      'Tipo de vía',
+    ]);
+    expect(streetDirection).toBeDefined();
+    expect(streetDirection?.answerGroups?.[0].options).toEqual(['diagonal', 'horizontal o vertical']);
+    expect(streetDirection?.answerGroups?.[1].optionsByAnswer).toEqual({
+      diagonal: ['noreste', 'noroeste', 'sudeste', 'sudoeste', 'doble mano'],
+      'horizontal o vertical': ['norte', 'sur', 'este', 'oeste', 'doble mano'],
+    });
+    expect(blockTransit?.answerGroups?.[0].options).toEqual([
+      'Parada de colectivos',
+      'Acceso a estación de subte o tren',
+      'Ambos',
+      'Ninguno',
+    ]);
+    expect(streetType?.answerGroups?.[0].options).toEqual(['Calle', 'Avenida', 'Otro']);
   });
 
   it('marks photos as external metadata without file storage', () => {

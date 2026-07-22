@@ -212,10 +212,21 @@
             <ion-note *ngIf="hasQuestionBlockingEffect(vm.currentTurn.activeEffects)" color="warning">
               Hay una maldicion activa que bloquea preguntas.
             </ion-note>
+            <div class="endgame-question-actions">
+              <ion-button
+                size="small"
+                fill="outline"
+                [disabled]="consultingEndgameQuestions || vm.currentTurn.phase !== 'CHASE' || vm.currentTurn.endgameQuestionsUnlocked"
+                (click)="consultEndgameQuestions(role)"
+              >
+                {{ consultingEndgameQuestions ? 'Consultando...' : 'Consultar endgame' }}
+              </ion-button>
+              <ion-note *ngIf="endgameQuestionsMessage" color="medium">{{ endgameQuestionsMessage }}</ion-note>
+            </div>
             <ion-note *ngIf="questionErrorMessage" color="danger">{{ questionErrorMessage }}</ion-note>
             <ion-accordion-group class="question-menu">
               <ion-accordion
-                *ngFor="let category of questionCategories; trackBy: trackByQuestionCategory"
+                *ngFor="let category of visibleQuestionCategories(vm); trackBy: trackByQuestionCategory"
                 [value]="category.key"
               >
                 <ion-item slot="header" color="light">
@@ -237,6 +248,7 @@
                         <h3>{{ questionTitle(question) }}</h3>
                         <p>{{ questionText(category, question) }}</p>
                         <p *ngIf="question.requisito">Requisito: {{ question.requisito }}</p>
+                        <p *ngIf="question.answerGroups?.length">{{ answerGroupsText(question) }}</p>
                         <p *ngIf="question.places || question.distance || question.availability">
                           {{ question.places || 'Ubicación' }}
                           <ng-container *ngIf="question.distance"> · {{ question.distance }}</ng-container>
@@ -267,7 +279,7 @@
                 Desactivar Endgame
               </ion-button>
             </div>
-            <p>Endgame: {{ vm.currentTurn.endgameActive ? 'Activo' : 'Inactivo' }}</p>
+            <p *ngIf="role.isHost">Endgame: {{ vm.currentTurn.endgameActive ? 'Activo' : 'Inactivo' }}</p>
             <ng-container *ngIf="lobby$ | async as lobby">
               <ion-button
                 size="small"

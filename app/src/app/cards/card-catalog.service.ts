@@ -3,7 +3,7 @@ import { CardDefinition, CardValidationIssue, CardValidationResult } from '../mo
 
 interface RawCardsCatalog {
   mazo?: {
-    mazo_escondedor?: {
+    mazo_escondido?: {
       bonus_tiempo?: Array<{ color?: string; minutos?: number; cantidad?: number; enabled?: boolean }>;
       powerups?: Array<{
         id?: string;
@@ -92,7 +92,7 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
     }
   }
 
-  const declaredCurseCount = catalog.mazo?.mazo_escondedor?.cantidad_maldiciones_en_mazo;
+  const declaredCurseCount = catalog.mazo?.mazo_escondido?.cantidad_maldiciones_en_mazo;
   const enabledCurseCount = cards.filter(card => card.type === 'CURSE' && card.enabled).length;
   if (typeof declaredCurseCount === 'number' && declaredCurseCount !== enabledCurseCount) {
     issues.push({
@@ -106,7 +106,7 @@ export function validateCardsCatalog(catalog: RawCardsCatalog): CardValidationRe
 }
 
 function expandTimeBonusCards(catalog: RawCardsCatalog): CardDefinition[] {
-  return (catalog.mazo?.mazo_escondedor?.bonus_tiempo ?? []).map(card => ({
+  return (catalog.mazo?.mazo_escondido?.bonus_tiempo ?? []).map(card => ({
     id: `time_bonus_${normalizeBonusColor(card.color)}_${card.minutos ?? 0}m`,
     type: 'TIME_BONUS' as const,
     name: `${card.minutos ?? 0} minute bonus`,
@@ -132,7 +132,7 @@ function normalizeBonusColor(color: string | undefined): string {
 }
 
 function expandPowerupCards(catalog: RawCardsCatalog): CardDefinition[] {
-  return (catalog.mazo?.mazo_escondedor?.powerups ?? []).map(card => ({
+  return (catalog.mazo?.mazo_escondido?.powerups ?? []).map(card => ({
     id: `powerup_${card.id ?? 'missing'}`,
     type: 'POWERUP' as const,
     name: card.nombre ?? '',

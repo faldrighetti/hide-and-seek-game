@@ -44,6 +44,7 @@ export interface TurnStatus {
   foundConfirmed: boolean;
   endgameEligible: boolean;
   endgameActive: boolean;
+  endgameQuestionsUnlocked: boolean;
 }
 
 export type QuestionResolution = 'ANSWER' | 'VETO' | 'RANDOMIZE';

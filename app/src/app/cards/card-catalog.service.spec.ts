@@ -16,7 +16,7 @@ describe('validateCardsCatalog', () => {
   it('normalizes frontend catalog ids to backend deck ids', () => {
     const result = validateCardsCatalog({
       mazo: {
-        mazo_escondedor: {
+        mazo_escondido: {
           bonus_tiempo: [{ color: 'Rojo', minutos: 3, cantidad: 1 }],
           powerups: [{ id: 'veto', nombre: 'Veto', cantidad: 1, pista_reglas: 'Desc' }],
         },
@@ -33,7 +33,7 @@ describe('validateCardsCatalog', () => {
 
   it('reports duplicate ids and declared curse count mismatch', () => {
     const result = validateCardsCatalog({
-      mazo: { mazo_escondedor: { cantidad_maldiciones_en_mazo: 3 } },
+      mazo: { mazo_escondido: { cantidad_maldiciones_en_mazo: 3 } },
       maldiciones: [
         { id: 1, nombre: 'A', texto_ui: { efecto: 'Desc' } },
         { id: 1, nombre: 'B', texto_ui: { efecto: 'Desc' } },
