@@ -1,0 +1,33 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Reglas</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="rules-hero ion-padding">
+    <p class="eyebrow">Hide & Seek</p>
+    <h1>Reglas e instrucciones</h1>
+    <p>
+      Resumen operativo para consultar antes y durante una partida. El servidor hace cumplir las reglas técnicas; las reglas sociales se sostienen por buena fe entre jugadores.
+    </p>
+  </section>
+
+  <ion-list lines="none" class="rules-list">
+    <ion-accordion-group [multiple]="true">
+      <ion-accordion *ngFor="let section of ruleSections" [value]="section.title">
+        <ion-item slot="header" color="light">
+          <ion-label>{{ section.title }}</ion-label>
+        </ion-item>
+        <div slot="content" class="section-content">
+          <ul>
+            <li *ngFor="let item of section.items">{{ item }}</li>
+          </ul>
+        </div>
+      </ion-accordion>
+    </ion-accordion-group>
+  </ion-list>
+</ion-content>

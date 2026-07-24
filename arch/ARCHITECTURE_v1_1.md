@@ -74,7 +74,7 @@ Timers are server-authoritative (timestamps).
 - Hider moves freely.
 - Hider manually selects and confirms a playable base station before ESCAPE ends.
 - If not confirmed, server assigns the nearest playable station to the last valid hider location.
-- If still travelling when ESCAPE ends, base station is the last valid station the hider passed.
+- If still travelling when ESCAPE ends, base station is the last valid station the hider passed; hider must return to that station or its hiding zone.
 
 ## CHASE
 - Questions enabled.
@@ -93,6 +93,13 @@ Timers are server-authoritative (timestamps).
 - Endgame consumes no cards or resources.
 - During endgame, hider must remain fixed in a public, accessible, ground-floor, reasonably visible point.
 - Endgame deactivates after seekers remain outside the hiding zone for 30 continuous seconds. Deactivation depends only on GPS position.
+
+Playable area:
+- General playable area is CABA.
+- If the active hiding zone of a playable base station crosses outside CABA, that portion of the circle is also playable.
+- Runtime check: `isInsidePlayableArea = isInsideCaba(point) || isInsideActiveHidingZoneFromPlayableStation(point)`.
+- Boundaries are inclusive.
+- Out-of-area alerts require fresh, reliable location and sustained out-of-area readings. A single GPS outlier or stale location must not trigger the alert.
 
 ---
 # 5) Question System

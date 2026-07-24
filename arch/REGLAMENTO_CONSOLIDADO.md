@@ -101,6 +101,7 @@ Si el hider continúa viajando cuando terminan los 60 minutos:
 - su estación base debe ser la última estación válida por la que pasó;
 - debe regresar a esa estación o a su hiding zone;
 - no puede seleccionar como base una estación futura a la que todavía no llegó.
+- al comenzar la fase de búsqueda, la hiding zone activa corresponde a esa estación asignada.
 
 ---
 
@@ -119,11 +120,17 @@ Durante la fase de búsqueda:
 
 ## 6. Área de juego
 
-- Solo se puede jugar dentro del área habilitada.
+- El área jugable general es CABA.
 - Las estaciones jugables están representadas mediante puntos geográficos definidos.
+- Algunas estaciones jugables pueden estar fuera de CABA si están a menos de **1000 metros** de la General Paz o del Riachuelo.
+- Si la hiding zone activa de una estación base jugable cruza fuera de CABA, esa porción del círculo también cuenta como área jugable.
+- La regla técnica es: un punto está dentro del área jugable si está dentro de CABA o dentro de la hiding zone activa de una estación base jugable.
+- El borde cuenta como dentro del área jugable.
 - No se puede atravesar una zona no jugable para obtener una ventaja.
 - El área está diseñada para permitir desplazamientos entre ubicaciones válidas sin necesidad de salir del mapa.
-- Si un jugador sale del área, se notifica a todos.
+- Si un jugador sale del área de manera sostenida y con ubicación fresca y confiable, se notifica a todos.
+
+Esta regla de área jugable no reemplaza la restricción propia del hider durante la fase de búsqueda: el hider debe permanecer dentro de su hiding zone. Si sale momentáneamente por una necesidad práctica, por ejemplo buscar un baño cercano, se trata como regla social de buena fe y no como una excepción técnica ilimitada.
 
 ---
 
@@ -548,6 +555,8 @@ Cuando la aplicación detecta una salida:
 - todos reciben una alerta;
 - comienza un período de gracia de **2 minutos**;
 - se intenta distinguir entre error GPS y salida real.
+
+La alerta solo debe dispararse con ubicación reciente y precisión suficiente. Una única lectura GPS fuera del área no alcanza. Si la ubicación está desactualizada o es demasiado imprecisa, la situación se trata como conexión degradada o lectura dudosa, no como salida confirmada.
 
 Si la salida es real:
 

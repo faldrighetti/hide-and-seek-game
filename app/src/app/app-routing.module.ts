@@ -14,6 +14,10 @@ const routes: Routes = [
     path: 'join',
     loadChildren: () => import('../app/pages/join/join.module').then(m => m.JoinPageModule),
   },
+  {
+    path: 'rules',
+    loadChildren: () => import('../app/pages/rules/rules.module').then(m => m.RulesPageModule),
+  },
   { 
     path: 'join/:gameId', 
     loadChildren: () => import('../app/pages/join/join.module').then(m => m.JoinPageModule) 

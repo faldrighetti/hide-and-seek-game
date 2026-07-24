@@ -41,9 +41,16 @@ Tren: Mitre, San Martín, Urquiza, Roca, Belgrano Norte, Sarmiento, Belgrano Sur
 
 Durante ESCAPE el hider debe seleccionar manualmente una estación jugable como estación base. Puede cambiarla mientras continúe ESCAPE y debe confirmarla antes de que terminen los 60 minutos. La selección debe contemplar hubs, distancia física entre estaciones del mismo hub, errores de GPS y diferencias entre el punto representativo y la extensión real de la estación.
 Si ESCAPE termina sin confirmación manual, el servidor asigna automáticamente la estación jugable más cercana a la última ubicación válida del hider y registra esa asignación en historial.
-Si el hider sigue viajando al terminar ESCAPE, la estación base debe ser la última estación válida por la que pasó; no puede seleccionar una estación futura a la que todavía no llegó.
+Si el hider sigue viajando al terminar ESCAPE, la estación base debe ser la última estación válida por la que pasó; debe volver a esa estación o a su hiding zone; no puede seleccionar una estación futura a la que todavía no llegó.
 Zona del hider (hiding zone) = círculo:
 zoneRadiusM default 600m
+
+Área jugable:
+CABA es el área jugable general.
+Si la hiding zone activa de una estación base jugable cruza fuera de CABA, esa porción del círculo también cuenta como jugable.
+Regla técnica: isInsidePlayableArea = isInsideCaba(point) || isInsideActiveHidingZoneFromPlayableStation(point).
+El borde cuenta como dentro.
+La alerta de salida del área solo se dispara con ubicación fresh/confiable y salida sostenida; una lectura GPS aislada o stale no alcanza.
 
 5) Endgame (short-game)
 Existe un estado ENDGAME dentro de CHASE.
@@ -217,7 +224,7 @@ mapa recortado con repo JetLagHideAndSeek (más adelante)
 
 G) Reglamento operativo pendiente
 GPS/conectividad: conexión degradada, desconexión temporal a 90s, abandono técnico a 5m, permisos obligatorios y bloqueo de acciones sin ubicación reciente
-salida del mapa: alerta global, gracia de 2m, congelar run si la salida es real
+salida del mapa: área jugable = CABA + hiding zone activa de estación base jugable cuando cruza fuera de CABA; alerta global solo con ubicación fresh/confiable y salida sostenida; gracia de 2m; congelar run si la salida es real
 intermission/Intervalo: cualquier jugador puede pausar o reanudar el contador antes del siguiente run
 sesiones/reconexión: una sesión activa por jugador y takeover controlado
 emergencias: confirmación, congelar/cancelar actividad y revelar ubicaciones por seguridad
