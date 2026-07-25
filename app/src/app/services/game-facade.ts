@@ -59,6 +59,7 @@ const buildBlueprint = (
       endgameEligible: false,
       endgameActive: false,
       endgameQuestionsUnlocked: false,
+      outOfArea: null,
     },
     standings: createSeedStandings(mode),
     questionPolicy: {
@@ -293,6 +294,40 @@ export class GameFacadeService {
     >('sendQuestion', { gameId, categoryId, prompt, isPhoto });
   }
 
+  publishSeekerLocation(
+    gameId: string,
+    lat: number,
+    lng: number,
+    isOnPublicTransport: boolean,
+  ): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; lat: number; lng: number; isOnPublicTransport: boolean },
+      { ok: boolean }
+    >('publishSeekerLocation', { gameId, lat, lng, isOnPublicTransport });
+  }
+
+  publishHiderPrivateLocation(
+    gameId: string,
+    lat: number,
+    lng: number,
+    accuracyM: number,
+  ): Promise<{
+    ok: boolean;
+    isInsidePlayableArea: boolean | null;
+    geofenceReliable: boolean;
+    outOfAreaStatus: 'SUSPECTED' | 'ALERTED' | null;
+  }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; lat: number; lng: number; accuracyM: number },
+      {
+        ok: boolean;
+        isInsidePlayableArea: boolean | null;
+        geofenceReliable: boolean;
+        outOfAreaStatus: 'SUSPECTED' | 'ALERTED' | null;
+      }
+    >('publishHiderPrivateLocation', { gameId, lat, lng, accuracyM });
+  }
+
   consultEndgameQuestions(gameId: string): Promise<{ ok: boolean; unlocked: boolean; cooldownActive?: boolean }> {
     return this.firebaseClient.callFunction<
       { gameId: string },
@@ -344,6 +379,27 @@ export class GameFacadeService {
     return this.firebaseClient.callFunction<{ gameId: string; effectId: string }, { ok: boolean }>(
       'completeCurseEffect',
       { gameId, effectId },
+    );
+  }
+
+  reportHiderOutOfArea(gameId: string): Promise<{ ok: boolean; status: 'SUSPECTED' | 'ALERTED' }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean; status: 'SUSPECTED' | 'ALERTED' }>(
+      'reportHiderOutOfArea',
+      { gameId },
+    );
+  }
+
+  confirmHiderOutOfAreaSafety(gameId: string): Promise<{ ok: boolean; status: 'SUSPECTED' | 'ALERTED' }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean; status: 'SUSPECTED' | 'ALERTED' }>(
+      'confirmHiderOutOfAreaSafety',
+      { gameId },
+    );
+  }
+
+  clearHiderOutOfArea(gameId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>(
+      'clearHiderOutOfArea',
+      { gameId },
     );
   }
 
@@ -423,7 +479,30 @@ export class GameFacadeService {
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
         endgameActive: Boolean(currentTurn?.['endgameActive']),
         endgameQuestionsUnlocked: Boolean(currentTurn?.['endgameQuestionsUnlocked']),
+        outOfArea: this.mapOutOfAreaStatus(currentTurn?.['outOfArea']),
       },
+    };
+  }
+
+  private mapOutOfAreaStatus(value: unknown): GameBlueprint['currentTurn']['outOfArea'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const status = value as Record<string, unknown>;
+    const statusValue = status['status'];
+    if (statusValue !== 'SUSPECTED' && statusValue !== 'ALERTED') {
+      return null;
+    }
+
+    return {
+      status: statusValue,
+      playerUid: String(status['playerUid'] ?? ''),
+      startedAtIso: this.timestampToIso(status['startedAt']),
+      confirmationExpiresAtIso: this.timestampToIso(status['confirmationExpiresAt']),
+      maxExpiresAtIso: this.timestampToIso(status['maxExpiresAt']),
+      lastConfirmedAtIso: this.timestampToIso(status['lastConfirmedAt']),
+      alertedAtIso: this.timestampToIso(status['alertedAt']),
     };
   }
 

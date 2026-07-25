@@ -46,6 +46,10 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      match /privateLocations/{uid} {
+        allow read, write: if false;
+      }
+
       match /phase/{docId} { allow read: if isMember(gameId); allow write: if false; }
       match /timers/{docId} { allow read: if isMember(gameId); allow write: if false; }
       match /score/{docId} { allow read: if isMember(gameId); allow write: if false; }
@@ -58,7 +62,7 @@ service cloud.firestore {
       match /captain/{docId} { allow read: if isMember(gameId); allow write: if false; }
 
       match /{sub=**}/{docId} {
-        allow read: if isMember(gameId);
+        allow read: if false;
         allow write: if false;
       }
     }

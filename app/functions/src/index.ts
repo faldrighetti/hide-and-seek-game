@@ -12,6 +12,7 @@ import {setGlobalOptions} from "firebase-functions/v2";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
+import {evaluatePlayableArea} from "./playable-area";
 
 initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -27,6 +28,10 @@ const CHASE_MAX_SECONDS = 18000;
 const ENDGAME_DWELL_SECONDS = 60;
 const LOCATION_FRESH_SECONDS = 60;
 const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
+const OUT_OF_AREA_CONFIRMATION_SECONDS = 60;
+const OUT_OF_AREA_MAX_GRACE_SECONDS = 180;
+const OUT_OF_AREA_SUSTAINED_SECONDS = 30;
+const MAX_GEOFENCE_ACCURACY_M = 100;
 
 type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
@@ -43,6 +48,10 @@ interface GameSettings {
   zoneRadiusM: number;
   eligibleBufferM: number;
   endgameVerificationCooldownSeconds: number;
+  outOfAreaConfirmationSeconds: number;
+  outOfAreaMaxGraceSeconds: number;
+  outOfAreaSustainedSeconds: number;
+  maxGeofenceAccuracyM: number;
 }
 
 interface TeamStanding {
@@ -80,6 +89,16 @@ interface HidingZone {
   radiusM: number;
 }
 
+interface OutOfAreaState {
+  status: "SUSPECTED" | "ALERTED";
+  playerUid: string;
+  startedAt: Timestamp;
+  confirmationExpiresAt: Timestamp;
+  maxExpiresAt: Timestamp;
+  lastConfirmedAt?: Timestamp | null;
+  alertedAt?: Timestamp | null;
+}
+
 interface TurnState {
   runNumber: number;
   hiderTeamId: string;
@@ -102,6 +121,7 @@ interface TurnState {
   lastEndgameVerificationAt?: Timestamp | null;
   endgameQuestionsUnlocked?: boolean;
   lastEndgameQuestionsConsultAt?: Timestamp | null;
+  outOfArea?: OutOfAreaState | null;
   expirations: number;
   foundVotes: string[];
 }
@@ -133,6 +153,10 @@ const DEFAULT_SETTINGS: GameSettings = {
   zoneRadiusM: HIDING_ZONE_RADIUS_M,
   eligibleBufferM: 0,
   endgameVerificationCooldownSeconds: ENDGAME_DWELL_SECONDS * 10,
+  outOfAreaConfirmationSeconds: OUT_OF_AREA_CONFIRMATION_SECONDS,
+  outOfAreaMaxGraceSeconds: OUT_OF_AREA_MAX_GRACE_SECONDS,
+  outOfAreaSustainedSeconds: OUT_OF_AREA_SUSTAINED_SECONDS,
+  maxGeofenceAccuracyM: MAX_GEOFENCE_ACCURACY_M,
 };
 
 const DECK_MAX_SIZE = 6;
@@ -297,6 +321,7 @@ const setNextPhase = (turn: TurnState, settings: GameSettings, phase: Phase, bas
     lastEndgameVerificationAt: phase === "CHASE" ? null : turn.lastEndgameVerificationAt,
     endgameQuestionsUnlocked: phase === "CHASE" ? false : turn.endgameQuestionsUnlocked,
     lastEndgameQuestionsConsultAt: phase === "CHASE" ? null : turn.lastEndgameQuestionsConsultAt,
+    outOfArea: null,
   };
 };
 
@@ -375,6 +400,78 @@ const resolveSeatTeamId = async (
 ): Promise<string> => {
   const seatSnap = await firestore.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
   return String(seatSnap.docs[0]?.data()?.teamId ?? "");
+};
+
+const requireCurrentHiderInTx = async (
+  tx: Transaction,
+  gameRef: DocumentReference,
+  game: GameDoc,
+  uid: string,
+): Promise<TurnState> => {
+  const turn = game.currentTurn;
+  if (game.status !== "LIVE" || !turn) {
+    throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
+  }
+
+  const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+  if (seatTeamId !== turn.hiderTeamId) {
+    throw new HttpsError("permission-denied", "Solo el hider puede confirmar una salida de área.");
+  }
+
+  return turn;
+};
+
+const getOutOfAreaConfirmationSeconds = (settings: GameSettings): number =>
+  settings.outOfAreaConfirmationSeconds ?? OUT_OF_AREA_CONFIRMATION_SECONDS;
+
+const getOutOfAreaMaxGraceSeconds = (settings: GameSettings): number =>
+  settings.outOfAreaMaxGraceSeconds ?? OUT_OF_AREA_MAX_GRACE_SECONDS;
+
+const getOutOfAreaSustainedSeconds = (settings: GameSettings): number =>
+  settings.outOfAreaSustainedSeconds ?? OUT_OF_AREA_SUSTAINED_SECONDS;
+
+const getMaxGeofenceAccuracyM = (settings: GameSettings): number =>
+  settings.maxGeofenceAccuracyM ?? MAX_GEOFENCE_ACCURACY_M;
+
+const createOutOfAreaState = (
+  uid: string,
+  settings: GameSettings,
+  baseNow: Timestamp,
+): OutOfAreaState => {
+  const maxExpiresAt = Timestamp.fromMillis(baseNow.toMillis() + getOutOfAreaMaxGraceSeconds(settings) * 1000);
+  return {
+    status: "SUSPECTED",
+    playerUid: uid,
+    startedAt: baseNow,
+    confirmationExpiresAt: Timestamp.fromMillis(
+      baseNow.toMillis() + getOutOfAreaConfirmationSeconds(settings) * 1000,
+    ),
+    maxExpiresAt,
+    lastConfirmedAt: null,
+    alertedAt: null,
+  };
+};
+
+const alertOutOfAreaIfExpired = (turn: TurnState, txNow: Timestamp): boolean => {
+  const outOfArea = turn.outOfArea;
+  if (!outOfArea || outOfArea.status !== "SUSPECTED") {
+    return false;
+  }
+
+  if (
+    outOfArea.confirmationExpiresAt.toMillis() > txNow.toMillis() &&
+    outOfArea.maxExpiresAt.toMillis() > txNow.toMillis()
+  ) {
+    return false;
+  }
+
+  turn.outOfArea = {
+    ...outOfArea,
+    status: "ALERTED",
+    confirmationExpiresAt: txNow,
+    alertedAt: txNow,
+  };
+  return true;
 };
 
 const refreshEndgameStateInTx = async (
@@ -504,6 +601,7 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
+      outOfArea: null,
       foundVotes: [],
     };
     game.winnerTeamIds = findWinnerIds(game);
@@ -533,6 +631,7 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     lastEndgameVerificationAt: null,
     endgameQuestionsUnlocked: false,
     lastEndgameQuestionsConsultAt: null,
+    outOfArea: null,
     expirations: 0,
     foundVotes: [],
   };
@@ -779,6 +878,7 @@ export const startGame = onCall(async (request) => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
+      outOfArea: null,
       expirations: 0,
       foundVotes: [],
     };
@@ -835,6 +935,7 @@ export const setTurnHidingZone = onCall(async (request) => {
         lastEndgameVerificationAt: null,
         endgameQuestionsUnlocked: false,
         lastEndgameQuestionsConsultAt: null,
+        outOfArea: null,
         foundVotes: [],
       },
       updatedAt: now,
@@ -891,6 +992,226 @@ export const publishSeekerLocation = onCall(async (request) => {
         updatedAt: now,
       });
     }
+  });
+
+  return {ok: true};
+});
+
+export const publishHiderPrivateLocation = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const lat = Number(request.data?.lat);
+  const lng = Number(request.data?.lng);
+  const accuracyM = Number(request.data?.accuracyM);
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  assertValidCoordinate(lat, lng);
+  if (!Number.isFinite(accuracyM) || accuracyM < 0) {
+    throw new HttpsError("invalid-argument", "accuracyM inválida.");
+  }
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  let response: {
+    ok: boolean;
+    isInsidePlayableArea: boolean | null;
+    geofenceReliable: boolean;
+    outOfAreaStatus: OutOfAreaState["status"] | null;
+  } = {
+    ok: true,
+    isInsidePlayableArea: null,
+    geofenceReliable: false,
+    outOfAreaStatus: null,
+  };
+
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
+    if (turn.phase !== "ESCAPE" && turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "La ubicación privada del hider solo aplica en ESCAPE o CHASE.");
+    }
+
+    const now = nowTs();
+    const privateLocationRef = gameRef.collection("privateLocations").doc(uid);
+    const privateLocationSnap = await tx.get(privateLocationRef);
+    const previousOutsideSinceAt = privateLocationSnap.data()?.outsideSinceAt as Timestamp | undefined;
+    const geofenceReliable = accuracyM <= getMaxGeofenceAccuracyM(game.settings);
+    let isInsidePlayableArea: boolean | null = null;
+    let outsideSinceAt: Timestamp | null = previousOutsideSinceAt ?? null;
+    let nextTurn: TurnState | null = null;
+
+    if (geofenceReliable) {
+      const evaluation = evaluatePlayableArea({lat, lng});
+      isInsidePlayableArea = evaluation.isInsidePlayableArea;
+
+      if (isInsidePlayableArea) {
+        outsideSinceAt = null;
+        if (turn.outOfArea) {
+          nextTurn = {
+            ...turn,
+            outOfArea: null,
+          };
+        }
+      } else {
+        outsideSinceAt ??= now;
+        const sustainedMillis = getOutOfAreaSustainedSeconds(game.settings) * 1000;
+        const hasSustainedExit = now.toMillis() - outsideSinceAt.toMillis() >= sustainedMillis;
+        if (hasSustainedExit) {
+          nextTurn = {
+            ...turn,
+            outOfArea: turn.outOfArea ?? createOutOfAreaState(uid, game.settings, now),
+          };
+          alertOutOfAreaIfExpired(nextTurn, now);
+        } else if (turn.outOfArea?.status === "SUSPECTED") {
+          nextTurn = {...turn};
+          alertOutOfAreaIfExpired(nextTurn, now);
+        }
+      }
+    }
+
+    tx.set(privateLocationRef, {
+      uid,
+      teamId: turn.hiderTeamId,
+      lat,
+      lng,
+      accuracyM,
+      updatedAt: now,
+      geofenceReliable,
+      isInsidePlayableArea,
+      outsideSinceAt,
+    }, {merge: true});
+
+    if (nextTurn) {
+      tx.update(gameRef, {
+        currentTurn: nextTurn,
+        updatedAt: now,
+      });
+      response.outOfAreaStatus = nextTurn.outOfArea?.status ?? null;
+    } else {
+      response.outOfAreaStatus = turn.outOfArea?.status ?? null;
+    }
+    response = {
+      ok: true,
+      isInsidePlayableArea,
+      geofenceReliable,
+      outOfAreaStatus: response.outOfAreaStatus,
+    };
+  });
+
+  return response;
+});
+
+export const reportHiderOutOfArea = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  let status: OutOfAreaState["status"] = "SUSPECTED";
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
+    if (turn.phase !== "ESCAPE" && turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "La salida de área del hider solo se gestiona en ESCAPE o CHASE.");
+    }
+
+    const now = nowTs();
+    const activeState = turn.outOfArea?.status === "SUSPECTED" || turn.outOfArea?.status === "ALERTED" ?
+      turn.outOfArea :
+      createOutOfAreaState(uid, game.settings, now);
+
+    const nextTurn: TurnState = {
+      ...turn,
+      outOfArea: activeState,
+    };
+    alertOutOfAreaIfExpired(nextTurn, now);
+    status = nextTurn.outOfArea?.status ?? "SUSPECTED";
+
+    tx.update(gameRef, {
+      currentTurn: nextTurn,
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true, status};
+});
+
+export const confirmHiderOutOfAreaSafety = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  let status: OutOfAreaState["status"] = "SUSPECTED";
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
+    const outOfArea = turn.outOfArea;
+    if (!outOfArea) {
+      throw new HttpsError("failed-precondition", "No hay una salida de área pendiente.");
+    }
+    if (outOfArea.status === "ALERTED") {
+      status = "ALERTED";
+      return;
+    }
+
+    const now = nowTs();
+    const nextTurn: TurnState = {...turn};
+    if (alertOutOfAreaIfExpired(nextTurn, now)) {
+      status = "ALERTED";
+    } else {
+      const nextConfirmationMillis = Math.min(
+        now.toMillis() + getOutOfAreaConfirmationSeconds(game.settings) * 1000,
+        outOfArea.maxExpiresAt.toMillis(),
+      );
+      nextTurn.outOfArea = {
+        ...outOfArea,
+        lastConfirmedAt: now,
+        confirmationExpiresAt: Timestamp.fromMillis(nextConfirmationMillis),
+      };
+      status = "SUSPECTED";
+    }
+
+    tx.update(gameRef, {
+      currentTurn: nextTurn,
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true, status};
+});
+
+export const clearHiderOutOfArea = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        outOfArea: null,
+      },
+      updatedAt: nowTs(),
+    });
   });
 
   return {ok: true};
@@ -1440,6 +1761,7 @@ export const nextTurn = onCall(async (request) => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
+      outOfArea: null,
       expirations: 0,
       foundVotes: [],
     };
@@ -1528,6 +1850,8 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
       Filter.where("currentTurn.phaseEndsAt", "<=", now),
       Filter.where("currentTurn.pendingQuestionEndsAt", "<=", now),
       Filter.where("currentTurn.endgameActive", "==", true),
+      Filter.where("currentTurn.outOfArea.confirmationExpiresAt", "<=", now),
+      Filter.where("currentTurn.outOfArea.maxExpiresAt", "<=", now),
     ))
     .get();
 
@@ -1546,6 +1870,10 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
         changed = (await refreshEndgameStateInTx(tx, docSnap.ref, game, txNow)) || changed;
         turn = game.currentTurn;
         if (!turn) return;
+      }
+
+      if (turn.outOfArea?.status === "SUSPECTED") {
+        changed = alertOutOfAreaIfExpired(turn, txNow) || changed;
       }
 
       if (turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis()) {

@@ -123,8 +123,8 @@ Durante la fase de búsqueda:
 - El área jugable general es CABA.
 - Las estaciones jugables están representadas mediante puntos geográficos definidos.
 - Algunas estaciones jugables pueden estar fuera de CABA si están a menos de **1000 metros** de la General Paz o del Riachuelo.
-- Si la hiding zone activa de una estación base jugable cruza fuera de CABA, esa porción del círculo también cuenta como área jugable.
-- La regla técnica es: un punto está dentro del área jugable si está dentro de CABA o dentro de la hiding zone activa de una estación base jugable.
+- Cada estación jugable fuera de CABA extiende el área jugable mediante un círculo de **600 metros** de radio con centro en esa estación.
+- La regla técnica es: un punto está dentro del área jugable si está dentro de CABA o dentro del círculo de 600 metros de cualquier estación jugable fuera de CABA.
 - El borde cuenta como dentro del área jugable.
 - No se puede atravesar una zona no jugable para obtener una ventaja.
 - El área está diseñada para permitir desplazamientos entre ubicaciones válidas sin necesidad de salir del mapa.
@@ -552,11 +552,16 @@ Si el usuario rechaza o desactiva el permiso de ubicación:
 
 Cuando la aplicación detecta una salida:
 
-- todos reciben una alerta;
-- comienza un período de gracia de **2 minutos**;
+- se abre una salida sospechada privada para el hider;
+- el hider debe confirmar periódicamente que está bien y volviendo;
+- comienza un período máximo de gracia de **3 minutos**;
 - se intenta distinguir entre error GPS y salida real.
 
 La alerta solo debe dispararse con ubicación reciente y precisión suficiente. Una única lectura GPS fuera del área no alcanza. Si la ubicación está desactualizada o es demasiado imprecisa, la situación se trata como conexión degradada o lectura dudosa, no como salida confirmada.
+
+Durante una salida sospechada, la aplicación muestra al hider un botón de confirmación. Si el hider confirma dentro del plazo, la alerta global se posterga mientras siga dentro del máximo de 3 minutos. Si no confirma a tiempo, o si se cumplen los 3 minutos máximos sin volver al área jugable, todos reciben una alerta.
+
+Para validar esta regla, el servidor puede recibir y conservar temporalmente la ubicación exacta del hider por una ruta privada. Esa ubicación no se muestra a los seekers; solo se muestran estados derivados como salida sospechada o salida alertada.
 
 Si la salida es real:
 

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { GameFacadeService } from '../../services/game-facade';
@@ -14,6 +14,7 @@ import {
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
 import { CardDefinition } from 'src/app/models/card-definition.model';
+import { LocationMonitorService } from '../../services/location-monitor.service';
 
 interface DrawRule {
   categoryKey: string;
@@ -71,16 +72,18 @@ interface QuestionsCatalog {
   styleUrls: ['./game.page.scss'],
   standalone: false,
 })
-export class GamePage {
+export class GamePage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly gameFacade = inject(GameFacadeService);
   private readonly cardCatalog = inject(CardCatalogService);
+  private readonly locationMonitor = inject(LocationMonitorService);
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$;
   readonly pendingQuestion$: Observable<PendingQuestion | null> = this.gameFacade.pendingQuestion$;
   readonly playerRole$: Observable<PlayerRole> = this.gameFacade.playerRole$;
+  readonly locationMonitorState$ = this.locationMonitor.state$;
 
   drawRulesByCategory: DrawRule[] = [];
   cardById = new Map<string, HiderCardData>();
@@ -101,11 +104,18 @@ export class GamePage {
   endgameQuestionsMessage = '';
   questionErrorMessage = '';
   resolveQuestionErrorMessage = '';
+  outOfAreaActionInFlight = false;
+  outOfAreaMessage = '';
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
+    this.locationMonitor.start(this.gameId, this.playerRole$, this.blueprint$);
     void this.loadCardsFromCatalog();
     void this.loadQuestionsCatalog();
+  }
+
+  ngOnDestroy(): void {
+    this.locationMonitor.stop();
   }
 
   async loadCardsFromCatalog(): Promise<void> {
@@ -326,6 +336,26 @@ export class GamePage {
     }
   }
 
+  async confirmOutOfAreaSafety(role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.outOfAreaMessage = 'Solo el hider puede confirmar su estado.';
+      return;
+    }
+
+    this.outOfAreaActionInFlight = true;
+    this.outOfAreaMessage = '';
+    try {
+      const result = await this.gameFacade.confirmHiderOutOfAreaSafety(this.gameId);
+      this.outOfAreaMessage = result.status === 'ALERTED'
+        ? 'La alerta ya fue enviada.'
+        : 'Confirmado. Volve al area jugable antes del limite.';
+    } catch (error) {
+      this.outOfAreaMessage = error instanceof Error ? error.message : 'No se pudo confirmar.';
+    } finally {
+      this.outOfAreaActionInFlight = false;
+    }
+  }
+
   curseCards(cardIds: string[]): HiderCardData[] {
     return this.cardsForIds(cardIds).filter(card => card.type === 'CURSE');
   }
@@ -461,6 +491,13 @@ export class GamePage {
     return `${sign}${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs
       .toString()
       .padStart(2, '0')}`;
+  }
+
+  secondsUntil(iso: string | null): number {
+    if (!iso) {
+      return 0;
+    }
+    return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
   }
 
   private toHiderCardData(card: CardDefinition): HiderCardData {

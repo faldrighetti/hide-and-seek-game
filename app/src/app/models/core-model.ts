@@ -15,6 +15,8 @@ export interface GameSettings {
   eligibleBufferM: number;
   arrivalRadiusM: number;
   endgameVerificationCooldownSeconds: number;
+  outOfAreaConfirmationSeconds: number;
+  outOfAreaMaxGraceSeconds: number;
   deckMaxSize: number;
 }
 
@@ -45,6 +47,17 @@ export interface TurnStatus {
   endgameEligible: boolean;
   endgameActive: boolean;
   endgameQuestionsUnlocked: boolean;
+  outOfArea: OutOfAreaStatus | null;
+}
+
+export interface OutOfAreaStatus {
+  status: 'SUSPECTED' | 'ALERTED';
+  playerUid: string;
+  startedAtIso: string | null;
+  confirmationExpiresAtIso: string | null;
+  maxExpiresAtIso: string | null;
+  lastConfirmedAtIso: string | null;
+  alertedAtIso: string | null;
 }
 
 export type QuestionResolution = 'ANSWER' | 'VETO' | 'RANDOMIZE';
@@ -152,5 +165,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   eligibleBufferM: 0,
   arrivalRadiusM: 100,
   endgameVerificationCooldownSeconds: GAME_CONFIG.endgameVerificationCooldownMinutes * 60,
+  outOfAreaConfirmationSeconds: GAME_CONFIG.outOfAreaConfirmationSeconds,
+  outOfAreaMaxGraceSeconds: GAME_CONFIG.outOfAreaMaxGraceSeconds,
   deckMaxSize: 6,
 };

@@ -96,10 +96,13 @@ Timers are server-authoritative (timestamps).
 
 Playable area:
 - General playable area is CABA.
-- If the active hiding zone of a playable base station crosses outside CABA, that portion of the circle is also playable.
-- Runtime check: `isInsidePlayableArea = isInsideCaba(point) || isInsideActiveHidingZoneFromPlayableStation(point)`.
+- Every playable outside-CABA station extends the playable area with a 600m circle centered on that station.
+- Runtime check: `isInsidePlayableArea = isInsideCaba(point) || isInsideAnyPlayableOutOfCabaStationZone(point)`.
 - Boundaries are inclusive.
 - Out-of-area alerts require fresh, reliable location and sustained out-of-area readings. A single GPS outlier or stale location must not trigger the alert.
+- Hider out-of-area uses a private dead-man switch before global alert: `reportHiderOutOfArea` opens `currentTurn.outOfArea.status = SUSPECTED`, `confirmHiderOutOfAreaSafety` extends the next confirmation deadline, and `clearHiderOutOfArea` clears it after return.
+- Defaults: `outOfAreaConfirmationSeconds = 60`, `outOfAreaMaxGraceSeconds = 180`. If the hider misses a confirmation or remains out for 3 minutes, the server marks `currentTurn.outOfArea.status = ALERTED`.
+- Hider exact location is published only through `publishHiderPrivateLocation` and stored under private server-only state. Seekers see derived state, never the exact hider point.
 
 ---
 # 5) Question System

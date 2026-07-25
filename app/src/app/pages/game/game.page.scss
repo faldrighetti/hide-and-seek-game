@@ -57,6 +57,25 @@ app-hider-hand {
   margin: 0;
 }
 
+.out-of-area-panel {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.875rem;
+  border: 1px solid rgba(245, 124, 0, 0.35);
+  border-radius: 8px;
+  background: #fff8e1;
+}
+
+.out-of-area-panel.alerted {
+  border-color: rgba(198, 40, 40, 0.4);
+  background: #ffebee;
+}
+
+.out-of-area-panel p {
+  margin: 0;
+}
+
 .question-category-content {
   background: #fff;
 }

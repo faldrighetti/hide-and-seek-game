@@ -47,10 +47,12 @@ zoneRadiusM default 600m
 
 Área jugable:
 CABA es el área jugable general.
-Si la hiding zone activa de una estación base jugable cruza fuera de CABA, esa porción del círculo también cuenta como jugable.
-Regla técnica: isInsidePlayableArea = isInsideCaba(point) || isInsideActiveHidingZoneFromPlayableStation(point).
+Cada estación jugable fuera de CABA extiende el área jugable con un círculo de 600m de radio con centro en esa estación.
+Regla técnica: isInsidePlayableArea = isInsideCaba(point) || isInsideAnyPlayableOutOfCabaStationZone(point).
 El borde cuenta como dentro.
 La alerta de salida del área solo se dispara con ubicación fresh/confiable y salida sostenida; una lectura GPS aislada o stale no alcanza.
+Para el hider, una salida sostenida abre outOfArea.status = SUSPECTED y muestra un botón privado de confirmación periódica. Debe confirmar cada outOfAreaConfirmationSeconds (default 60s). Si no confirma a tiempo, o si llega a outOfAreaMaxGraceSeconds (default 180s = 3 minutos), outOfArea.status pasa a ALERTED y se alerta a todos. Al volver al área jugable se limpia outOfArea.
+El hider publica ubicación exacta por una ruta privada server-side solo para validar salida del área, captura técnica y reglas similares. Esa ubicación no se muestra a seekers; solo se exponen estados derivados.
 
 5) Endgame (short-game)
 Existe un estado ENDGAME dentro de CHASE.
@@ -224,7 +226,7 @@ mapa recortado con repo JetLagHideAndSeek (más adelante)
 
 G) Reglamento operativo pendiente
 GPS/conectividad: conexión degradada, desconexión temporal a 90s, abandono técnico a 5m, permisos obligatorios y bloqueo de acciones sin ubicación reciente
-salida del mapa: área jugable = CABA + hiding zone activa de estación base jugable cuando cruza fuera de CABA; alerta global solo con ubicación fresh/confiable y salida sostenida; gracia de 2m; congelar run si la salida es real
+salida del mapa: área jugable = CABA + círculos de 600m de todas las estaciones jugables fuera de CABA; alerta global solo con ubicación fresh/confiable y salida sostenida; dead-man switch privado del hider con confirmación cada 60s y máximo 3m; congelar run si la salida es real
 intermission/Intervalo: cualquier jugador puede pausar o reanudar el contador antes del siguiente run
 sesiones/reconexión: una sesión activa por jugador y takeover controlado
 emergencias: confirmación, congelar/cancelar actividad y revelar ubicaciones por seguridad

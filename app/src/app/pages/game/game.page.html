@@ -11,6 +11,62 @@
   <ion-grid *ngIf="blueprint$ | async as vm">
     <ng-container *ngIf="playerRole$ | async as role">
     <ion-row>
+      <ion-col size="12">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Ubicacion</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ng-container *ngIf="locationMonitorState$ | async as locationState">
+              <ion-chip [color]="locationState.active ? 'success' : 'medium'">
+                GPS {{ locationState.active ? 'activo' : 'inactivo' }}
+              </ion-chip>
+              <ion-chip *ngIf="locationState.permissionState !== 'unknown'" color="medium">
+                Permiso: {{ locationState.permissionState }}
+              </ion-chip>
+              <ion-chip *ngIf="locationState.lastAccuracyM !== null" color="medium">
+                Precision: {{ locationState.lastAccuracyM | number: '1.0-0' }} m
+              </ion-chip>
+              <ion-chip
+                *ngIf="role.isHider && locationState.lastInsidePlayableArea !== null"
+                [color]="locationState.lastInsidePlayableArea ? 'success' : 'warning'"
+              >
+                Area: {{ locationState.lastInsidePlayableArea ? 'dentro' : 'fuera' }}
+              </ion-chip>
+              <ion-note *ngIf="locationState.lastError" color="danger">{{ locationState.lastError }}</ion-note>
+            </ng-container>
+
+            <ng-container *ngIf="vm.currentTurn.outOfArea as outOfArea">
+              <div class="out-of-area-panel" [class.alerted]="outOfArea.status === 'ALERTED'">
+                <ion-note [color]="outOfArea.status === 'ALERTED' ? 'danger' : 'warning'">
+                  {{
+                    outOfArea.status === 'ALERTED'
+                      ? 'Salida de area alertada a todos.'
+                      : 'Tu ubicacion parece estar fuera del area jugable.'
+                  }}
+                </ion-note>
+                <p *ngIf="outOfArea.status === 'SUSPECTED'">
+                  Confirmar antes de {{ outOfArea.confirmationExpiresAtIso | date: 'shortTime' }}.
+                  Limite maximo: {{ outOfArea.maxExpiresAtIso | date: 'shortTime' }}.
+                </p>
+                <ion-button
+                  *ngIf="role.isHider && outOfArea.status === 'SUSPECTED'"
+                  size="small"
+                  color="warning"
+                  [disabled]="outOfAreaActionInFlight"
+                  (click)="confirmOutOfAreaSafety(role)"
+                >
+                  {{ outOfAreaActionInFlight ? 'Confirmando...' : 'Estoy bien / estoy volviendo' }}
+                </ion-button>
+                <ion-note *ngIf="outOfAreaMessage" color="medium">{{ outOfAreaMessage }}</ion-note>
+              </div>
+            </ng-container>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <ion-row>
       <ion-col size="12" *ngIf="role.isHider">
         <ng-container *ngIf="vm.currentTurn.lootOffer as lootOffer">
           <app-hider-draw
