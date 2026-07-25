@@ -62,7 +62,8 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
    - Salida de mapa.
    - Pausas/intermission controlado.
    - Emergencia/stand-by/cancelacion.
-   - Historial server-side.
+   - Historial server-side MVP conectado para eventos de partida, turno, base, endgame, preguntas, loot, curses, captura y salida de area, con lectura via `listGameEvents`.
+   - Pendiente: pantalla/admin viewer para consultar el historial sin abrir Firestore.
 
 8. Notificaciones.
    - Pregunta al hider.

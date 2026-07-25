@@ -270,6 +270,54 @@ const validateLobbyTeams = (mode: GameMode, seats: DocumentData[]): void => {
 
 const nowTs = (): Timestamp => Timestamp.now();
 
+const cleanEventPayload = (payload: Record<string, unknown> = {}): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+
+const serializeEventValue = (value: unknown): unknown => {
+  if (value instanceof Timestamp) {
+    return {
+      iso: value.toDate().toISOString(),
+      millis: value.toMillis(),
+    };
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => serializeEventValue(item));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [key, serializeEventValue(nestedValue)]),
+    );
+  }
+  return value;
+};
+
+const appendGameEventInTx = (
+  tx: Transaction,
+  gameRef: DocumentReference,
+  game: GameDoc,
+  event: {
+    type: string;
+    createdAt: Timestamp;
+    actorUid?: string | null;
+    actorTeamId?: string | null;
+    payload?: Record<string, unknown>;
+  },
+): DocumentReference => {
+  const turn = game.currentTurn;
+  const eventRef = gameRef.collection("events").doc();
+  tx.set(eventRef, {
+    type: event.type,
+    createdAt: event.createdAt,
+    actorUid: event.actorUid ?? null,
+    actorTeamId: event.actorTeamId ?? null,
+    runNumber: turn?.runNumber ?? null,
+    phase: turn?.phase ?? null,
+    hiderTeamId: turn?.hiderTeamId ?? null,
+    payload: cleanEventPayload(event.payload),
+  });
+  return eventRef;
+};
+
 const randomCode = (): string => Math.random().toString(36).slice(2, 2 + GAME_ID_LENGTH).toUpperCase();
 
 const shuffle = <T>(items: T[]): T[] => {
@@ -976,6 +1024,7 @@ export const startGame = onCall(async (request) => {
     const seatsSnap = await tx.get(gameRef.collection("seats"));
     validateLobbyTeams(game.mode, seatsSnap.docs.map((seatDoc) => seatDoc.data()));
 
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
     const now = nowTs();
     const hiderTeamId = pickInitialHider(game.teamOrder);
     const currentTurn: TurnState = {
@@ -1010,6 +1059,15 @@ export const startGame = onCall(async (request) => {
       startedAt: now,
       currentTurn,
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn}, {
+      type: "GAME_STARTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId || null,
+      payload: {
+        hiderTeamId,
+      },
     });
   });
 
@@ -1138,6 +1196,17 @@ export const confirmBaseStation = onCall(async (request) => {
       },
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "BASE_STATION_CONFIRMED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        stationId,
+        radiusM,
+        selectionWasPending: turn.baseStationSelectionRequired ?? false,
+      },
+    });
   });
 
   return {ok: true};
@@ -1188,6 +1257,15 @@ export const publishSeekerLocation = onCall(async (request) => {
       tx.update(gameRef, {
         currentTurn: game.currentTurn,
         updatedAt: now,
+      });
+      appendGameEventInTx(tx, gameRef, game, {
+        type: game.currentTurn?.endgameActive ? "ENDGAME_ACTIVATED" : "ENDGAME_DEACTIVATED",
+        createdAt: now,
+        actorUid: uid,
+        actorTeamId: seatTeamId,
+        payload: {
+          source: "seeker_location",
+        },
       });
     }
   });
@@ -1282,11 +1360,25 @@ export const publishHiderPrivateLocation = onCall(async (request) => {
     }, {merge: true});
 
     if (nextTurn) {
+      const previousStatus = turn.outOfArea?.status ?? null;
+      const nextStatus = nextTurn.outOfArea?.status ?? null;
       tx.update(gameRef, {
         currentTurn: nextTurn,
         updatedAt: now,
       });
       response.outOfAreaStatus = nextTurn.outOfArea?.status ?? null;
+      if (previousStatus !== nextStatus) {
+        appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
+          type: nextStatus ? `OUT_OF_AREA_${nextStatus}` : "OUT_OF_AREA_CLEARED_BY_LOCATION",
+          createdAt: now,
+          actorUid: uid,
+          actorTeamId: turn.hiderTeamId,
+          payload: {
+            geofenceReliable,
+            isInsidePlayableArea,
+          },
+        });
+      }
     } else {
       response.outOfAreaStatus = turn.outOfArea?.status ?? null;
     }
@@ -1334,6 +1426,15 @@ export const reportHiderOutOfArea = onCall(async (request) => {
     tx.update(gameRef, {
       currentTurn: nextTurn,
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
+      type: "OUT_OF_AREA_REPORTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: turn.hiderTeamId,
+      payload: {
+        status,
+      },
     });
   });
 
@@ -1384,6 +1485,16 @@ export const confirmHiderOutOfAreaSafety = onCall(async (request) => {
       currentTurn: nextTurn,
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
+      type: status === "ALERTED" ? "OUT_OF_AREA_ALERTED" : "OUT_OF_AREA_SAFETY_CONFIRMED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: turn.hiderTeamId,
+      payload: {
+        status,
+        confirmationExpiresAt: nextTurn.outOfArea?.confirmationExpiresAt ?? null,
+      },
+    });
   });
 
   return {ok: true, status};
@@ -1402,13 +1513,20 @@ export const clearHiderOutOfArea = onCall(async (request) => {
     if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = gameSnap.data() as GameDoc;
     const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
+    const now = nowTs();
 
     tx.update(gameRef, {
       currentTurn: {
         ...turn,
         outOfArea: null,
       },
-      updatedAt: nowTs(),
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "OUT_OF_AREA_CLEARED_MANUALLY",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: turn.hiderTeamId,
     });
   });
 
@@ -1453,6 +1571,15 @@ export const verifyEndgame = onCall(async (request) => {
         lastEndgameVerificationAt: now,
       },
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: game.currentTurn?.endgameActive ? "ENDGAME_VERIFIED_ACTIVE" : "ENDGAME_VERIFIED_INACTIVE",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        source: "manual_verification",
+      },
     });
   });
 
@@ -1504,6 +1631,16 @@ export const consultEndgameQuestions = onCall(async (request) => {
       },
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "ENDGAME_QUESTIONS_CONSULTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        unlocked,
+        cooldownActive,
+      },
+    });
   });
 
   return {ok: true, unlocked, cooldownActive};
@@ -1546,6 +1683,7 @@ export const sendQuestion = onCall(async (request) => {
       throw new HttpsError("failed-precondition", "ENDGAME_QUESTIONS_LOCKED");
     }
 
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
     const now = nowTs();
     const activeEffects = (game.currentTurn.activeEffects ?? []).filter((effect) =>
       !effect.expiresAt || effect.expiresAt.toMillis() > now.toMillis(),
@@ -1578,6 +1716,19 @@ export const sendQuestion = onCall(async (request) => {
         pendingQuestionEndsAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
       },
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "QUESTION_SENT",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId || null,
+      payload: {
+        questionId: questionRef.id,
+        categoryId,
+        isPhoto,
+        prompt,
+        expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
+      },
     });
   });
 
@@ -1651,6 +1802,19 @@ export const resolveQuestion = onCall(async (request) => {
       },
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "QUESTION_RESOLVED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        questionId: qRef.id,
+        categoryId,
+        resolution,
+        drawnCardIds: deckDraw.drawnCardIds,
+        takeLimit: drawRule.take,
+      },
+    });
   });
 
   return {ok: true};
@@ -1718,6 +1882,7 @@ export const selectLoot = onCall(async (request) => {
       ...unselectedDrawn,
       ...discardFromHandIds,
     ];
+    const now = nowTs();
 
     tx.update(gameRef, {
       currentTurn: {
@@ -1726,7 +1891,20 @@ export const selectLoot = onCall(async (request) => {
         discardPile: nextDiscardPile,
         lootOffer: null,
       },
-      updatedAt: nowTs(),
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "LOOT_SELECTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        questionId: turn.lootOffer.questionId,
+        selectedCardIds,
+        discardedDrawnCardIds: unselectedDrawn,
+        discardFromHandIds,
+        nextHandSize: nextHand.length,
+      },
     });
   });
 
@@ -1801,6 +1979,20 @@ export const playCurse = onCall(async (request) => {
       },
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "CURSE_PLAYED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        effectId: newEffect.id,
+        cardId,
+        curseId,
+        blocksQuestions,
+        blocksTransport,
+        expiresAt: newEffect.expiresAt ?? null,
+      },
+    });
   });
 
   return {ok: true};
@@ -1844,6 +2036,7 @@ export const completeCurseEffect = onCall(async (request) => {
     if (!activeEffects.some((effect) => effect.id === effectId)) {
       throw new HttpsError("not-found", "Efecto activo no encontrado.");
     }
+    const completedEffect = activeEffects.find((effect) => effect.id === effectId)!;
 
     tx.update(gameRef, {
       currentTurn: {
@@ -1851,6 +2044,17 @@ export const completeCurseEffect = onCall(async (request) => {
         activeEffects: activeEffects.filter((effect) => effect.id !== effectId),
       },
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "CURSE_COMPLETED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId || null,
+      payload: {
+        effectId,
+        curseId: completedEffect.curseId,
+        completedByRole: isCurrentHider ? "HIDER" : "SEEKER",
+      },
     });
   });
 
@@ -1907,6 +2111,16 @@ export const startCaptureAttempt = onCall(async (request) => {
       },
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "CAPTURE_ATTEMPT_STARTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        attemptId,
+        requiredSeekerConfirmations: requiredSeekerCaptureConfirmations(game),
+      },
+    });
   });
 
   return {ok: true, attemptId};
@@ -1960,6 +2174,16 @@ export const resolveCaptureAttempt = onCall(async (request) => {
       finishedAt: game.finishedAt ?? null,
       winnerTeamIds: game.winnerTeamIds ?? null,
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: turn}, {
+      type: confirmed ? "CAPTURE_CONFIRMED_BY_HIDER" : "CAPTURE_REJECTED_BY_HIDER",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        attemptId: turn.captureAttempt.id,
+        turnEnded: confirmed,
+      },
     });
   });
 
@@ -2018,6 +2242,18 @@ export const confirmCaptureBySeeker = onCall(async (request) => {
       finishedAt: game.finishedAt ?? null,
       winnerTeamIds: game.winnerTeamIds ?? null,
       updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: turn}, {
+      type: shouldEnd ? "CAPTURE_CONFIRMED_BY_SEEKERS" : "CAPTURE_RATIFIED_BY_SEEKER",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        attemptId: turn.captureAttempt.id,
+        confirmations,
+        requiredSeekerConfirmations: requiredSeekerCaptureConfirmations(game),
+        turnEnded: shouldEnd,
+      },
     });
   });
 
@@ -2079,7 +2315,9 @@ export const endTurn = onCall(async (request) => {
     if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = snap.data() as GameDoc;
     if (game.status !== "LIVE") throw new HttpsError("failed-precondition", "Partida no activa.");
-    endTurnInTx(game, nowTs());
+    const turn = game.currentTurn;
+    const now = nowTs();
+    endTurnInTx(game, now);
 
     tx.update(gameRef, {
       currentTurn: game.currentTurn,
@@ -2087,7 +2325,17 @@ export const endTurn = onCall(async (request) => {
       status: game.status,
       finishedAt: game.finishedAt ?? null,
       winnerTeamIds: game.winnerTeamIds ?? null,
-      updatedAt: nowTs(),
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: turn}, {
+      type: "TURN_ENDED_MANUALLY",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: null,
+      payload: {
+        nextPhase: game.currentTurn?.phase ?? null,
+        gameStatus: game.status,
+      },
     });
   });
 
@@ -2143,6 +2391,15 @@ export const nextTurn = onCall(async (request) => {
       currentTurn: game.currentTurn,
       updatedAt: now,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "TURN_STARTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: null,
+      payload: {
+        hiderTeamId: nextHider,
+      },
+    });
   });
 
   return {ok: true};
@@ -2161,6 +2418,39 @@ export const scoring = onCall(async (request) => {
     standings: game.standings,
     winCondition: game.settings.winCondition,
     winnerTeamIds: game.winnerTeamIds ?? [],
+  };
+});
+
+export const listGameEvents = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const limitRaw = Number(request.data?.limit ?? 100);
+  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.floor(limitRaw))) : 100;
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const eventsSnap = await db.collection("games").doc(gameId).collection("events")
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .get();
+
+  return {
+    ok: true,
+    events: eventsSnap.docs.map((eventDoc) => {
+      const event = eventDoc.data();
+      return {
+        id: eventDoc.id,
+        type: String(event.type ?? ""),
+        createdAt: serializeEventValue(event.createdAt),
+        actorUid: event.actorUid ?? null,
+        actorTeamId: event.actorTeamId ?? null,
+        runNumber: event.runNumber ?? null,
+        phase: event.phase ?? null,
+        hiderTeamId: event.hiderTeamId ?? null,
+        payload: serializeEventValue(event.payload ?? {}),
+      };
+    }),
   };
 });
 
@@ -2212,6 +2502,15 @@ export const onLocationWritten = onDocumentWritten("games/{gameId}/locations/{ui
       currentTurn: game.currentTurn,
       updatedAt: txNow,
     });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: game.currentTurn?.endgameActive ? "ENDGAME_ACTIVATED" : "ENDGAME_DEACTIVATED",
+      createdAt: txNow,
+      actorUid: null,
+      actorTeamId: null,
+      payload: {
+        source: "location_trigger",
+      },
+    });
   });
 });
 
@@ -2240,9 +2539,21 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
       let changed = false;
 
       if (turn.endgameActive) {
-        changed = (await refreshEndgameStateInTx(tx, docSnap.ref, game, txNow)) || changed;
+        const endgameChanged = await refreshEndgameStateInTx(tx, docSnap.ref, game, txNow);
+        changed = endgameChanged || changed;
         turn = game.currentTurn;
         if (!turn) return;
+        if (endgameChanged) {
+          appendGameEventInTx(tx, docSnap.ref, game, {
+            type: turn.endgameActive ? "ENDGAME_ACTIVATED" : "ENDGAME_DEACTIVATED",
+            createdAt: txNow,
+            actorUid: null,
+            actorTeamId: null,
+            payload: {
+              source: "scheduled_tick",
+            },
+          });
+        }
       }
 
       if (turn.outOfArea?.status === "SUSPECTED") {
@@ -2250,11 +2561,21 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
       }
 
       if (turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis()) {
+        const expiredQuestionId = turn.pendingQuestionId;
         const qRef = docSnap.ref.collection("questions").doc(turn.pendingQuestionId);
         tx.set(qRef, {
           status: "EXPIRED",
           expiredAt: txNow,
         }, {merge: true});
+        appendGameEventInTx(tx, docSnap.ref, game, {
+          type: "QUESTION_EXPIRED",
+          createdAt: txNow,
+          actorUid: null,
+          actorTeamId: null,
+          payload: {
+            questionId: expiredQuestionId,
+          },
+        });
         turn.pendingQuestionId = null;
         turn.pendingQuestionEndsAt = null;
         turn.expirations += 1;
@@ -2264,11 +2585,44 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
       if (turn.phaseEndsAt.toMillis() <= txNow.toMillis()) {
         if (turn.phase === "INTERMISSION") {
           game.currentTurn = setNextPhase(turn, game.settings, "ESCAPE", txNow);
+          appendGameEventInTx(tx, docSnap.ref, game, {
+            type: "PHASE_ADVANCED",
+            createdAt: txNow,
+            actorUid: null,
+            actorTeamId: null,
+            payload: {
+              fromPhase: "INTERMISSION",
+              toPhase: "ESCAPE",
+            },
+          });
         } else if (turn.phase === "ESCAPE") {
           const resolvedTurn = await resolveBaseStationAtEscapeEndInTx(tx, docSnap.ref, game, txNow);
           game.currentTurn = setNextPhase(resolvedTurn ?? turn, game.settings, "CHASE", txNow);
+          appendGameEventInTx(tx, docSnap.ref, game, {
+            type: "PHASE_ADVANCED",
+            createdAt: txNow,
+            actorUid: null,
+            actorTeamId: null,
+            payload: {
+              fromPhase: "ESCAPE",
+              toPhase: "CHASE",
+              baseStationSelectionRequired: game.currentTurn.baseStationSelectionRequired ?? false,
+              baseStationCandidateIds: game.currentTurn.baseStationCandidateIds ?? [],
+              stationId: game.currentTurn.hidingZone?.stationId ?? null,
+            },
+          });
         } else if (turn.phase === "CHASE") {
           endTurnInTx(game, txNow);
+          appendGameEventInTx(tx, docSnap.ref, {...game, currentTurn: turn}, {
+            type: "TURN_ENDED_BY_TIMEOUT",
+            createdAt: txNow,
+            actorUid: null,
+            actorTeamId: null,
+            payload: {
+              gameStatus: game.status,
+              nextPhase: game.currentTurn?.phase ?? null,
+            },
+          });
         }
         changed = true;
       }
