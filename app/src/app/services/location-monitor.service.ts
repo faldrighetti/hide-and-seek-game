@@ -9,6 +9,8 @@ export interface LocationMonitorState {
   permissionState: PermissionState | 'unknown';
   lastError: string | null;
   lastAccuracyM: number | null;
+  lastLat: number | null;
+  lastLng: number | null;
   lastInsidePlayableArea: boolean | null;
   outsideSinceMillis: number | null;
 }
@@ -20,6 +22,8 @@ export class LocationMonitorService implements OnDestroy {
     permissionState: 'unknown',
     lastError: null,
     lastAccuracyM: null,
+    lastLat: null,
+    lastLng: null,
     lastInsidePlayableArea: null,
     outsideSinceMillis: null,
   });
@@ -104,7 +108,12 @@ export class LocationMonitorService implements OnDestroy {
       lng: position.coords.longitude,
     };
     const accuracyM = position.coords.accuracy;
-    this.patchState({ lastAccuracyM: accuracyM, lastError: null });
+    this.patchState({
+      lastAccuracyM: accuracyM,
+      lastLat: location.lat,
+      lastLng: location.lng,
+      lastError: null,
+    });
 
     if (role.isSeeker) {
       await this.publishSeekerLocation(gameId, location.lat, location.lng);

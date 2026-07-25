@@ -40,14 +40,39 @@ export interface TurnStatus {
   drawPileCount: number;
   discardPileCount: number;
   lootOffer: LootOffer | null;
+  hidingZone: HidingZone | null;
+  baseStationCandidateIds: string[];
+  baseStationSelectionRequired: boolean;
   activeEffects: ActiveEffect[];
   expirations: number;
   foundVotes: string[];
   foundConfirmed: boolean;
+  captureAttempt: CaptureAttempt | null;
   endgameEligible: boolean;
   endgameActive: boolean;
   endgameQuestionsUnlocked: boolean;
   outOfArea: OutOfAreaStatus | null;
+}
+
+export interface CaptureAttempt {
+  id: string;
+  status: 'PENDING_HIDER' | 'CONFIRMED' | 'REJECTED';
+  createdByUid: string;
+  createdByTeamId: string;
+  createdAtIso: string | null;
+  hiderResolvedByUid: string | null;
+  hiderResolvedAtIso: string | null;
+  seekerConfirmations: string[];
+  completedAtIso: string | null;
+}
+
+export interface HidingZone {
+  stationId?: string;
+  center: {
+    lat: number;
+    lng: number;
+  };
+  radiusM: number;
 }
 
 export interface OutOfAreaStatus {

@@ -1,6 +1,7 @@
-import { Component, OnDestroy, inject } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
+import * as L from 'leaflet';
 import { GameFacadeService } from '../../services/game-facade';
 import {
   ActiveEffect,
@@ -13,7 +14,9 @@ import {
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
 import { CardDefinition } from 'src/app/models/card-definition.model';
-import { LocationMonitorService } from '../../services/location-monitor.service';
+import { GAME_CONFIG } from '../../config/game-config';
+import { Station, StationsProcessedFile } from '../../models/station.model';
+import { LocationMonitorService, LocationMonitorState } from '../../services/location-monitor.service';
 
 interface DrawRule {
   categoryKey: string;
@@ -71,13 +74,18 @@ interface TurnActionState {
   color: string;
 }
 
+interface MapNavigationBoundsAsset {
+  southWest: { lat: number; lng: number };
+  northEast: { lat: number; lng: number };
+}
+
 @Component({
   selector: 'app-game',
   templateUrl: './game.page.html',
   styleUrls: ['./game.page.scss'],
   standalone: false,
 })
-export class GamePage implements OnDestroy {
+export class GamePage implements AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly gameFacade = inject(GameFacadeService);
   private readonly cardCatalog = inject(CardCatalogService);
@@ -113,25 +121,49 @@ export class GamePage implements OnDestroy {
   outOfAreaMessage = '';
   foundActionInFlight = false;
   foundErrorMessage = '';
+  stations: Station[] = [];
+  stationFilter = '';
+  selectedBaseStation: Station | null = null;
+  confirmingBaseStation = false;
+  baseStationMessage = '';
+  baseStationLoadError = '';
   now = Date.now();
 
   private readonly timerId = window.setInterval(() => {
     this.now = Date.now();
   }, 1000);
   private readonly blueprintSubscription: Subscription;
+  private latestGameBlueprint: GameBlueprint | null = null;
   private lastLootKey: string | null = null;
+  private baseStationMap?: L.Map;
+  private baseStationMarkers = new Map<string, L.CircleMarker>();
+  private baseStationZoneLayer = L.layerGroup();
+  private baseStationBounds: L.LatLngBoundsExpression | null = null;
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
     this.locationMonitor.start(this.gameId, this.playerRole$, this.blueprint$);
-    this.blueprintSubscription = this.blueprint$.subscribe(vm => this.syncLootSelections(vm));
+    this.blueprintSubscription = this.blueprint$.subscribe(vm => {
+      this.latestGameBlueprint = vm;
+      this.syncLootSelections(vm);
+      setTimeout(() => {
+        this.ensureBaseStationMap();
+        this.renderBaseStationMarkers(vm);
+      }, 0);
+    });
     void this.loadCardsFromCatalog();
     void this.loadQuestionsCatalog();
+    void this.loadBaseStationMapData();
+  }
+
+  ngAfterViewInit(): void {
+    setTimeout(() => this.ensureBaseStationMap(), 0);
   }
 
   ngOnDestroy(): void {
     window.clearInterval(this.timerId);
     this.blueprintSubscription.unsubscribe();
+    this.baseStationMap?.remove();
     this.locationMonitor.stop();
   }
 
@@ -199,6 +231,128 @@ export class GamePage implements OnDestroy {
     const draw = drawMatch ? Number(drawMatch[1]) : 1;
     const take = takeMatch ? Number(takeMatch[1]) : 1;
     return { draw, take };
+  }
+
+  async loadBaseStationMapData(): Promise<void> {
+    try {
+      const [boundsResponse, stationsResponse] = await Promise.all([
+        fetch('assets/map-generator.bounds.json', { cache: 'force-cache' }),
+        fetch('assets/stations.processed.json', { cache: 'force-cache' }),
+      ]);
+      if (!boundsResponse.ok || !stationsResponse.ok) {
+        throw new Error('No se pudieron cargar las estaciones.');
+      }
+
+      const bounds = (await boundsResponse.json()) as MapNavigationBoundsAsset;
+      const stationsFile = (await stationsResponse.json()) as StationsProcessedFile;
+      this.baseStationBounds = [
+        [bounds.southWest.lat, bounds.southWest.lng],
+        [bounds.northEast.lat, bounds.northEast.lng],
+      ];
+      this.stations = stationsFile.stations.filter(station => station.isPlayable);
+      this.ensureBaseStationMap();
+      this.renderBaseStationMarkers(this.latestBlueprint());
+    } catch (error) {
+      this.baseStationLoadError = error instanceof Error ? error.message : 'No se pudieron cargar las estaciones.';
+    }
+  }
+
+  baseStationFlowVisible(vm: GameBlueprint, role: PlayerRole): boolean {
+    return role.isHider && (vm.currentTurn.phase === 'ESCAPE' || vm.currentTurn.baseStationSelectionRequired);
+  }
+
+  baseStationStatusText(vm: GameBlueprint): string {
+    if (vm.currentTurn.hidingZone?.stationId) {
+      const station = this.stationById(vm.currentTurn.hidingZone.stationId);
+      return `Confirmada: ${station ? this.stationLabel(station) : vm.currentTurn.hidingZone.stationId}.`;
+    }
+    if (vm.currentTurn.baseStationSelectionRequired) {
+      return 'Quedaron varias estaciones posibles al terminar ESCAPE. Elegí una para habilitar preguntas.';
+    }
+    return 'Durante ESCAPE podés marcar una estación como objetivo y confirmarla cuando estés dentro de su zona.';
+  }
+
+  locationCandidateStations(locationState: LocationMonitorState | null): Station[] {
+    if (!locationState || locationState.lastLat === null || locationState.lastLng === null) {
+      return [];
+    }
+
+    return this.stations
+      .map(station => ({
+        station,
+        distanceM: this.distanceMeters(
+          { lat: locationState.lastLat!, lng: locationState.lastLng! },
+          { lat: station.lat, lng: station.lng },
+        ),
+      }))
+      .filter(item => item.distanceM <= GAME_CONFIG.hidingZoneRadiusM)
+      .sort((a, b) => a.distanceM - b.distanceM)
+      .map(item => item.station);
+  }
+
+  pendingBaseStationCandidates(vm: GameBlueprint): Station[] {
+    const ids = new Set(vm.currentTurn.baseStationCandidateIds);
+    return this.stations.filter(station => ids.has(station.id));
+  }
+
+  visibleBaseStationList(vm: GameBlueprint, locationState: LocationMonitorState | null): Station[] {
+    const source = vm.currentTurn.baseStationSelectionRequired
+      ? this.pendingBaseStationCandidates(vm)
+      : this.locationCandidateStations(locationState);
+    const normalizedFilter = this.normalizeText(this.stationFilter);
+    if (!normalizedFilter) {
+      return source.slice(0, 8);
+    }
+    return this.stations
+      .filter(station =>
+        this.normalizeText(station.name).includes(normalizedFilter)
+        || this.normalizeText(station.line).includes(normalizedFilter)
+        || this.normalizeText(station.mode).includes(normalizedFilter),
+      )
+      .slice(0, 12);
+  }
+
+  selectBaseStation(station: Station, vm?: GameBlueprint): void {
+    this.selectedBaseStation = station;
+    this.baseStationMessage = '';
+    this.renderBaseStationMarkers(vm ?? this.latestBlueprint());
+    this.renderSelectedBaseStationZone();
+    this.baseStationMap?.setView([station.lat, station.lng], Math.max(this.baseStationMap.getZoom(), 14), {
+      animate: true,
+    });
+  }
+
+  onBaseStationSearch(event: Event): void {
+    const value = (event as CustomEvent<{ value?: string }>).detail?.value ?? '';
+    this.stationFilter = value;
+  }
+
+  async confirmSelectedBaseStation(vm: GameBlueprint, role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.baseStationMessage = 'Solo el hider puede confirmar estación base.';
+      return;
+    }
+    if (!this.selectedBaseStation) {
+      this.baseStationMessage = 'Seleccioná una estación primero.';
+      return;
+    }
+
+    const ok = window.confirm(`¿Confirmar ${this.selectedBaseStation.name} como estación base?`);
+    if (!ok) {
+      return;
+    }
+
+    this.confirmingBaseStation = true;
+    this.baseStationMessage = '';
+    try {
+      await this.gameFacade.confirmBaseStation(this.gameId, this.selectedBaseStation.id);
+      this.baseStationMessage = `${this.selectedBaseStation.name} confirmada como estación base.`;
+    } catch (error) {
+      this.baseStationMessage = error instanceof Error ? error.message : 'No se pudo confirmar estación base.';
+    } finally {
+      this.confirmingBaseStation = false;
+      this.renderBaseStationMarkers(vm);
+    }
   }
 
   selectSeekerQuestion(category: QuestionCategory, question: QuestionItem): void {
@@ -514,21 +668,73 @@ export class GamePage implements OnDestroy {
     return labels[phase];
   }
 
-  async voteFound(role: PlayerRole): Promise<void> {
+  async startCaptureAttempt(role: PlayerRole): Promise<void> {
     if (!role.isSeeker || !role.teamId) {
-      this.foundErrorMessage = 'Solo los seekers pueden marcar FOUND.';
+      this.foundErrorMessage = 'Solo los seekers pueden iniciar captura.';
       return;
     }
 
     this.foundActionInFlight = true;
     this.foundErrorMessage = '';
     try {
-      await this.gameFacade.castFoundVote(this.gameId, role.teamId);
+      await this.gameFacade.startCaptureAttempt(this.gameId);
     } catch (error) {
-      this.foundErrorMessage = error instanceof Error ? error.message : 'No se pudo registrar FOUND.';
+      this.foundErrorMessage = error instanceof Error ? error.message : 'No se pudo iniciar captura.';
     } finally {
       this.foundActionInFlight = false;
     }
+  }
+
+  async resolveCaptureAttempt(confirmed: boolean, role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.foundErrorMessage = 'Solo el hider puede responder el intento.';
+      return;
+    }
+
+    this.foundActionInFlight = true;
+    this.foundErrorMessage = '';
+    try {
+      await this.gameFacade.resolveCaptureAttempt(this.gameId, confirmed);
+    } catch (error) {
+      this.foundErrorMessage = error instanceof Error ? error.message : 'No se pudo responder captura.';
+    } finally {
+      this.foundActionInFlight = false;
+    }
+  }
+
+  async confirmCaptureBySeeker(role: PlayerRole): Promise<void> {
+    if (!role.isSeeker) {
+      this.foundErrorMessage = 'Solo seekers pueden confirmar captura.';
+      return;
+    }
+
+    this.foundActionInFlight = true;
+    this.foundErrorMessage = '';
+    try {
+      await this.gameFacade.confirmCaptureBySeeker(this.gameId);
+    } catch (error) {
+      this.foundErrorMessage = error instanceof Error ? error.message : 'No se pudo confirmar captura.';
+    } finally {
+      this.foundActionInFlight = false;
+    }
+  }
+
+  captureStatusLabel(vm: GameBlueprint): string {
+    const attempt = vm.currentTurn.captureAttempt;
+    if (!attempt) {
+      return 'Sin intento activo';
+    }
+    if (attempt.status === 'PENDING_HIDER') {
+      return `Pendiente del hider. Iniciado por Team ${attempt.createdByTeamId}.`;
+    }
+    if (attempt.status === 'REJECTED') {
+      return 'Rechazado por el hider. Seekers pueden ratificar.';
+    }
+    return 'Captura confirmada.';
+  }
+
+  seekerAlreadyConfirmedCapture(vm: GameBlueprint, role: PlayerRole): boolean {
+    return Boolean(role.teamId && vm.currentTurn.captureAttempt?.seekerConfirmations.includes(role.teamId));
   }
 
   formatTime(seconds: number): string {
@@ -570,7 +776,7 @@ export class GamePage implements OnDestroy {
       return role.isHider
         ? {
           title: 'Escape en curso',
-          detail: 'Elegir y confirmar estacion base es el proximo bloque pendiente de UX.',
+          detail: 'Marcá una estación como objetivo y confirmala cuando estés dentro de su zona.',
           color: 'warning',
         }
         : {
@@ -586,6 +792,49 @@ export class GamePage implements OnDestroy {
         detail: 'Revisen el scoreboard antes de pasar al siguiente turno.',
         color: 'medium',
       };
+    }
+
+    if (vm.currentTurn.baseStationSelectionRequired) {
+      return role.isHider
+        ? {
+          title: 'Elegí estación base',
+          detail: 'Hay varias estaciones posibles. Confirmá una para habilitar la búsqueda.',
+          color: 'warning',
+        }
+        : {
+          title: 'Estación base pendiente',
+          detail: 'El hider debe elegir entre las estaciones detectadas antes de responder preguntas.',
+          color: 'warning',
+        };
+    }
+
+    const captureAttempt = vm.currentTurn.captureAttempt;
+    if (captureAttempt?.status === 'PENDING_HIDER') {
+      return role.isHider
+        ? {
+          title: 'Intento de captura',
+          detail: 'Confirmá si te encontraron o rechazá el intento.',
+          color: 'danger',
+        }
+        : {
+          title: 'Esperando confirmación',
+          detail: 'El hider tiene que confirmar o rechazar la captura.',
+          color: 'warning',
+        };
+    }
+
+    if (captureAttempt?.status === 'REJECTED') {
+      return role.isSeeker
+        ? {
+          title: 'Captura rechazada',
+          detail: 'Si corresponde, otro seeker puede ratificar la captura.',
+          color: 'warning',
+        }
+        : {
+          title: 'Captura rechazada',
+          detail: 'El intento queda visible para que los seekers lo ratifiquen si hace falta.',
+          color: 'medium',
+        };
     }
 
     if (pendingQuestion) {
@@ -686,6 +935,21 @@ export class GamePage implements OnDestroy {
       : 'Necesitas una carta Randomizar en mano.';
   }
 
+  stationLabel(station: Station): string {
+    return `${station.name} (${station.mode} ${station.line})`;
+  }
+
+  stationDistanceLabel(station: Station, locationState: LocationMonitorState | null): string {
+    if (!locationState || locationState.lastLat === null || locationState.lastLng === null) {
+      return '';
+    }
+    const distanceM = this.distanceMeters(
+      { lat: locationState.lastLat, lng: locationState.lastLng },
+      { lat: station.lat, lng: station.lng },
+    );
+    return `${Math.round(distanceM)} m`;
+  }
+
   private toHiderCardData(card: CardDefinition): HiderCardData {
     return {
       id: String(card.id),
@@ -748,5 +1012,116 @@ export class GamePage implements OnDestroy {
     const hand = new Set(vm.currentTurn.hiderHandIds);
     this.selectedLootCardIds = this.selectedLootCardIds.filter(cardId => drawn.has(cardId));
     this.discardFromHandIds = this.discardFromHandIds.filter(cardId => hand.has(cardId));
+  }
+
+  private latestBlueprint(): GameBlueprint | undefined {
+    return this.latestGameBlueprint ?? undefined;
+  }
+
+  private ensureBaseStationMap(): void {
+    if (this.baseStationMap || !this.baseStationBounds || !document.getElementById('base-station-map')) {
+      return;
+    }
+
+    this.baseStationMap = L.map('base-station-map', {
+      preferCanvas: true,
+      zoomControl: true,
+      minZoom: 11,
+      maxZoom: 18,
+      maxBounds: this.baseStationBounds,
+      maxBoundsViscosity: 1,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 11,
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.baseStationMap);
+    this.baseStationZoneLayer.addTo(this.baseStationMap);
+    this.baseStationMap.fitBounds(this.baseStationBounds, { padding: [12, 12], animate: false });
+    this.renderBaseStationMarkers(this.latestBlueprint());
+  }
+
+  private renderBaseStationMarkers(vm?: GameBlueprint): void {
+    if (!this.baseStationMap) {
+      return;
+    }
+
+    const activeIds = new Set(this.stations.map(station => station.id));
+    for (const [stationId, marker] of this.baseStationMarkers.entries()) {
+      if (!activeIds.has(stationId)) {
+        marker.remove();
+        this.baseStationMarkers.delete(stationId);
+      }
+    }
+
+    const confirmedStationId = vm?.currentTurn.hidingZone?.stationId;
+    const pendingIds = new Set(vm?.currentTurn.baseStationCandidateIds ?? []);
+    for (const station of this.stations) {
+      const marker = this.getOrCreateBaseStationMarker(station);
+      const selected = this.selectedBaseStation?.id === station.id;
+      const confirmed = confirmedStationId === station.id;
+      const pending = pendingIds.has(station.id);
+      marker.setRadius(selected || confirmed ? 8 : pending ? 7 : 5);
+      marker.setStyle({
+        color: confirmed ? '#1f7a4d' : selected ? '#0b6e69' : pending ? '#b7791f' : '#315f73',
+        fillColor: confirmed ? '#2f855a' : selected ? '#2dd4bf' : pending ? '#f6ad55' : '#4f8fa8',
+        fillOpacity: selected || confirmed || pending ? 0.95 : 0.68,
+        weight: selected || confirmed ? 3 : pending ? 2 : 1,
+      });
+    }
+    this.renderSelectedBaseStationZone();
+  }
+
+  private getOrCreateBaseStationMarker(station: Station): L.CircleMarker {
+    const existing = this.baseStationMarkers.get(station.id);
+    if (existing) {
+      return existing;
+    }
+
+    const marker = L.circleMarker([station.lat, station.lng], { radius: 5, weight: 1 });
+    marker.bindTooltip(this.stationLabel(station));
+    marker.on('click', () => this.selectBaseStation(station));
+    marker.addTo(this.baseStationMap!);
+    this.baseStationMarkers.set(station.id, marker);
+    return marker;
+  }
+
+  private renderSelectedBaseStationZone(): void {
+    this.baseStationZoneLayer.clearLayers();
+    const station = this.selectedBaseStation;
+    if (!station) {
+      return;
+    }
+
+    L.circle([station.lat, station.lng], {
+      radius: GAME_CONFIG.hidingZoneRadiusM,
+      color: '#0b6e69',
+      fillColor: '#2dd4bf',
+      fillOpacity: 0.16,
+      weight: 2,
+      interactive: false,
+    }).addTo(this.baseStationZoneLayer);
+  }
+
+  private stationById(stationId: string): Station | undefined {
+    return this.stations.find(station => station.id === stationId);
+  }
+
+  private normalizeText(value: string): string {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  private distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+    const earthRadiusM = 6371000;
+    const toRad = (value: number) => value * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }

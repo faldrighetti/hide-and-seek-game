@@ -44,14 +44,18 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
    - Timed effects con `expiresAt` desde duracion de `Tarjetas_CABA.json`.
    - Mostrar `activeEffects` en pantalla de partida.
    - Lock effects bloquean preguntas en `sendQuestion` y los seekers pueden limpiarlos manualmente con `completeCurseEffect`.
-   - Pendiente: Dado server-side.
-   - Pendiente: Zoologist con confirmacion manual de foto externa.
+   - Limpieza manual por WhatsApp confirmable por seekers o hider.
+   - Pendiente futuro: UX especifica por tipo de curse cuando aporte valor (evidencia enviada/aceptada/rebotada, duracion objetivo, etc.).
+   - No implementar dado server-side: no habra curses que precisen dado.
+   - No implementar Zoologist ni Gambler's Feet: curses desestimadas.
 
-6. Geolocalizacion + estacion base + endgame.
+6. Geolocalizacion + estacion base + endgame/captura.
    - Publicacion throttleada de ubicacion seeker.
    - Seleccion/confirmacion de estacion base durante ESCAPE.
    - Fallback automatico de estacion si no hubo confirmacion.
-   - Endgame live ya modelado en backend, pero falta UX real.
+   - Endgame live conectado en UI.
+   - Captura MVP conectado: seeker inicia intento, hider confirma/rechaza, seekers pueden ratificar.
+   - Pendiente futuro: validacion GPS fina de distancia de captura y auditoria/historial server-side.
 
 7. Reglamento operativo.
    - Conexion degradada/desconexion temporal.

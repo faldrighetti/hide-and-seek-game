@@ -107,6 +107,68 @@
       </ion-col>
     </ion-row>
 
+    <ion-row *ngIf="baseStationFlowVisible(vm, role)">
+      <ion-col size="12">
+        <ion-card class="base-station-card">
+          <ion-card-header>
+            <ion-card-title>Estación base</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ng-container *ngIf="locationMonitorState$ | async as locationState">
+              <p>{{ baseStationStatusText(vm) }}</p>
+              <ion-note *ngIf="baseStationLoadError" color="danger">{{ baseStationLoadError }}</ion-note>
+              <div id="base-station-map" class="base-station-map"></div>
+
+              <div class="base-station-selection">
+                <ion-searchbar
+                  placeholder="Buscar estación"
+                  [value]="stationFilter"
+                  (ionInput)="onBaseStationSearch($event)"
+                ></ion-searchbar>
+
+                <ion-list lines="full">
+                  <ion-item
+                    button
+                    *ngFor="let station of visibleBaseStationList(vm, locationState)"
+                    [color]="selectedBaseStation?.id === station.id ? 'light' : undefined"
+                    (click)="selectBaseStation(station, vm)"
+                  >
+                    <ion-label>
+                      <h3>{{ station.name }}</h3>
+                      <p>{{ station.mode }} {{ station.line }} · {{ station.barrio || 'AMBA' }}</p>
+                    </ion-label>
+                    <ion-note slot="end">{{ stationDistanceLabel(station, locationState) }}</ion-note>
+                  </ion-item>
+                </ion-list>
+
+                <ion-note *ngIf="!visibleBaseStationList(vm, locationState).length && !stationFilter" color="medium">
+                  Todavía no hay estaciones dentro de tu zona actual. Podés tocar una estación en el mapa como objetivo.
+                </ion-note>
+                <ion-note *ngIf="!visibleBaseStationList(vm, locationState).length && stationFilter" color="medium">
+                  No hay estaciones que coincidan con la búsqueda.
+                </ion-note>
+              </div>
+
+              <div class="base-station-confirm">
+                <ion-note *ngIf="selectedBaseStation" color="primary">
+                  Seleccionada: {{ stationLabel(selectedBaseStation) }}
+                </ion-note>
+                <ion-button
+                  size="small"
+                  color="success"
+                  [disabled]="!selectedBaseStation || confirmingBaseStation"
+                  (click)="confirmSelectedBaseStation(vm, role)"
+                >
+                  {{ confirmingBaseStation ? 'Confirmando...' : 'Confirmar estación base' }}
+                </ion-button>
+                <ion-note *ngIf="baseStationMessage" color="medium">{{ baseStationMessage }}</ion-note>
+              </div>
+            </ng-container>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
     <ion-row>
       <ion-col size="12" *ngIf="role.isHider">
         <ng-container *ngIf="vm.currentTurn.lootOffer as lootOffer">
@@ -319,6 +381,7 @@
                 || sendingQuestion
                 || hasQuestionBlockingEffect(vm.currentTurn.activeEffects)
                 || vm.currentTurn.lootOffer !== null
+                || vm.currentTurn.baseStationSelectionRequired
               "
               (click)="sendSelectedQuestion(role)"
             >
@@ -329,6 +392,9 @@
             </ion-note>
             <ion-note *ngIf="vm.currentTurn.lootOffer" color="warning">
               El hider todavia tiene loot pendiente.
+            </ion-note>
+            <ion-note *ngIf="vm.currentTurn.baseStationSelectionRequired" color="warning">
+              Falta confirmar estación base.
             </ion-note>
             <div class="endgame-question-actions">
               <ion-button
@@ -383,30 +449,67 @@
         </ion-card>
       </ion-col>
 
-      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHost">
+      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHider || role.isHost">
         <ion-card>
           <ion-card-header>
-            <ion-card-title>FOUND</ion-card-title>
+            <ion-card-title>Captura</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <ion-chip [color]="vm.currentTurn.endgameActive ? 'success' : 'medium'">
               Endgame {{ vm.currentTurn.endgameActive ? 'activo' : 'inactivo' }}
             </ion-chip>
-            <ng-container *ngIf="role.isSeeker">
+            <p>{{ captureStatusLabel(vm) }}</p>
+
+            <ng-container *ngIf="role.isSeeker && vm.currentTurn.captureAttempt?.status !== 'PENDING_HIDER'">
               <ion-button
                 expand="block"
                 size="small"
                 color="success"
-                [disabled]="!vm.currentTurn.endgameActive || foundActionInFlight"
-                (click)="voteFound(role)"
+                [disabled]="!vm.currentTurn.endgameActive || vm.currentTurn.captureAttempt?.status === 'CONFIRMED' || foundActionInFlight"
+                (click)="startCaptureAttempt(role)"
               >
-                {{ foundActionInFlight ? 'Registrando...' : 'Marcar FOUND' }}
+                {{ foundActionInFlight ? 'Registrando...' : 'Iniciar captura' }}
               </ion-button>
             </ng-container>
-            <p>Votos por equipo: {{ vm.currentTurn.foundVotes.join(', ') || 'Sin votos' }}</p>
-            <p>FOUND confirmado: {{ vm.currentTurn.foundConfirmed ? 'Si' : 'No' }}</p>
+
+            <ng-container *ngIf="role.isHider && vm.currentTurn.captureAttempt?.status === 'PENDING_HIDER'">
+              <ion-button
+                expand="block"
+                size="small"
+                color="success"
+                [disabled]="foundActionInFlight"
+                (click)="resolveCaptureAttempt(true, role)"
+              >
+                Confirmar captura
+              </ion-button>
+              <ion-button
+                expand="block"
+                size="small"
+                color="medium"
+                fill="outline"
+                [disabled]="foundActionInFlight"
+                (click)="resolveCaptureAttempt(false, role)"
+              >
+                Rechazar
+              </ion-button>
+            </ng-container>
+
+            <ng-container *ngIf="role.isSeeker && vm.currentTurn.captureAttempt && vm.currentTurn.captureAttempt.status !== 'CONFIRMED'">
+              <ion-button
+                expand="block"
+                size="small"
+                color="warning"
+                fill="outline"
+                [disabled]="seekerAlreadyConfirmedCapture(vm, role) || foundActionInFlight"
+                (click)="confirmCaptureBySeeker(role)"
+              >
+                {{ seekerAlreadyConfirmedCapture(vm, role) ? 'Ratificación registrada' : 'Ratificar captura' }}
+              </ion-button>
+            </ng-container>
+
+            <p>Confirmaciones seeker: {{ vm.currentTurn.captureAttempt?.seekerConfirmations?.join(', ') || 'Sin confirmaciones' }}</p>
             <ion-note *ngIf="!vm.currentTurn.endgameActive" color="medium">
-              Se habilita cuando el endgame esta activo.
+              Se habilita cuando el endgame está activo.
             </ion-note>
             <ion-note *ngIf="foundErrorMessage" color="danger">{{ foundErrorMessage }}</ion-note>
           </ion-card-content>

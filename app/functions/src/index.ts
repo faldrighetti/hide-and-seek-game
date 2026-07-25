@@ -12,7 +12,12 @@ import {setGlobalOptions} from "firebase-functions/v2";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
-import {evaluatePlayableArea} from "./playable-area";
+import {
+  evaluatePlayableArea,
+  findNearestPlayableStation,
+  findPlayableStationZones,
+  getPlayableStationById,
+} from "./playable-area";
 
 initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -99,6 +104,18 @@ interface OutOfAreaState {
   alertedAt?: Timestamp | null;
 }
 
+interface CaptureAttempt {
+  id: string;
+  status: "PENDING_HIDER" | "CONFIRMED" | "REJECTED";
+  createdByUid: string;
+  createdByTeamId: string;
+  createdAt: Timestamp;
+  hiderResolvedByUid?: string | null;
+  hiderResolvedAt?: Timestamp | null;
+  seekerConfirmations: string[];
+  completedAt?: Timestamp | null;
+}
+
 interface TurnState {
   runNumber: number;
   hiderTeamId: string;
@@ -115,6 +132,8 @@ interface TurnState {
   discardPile?: string[];
   lootOffer?: LootOffer | null;
   hidingZone?: HidingZone | null;
+  baseStationCandidateIds?: string[];
+  baseStationSelectionRequired?: boolean;
   endgameActive?: boolean;
   endgameAnchorPoint?: LatLng | null;
   endgameLastChangedAt?: Timestamp | null;
@@ -124,6 +143,7 @@ interface TurnState {
   outOfArea?: OutOfAreaState | null;
   expirations: number;
   foundVotes: string[];
+  captureAttempt?: CaptureAttempt | null;
 }
 
 interface GameDoc {
@@ -298,6 +318,9 @@ const isFoundMajorityReached = (teamCount: number, votedTeams: string[]): boolea
   return votedTeams.length >= 2;
 };
 
+const requiredSeekerCaptureConfirmations = (game: GameDoc): number =>
+  game.teamOrder.length <= 2 ? 1 : 2;
+
 const getPhaseDurationSeconds = (settings: GameSettings, phase: Phase): number => {
   if (phase === "INTERMISSION") return settings.intermissionSeconds;
   if (phase === "ESCAPE") return settings.escapeSeconds;
@@ -321,6 +344,7 @@ const setNextPhase = (turn: TurnState, settings: GameSettings, phase: Phase, bas
     lastEndgameVerificationAt: phase === "CHASE" ? null : turn.lastEndgameVerificationAt,
     endgameQuestionsUnlocked: phase === "CHASE" ? false : turn.endgameQuestionsUnlocked,
     lastEndgameQuestionsConsultAt: phase === "CHASE" ? null : turn.lastEndgameQuestionsConsultAt,
+    captureAttempt: phase === "CHASE" ? null : turn.captureAttempt ?? null,
     outOfArea: null,
   };
 };
@@ -388,6 +412,19 @@ const readLocationPoint = (data: DocumentData | undefined): LatLng | null => {
   if (typeof lat !== "number" || typeof lng !== "number") return null;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return {lat, lng};
+};
+
+const buildHidingZoneForStation = (stationId: string, radiusM: number): HidingZone => {
+  const station = getPlayableStationById(stationId);
+  if (!station) {
+    throw new HttpsError("invalid-argument", "La estación no es jugable.");
+  }
+
+  return {
+    stationId: station.id,
+    center: {lat: station.lat, lng: station.lng},
+    radiusM,
+  };
 };
 
 const isFreshLocation = (updatedAt: Timestamp | undefined, baseNow: Timestamp): boolean =>
@@ -520,6 +557,81 @@ const refreshEndgameStateInTx = async (
   return true;
 };
 
+const resolveBaseStationAtEscapeEndInTx = async (
+  tx: Transaction,
+  gameRef: DocumentReference,
+  game: GameDoc,
+  txNow: Timestamp,
+): Promise<TurnState | null> => {
+  const turn = game.currentTurn;
+  if (!turn || turn.phase !== "ESCAPE" || turn.hidingZone) {
+    return turn ?? null;
+  }
+
+  const hiderSeatsSnap = await tx.get(
+    gameRef.collection("seats").where("teamId", "==", turn.hiderTeamId),
+  );
+  const hiderUids = hiderSeatsSnap.docs
+    .map((seatDoc) => String(seatDoc.data()?.uid ?? seatDoc.id))
+    .filter((uid) => uid.length > 0);
+
+  let latestLocation: DocumentData | undefined;
+  for (const hiderUid of hiderUids) {
+    const location = (await tx.get(gameRef.collection("privateLocations").doc(hiderUid))).data();
+    const updatedAt = location?.updatedAt as Timestamp | undefined;
+    if (!location || !isFreshLocation(updatedAt, txNow) || location.geofenceReliable === false) {
+      continue;
+    }
+    if (!latestLocation || updatedAt!.toMillis() > (latestLocation.updatedAt as Timestamp).toMillis()) {
+      latestLocation = location;
+    }
+  }
+
+  const point = readLocationPoint(latestLocation);
+  if (!point) {
+    return {
+      ...turn,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: true,
+    };
+  }
+
+  const radiusM = game.settings.zoneRadiusM;
+  const zoneMatches = findPlayableStationZones(point, radiusM);
+  if (zoneMatches.length === 1) {
+    return {
+      ...turn,
+      hidingZone: buildHidingZoneForStation(zoneMatches[0].station.id, radiusM),
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: false,
+    };
+  }
+
+  if (zoneMatches.length > 1) {
+    return {
+      ...turn,
+      baseStationCandidateIds: zoneMatches.map((match) => match.station.id),
+      baseStationSelectionRequired: true,
+    };
+  }
+
+  const nearest = findNearestPlayableStation(point);
+  if (!nearest) {
+    return {
+      ...turn,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: true,
+    };
+  }
+
+  return {
+    ...turn,
+    hidingZone: buildHidingZoneForStation(nearest.station.id, radiusM),
+    baseStationCandidateIds: [nearest.station.id],
+    baseStationSelectionRequired: false,
+  };
+};
+
 const drawFromDeck = (
   turn: TurnState,
   requestedCount: number,
@@ -595,6 +707,8 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       activeEffects: [],
       ...createInitialDeckState(),
       hidingZone: null,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: false,
       endgameActive: false,
       endgameAnchorPoint: null,
       endgameLastChangedAt: null,
@@ -603,6 +717,7 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       lastEndgameQuestionsConsultAt: null,
       outOfArea: null,
       foundVotes: [],
+      captureAttempt: null,
     };
     game.winnerTeamIds = findWinnerIds(game);
     return game;
@@ -625,6 +740,8 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     activeEffects: [],
     ...createInitialDeckState(),
     hidingZone: null,
+    baseStationCandidateIds: [],
+    baseStationSelectionRequired: false,
     endgameActive: false,
     endgameAnchorPoint: null,
     endgameLastChangedAt: null,
@@ -634,6 +751,7 @@ const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     outOfArea: null,
     expirations: 0,
     foundVotes: [],
+      captureAttempt: null,
   };
   return game;
 };
@@ -872,6 +990,8 @@ export const startGame = onCall(async (request) => {
       activeEffects: [],
       ...createInitialDeckState(),
       hidingZone: null,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: false,
       endgameActive: false,
       endgameAnchorPoint: null,
       endgameLastChangedAt: null,
@@ -881,6 +1001,7 @@ export const startGame = onCall(async (request) => {
       outOfArea: null,
       expirations: 0,
       foundVotes: [],
+      captureAttempt: null,
     };
 
     tx.update(gameRef, {
@@ -896,6 +1017,7 @@ export const startGame = onCall(async (request) => {
 });
 
 export const setTurnHidingZone = onCall(async (request) => {
+  throw new HttpsError("failed-precondition", "Usar confirmBaseStation.");
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const stationId = String(request.data?.stationId ?? "").trim();
@@ -937,6 +1059,82 @@ export const setTurnHidingZone = onCall(async (request) => {
         lastEndgameQuestionsConsultAt: null,
         outOfArea: null,
         foundVotes: [],
+      captureAttempt: null,
+      },
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true};
+});
+
+export const confirmBaseStation = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const stationId = String(request.data?.stationId ?? "").trim();
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  if (!stationId) {
+    throw new HttpsError("invalid-argument", "stationId es obligatorio.");
+  }
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn) {
+      throw new HttpsError("failed-precondition", "La partida no esta en juego activo.");
+    }
+    if (turn.phase !== "ESCAPE" && !(turn.phase === "CHASE" && turn.baseStationSelectionRequired)) {
+      throw new HttpsError("failed-precondition", "La estacion base solo se confirma durante ESCAPE o si quedo pendiente.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede confirmar estacion base.");
+    }
+
+    const radiusM = game.settings.zoneRadiusM;
+    const hidingZone = buildHidingZoneForStation(stationId, radiusM);
+
+    if (turn.phase === "CHASE" && turn.baseStationSelectionRequired) {
+      const allowedCandidateIds = turn.baseStationCandidateIds ?? [];
+      if (allowedCandidateIds.length > 0 && !allowedCandidateIds.includes(stationId)) {
+        throw new HttpsError("failed-precondition", "Esa estacion no esta entre las opciones detectadas al final del escape.");
+      }
+    } else {
+      const privateLocation = (await tx.get(gameRef.collection("privateLocations").doc(uid))).data();
+      const point = readLocationPoint(privateLocation);
+      const updatedAt = privateLocation?.updatedAt as Timestamp | undefined;
+      const geofenceReliable = privateLocation?.geofenceReliable !== false;
+      if (!point || !updatedAt || !isFreshLocation(updatedAt, nowTs()) || !geofenceReliable) {
+        throw new HttpsError("failed-precondition", "Necesitas una ubicacion reciente y confiable para confirmar estacion base.");
+      }
+
+      if (distanceMeters(point, hidingZone.center) > radiusM) {
+        throw new HttpsError("failed-precondition", "Todavia no estas dentro de la zona de esa estacion.");
+      }
+    }
+
+    const now = nowTs();
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        hidingZone,
+        baseStationCandidateIds: [],
+        baseStationSelectionRequired: false,
+        endgameActive: false,
+        endgameAnchorPoint: null,
+        endgameLastChangedAt: null,
+        lastEndgameVerificationAt: null,
+        endgameQuestionsUnlocked: false,
+        lastEndgameQuestionsConsultAt: null,
+        outOfArea: null,
+        foundVotes: [],
+      captureAttempt: null,
       },
       updatedAt: now,
     });
@@ -1335,6 +1533,9 @@ export const sendQuestion = onCall(async (request) => {
     if (game.currentTurn.phase !== "CHASE") {
       throw new HttpsError("failed-precondition", "Solo se puede preguntar en CHASE.");
     }
+    if (!game.currentTurn.hidingZone || game.currentTurn.baseStationSelectionRequired) {
+      throw new HttpsError("failed-precondition", "BASE_STATION_REQUIRED");
+    }
     if (game.currentTurn.pendingQuestionId) {
       throw new HttpsError("failed-precondition", "Ya existe una pregunta pendiente.");
     }
@@ -1656,6 +1857,173 @@ export const completeCurseEffect = onCall(async (request) => {
   return {ok: true};
 });
 
+export const startCaptureAttempt = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  let attemptId = "";
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "La captura solo se intenta en CHASE.");
+    }
+    if (!turn.endgameActive) {
+      throw new HttpsError("failed-precondition", "CAPTURE_REQUIRES_ENDGAME");
+    }
+    if (turn.captureAttempt?.status === "PENDING_HIDER") {
+      throw new HttpsError("failed-precondition", "CAPTURE_ATTEMPT_ALREADY_ACTIVE");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo seekers pueden iniciar captura.");
+    }
+
+    const now = nowTs();
+    attemptId = gameRef.collection("captureAttempts").doc().id;
+    const captureAttempt: CaptureAttempt = {
+      id: attemptId,
+      status: "PENDING_HIDER",
+      createdByUid: uid,
+      createdByTeamId: seatTeamId,
+      createdAt: now,
+      hiderResolvedByUid: null,
+      hiderResolvedAt: null,
+      seekerConfirmations: [seatTeamId],
+      completedAt: null,
+    };
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        captureAttempt,
+        foundVotes: [seatTeamId],
+      },
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true, attemptId};
+});
+
+export const resolveCaptureAttempt = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const confirmed = Boolean(request.data?.confirmed);
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE" || !turn.captureAttempt) {
+      throw new HttpsError("failed-precondition", "No hay intento de captura activo.");
+    }
+    if (turn.captureAttempt.status !== "PENDING_HIDER") {
+      throw new HttpsError("failed-precondition", "El intento de captura ya fue resuelto.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede responder el intento.");
+    }
+
+    const now = nowTs();
+    game.currentTurn = {
+      ...turn,
+      captureAttempt: {
+        ...turn.captureAttempt,
+        status: confirmed ? "CONFIRMED" : "REJECTED",
+        hiderResolvedByUid: uid,
+        hiderResolvedAt: now,
+        completedAt: confirmed ? now : null,
+      },
+    };
+
+    if (confirmed) {
+      endTurnInTx(game, now);
+    }
+
+    tx.update(gameRef, {
+      currentTurn: game.currentTurn,
+      standings: game.standings,
+      status: game.status,
+      finishedAt: game.finishedAt ?? null,
+      winnerTeamIds: game.winnerTeamIds ?? null,
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true};
+});
+
+export const confirmCaptureBySeeker = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE" || !turn.captureAttempt) {
+      throw new HttpsError("failed-precondition", "No hay intento de captura activo.");
+    }
+    if (turn.captureAttempt.status === "CONFIRMED") {
+      throw new HttpsError("failed-precondition", "La captura ya fue confirmada.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo seekers pueden confirmar captura.");
+    }
+
+    const confirmations = turn.captureAttempt.seekerConfirmations.includes(seatTeamId) ?
+      turn.captureAttempt.seekerConfirmations :
+      [...turn.captureAttempt.seekerConfirmations, seatTeamId];
+    const now = nowTs();
+    const shouldEnd = confirmations.length >= requiredSeekerCaptureConfirmations(game);
+
+    game.currentTurn = {
+      ...turn,
+      foundVotes: confirmations,
+      captureAttempt: {
+        ...turn.captureAttempt,
+        status: shouldEnd ? "CONFIRMED" : turn.captureAttempt.status,
+        seekerConfirmations: confirmations,
+        completedAt: shouldEnd ? now : turn.captureAttempt.completedAt ?? null,
+      },
+    };
+
+    if (shouldEnd) {
+      endTurnInTx(game, now);
+    }
+
+    tx.update(gameRef, {
+      currentTurn: game.currentTurn,
+      standings: game.standings,
+      status: game.status,
+      finishedAt: game.finishedAt ?? null,
+      winnerTeamIds: game.winnerTeamIds ?? null,
+      updatedAt: now,
+    });
+  });
+
+  return {ok: true};
+});
+
 export const castFoundVote = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
@@ -1757,6 +2125,8 @@ export const nextTurn = onCall(async (request) => {
       activeEffects: [],
       ...createInitialDeckState(),
       hidingZone: null,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: false,
       endgameActive: false,
       endgameAnchorPoint: null,
       endgameLastChangedAt: null,
@@ -1766,6 +2136,7 @@ export const nextTurn = onCall(async (request) => {
       outOfArea: null,
       expirations: 0,
       foundVotes: [],
+      captureAttempt: null,
     };
 
     tx.update(gameRef, {
@@ -1894,7 +2265,8 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
         if (turn.phase === "INTERMISSION") {
           game.currentTurn = setNextPhase(turn, game.settings, "ESCAPE", txNow);
         } else if (turn.phase === "ESCAPE") {
-          game.currentTurn = setNextPhase(turn, game.settings, "CHASE", txNow);
+          const resolvedTurn = await resolveBaseStationAtEscapeEndInTx(tx, docSnap.ref, game, txNow);
+          game.currentTurn = setNextPhase(resolvedTurn ?? turn, game.settings, "CHASE", txNow);
         } else if (turn.phase === "CHASE") {
           endTurnInTx(game, txNow);
         }

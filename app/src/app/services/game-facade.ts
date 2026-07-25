@@ -52,10 +52,14 @@ const buildBlueprint = (
       drawPileCount: 0,
       discardPileCount: 0,
       lootOffer: null,
+      hidingZone: null,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: false,
       activeEffects: [],
       expirations: 0,
       foundVotes: [],
       foundConfirmed: false,
+      captureAttempt: null,
       endgameEligible: false,
       endgameActive: false,
       endgameQuestionsUnlocked: false,
@@ -229,6 +233,27 @@ export class GameFacadeService {
     );
   }
 
+  startCaptureAttempt(gameId: string): Promise<{ ok: boolean; attemptId: string }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean; attemptId: string }>(
+      'startCaptureAttempt',
+      { gameId },
+    );
+  }
+
+  resolveCaptureAttempt(gameId: string, confirmed: boolean): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; confirmed: boolean }, { ok: boolean }>(
+      'resolveCaptureAttempt',
+      { gameId, confirmed },
+    );
+  }
+
+  confirmCaptureBySeeker(gameId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>(
+      'confirmCaptureBySeeker',
+      { gameId },
+    );
+  }
+
   startGame(gameId: string): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('startGame', { gameId });
   }
@@ -272,6 +297,13 @@ export class GameFacadeService {
         outOfAreaStatus: 'SUSPECTED' | 'ALERTED' | null;
       }
     >('publishHiderPrivateLocation', { gameId, lat, lng, accuracyM });
+  }
+
+  confirmBaseStation(gameId: string, stationId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; stationId: string }, { ok: boolean }>(
+      'confirmBaseStation',
+      { gameId, stationId },
+    );
   }
 
   consultEndgameQuestions(gameId: string): Promise<{ ok: boolean; unlocked: boolean; cooldownActive?: boolean }> {
@@ -405,9 +437,13 @@ export class GameFacadeService {
         drawPileCount: this.stringArray(currentTurn?.['drawPile']).length,
         discardPileCount: this.stringArray(currentTurn?.['discardPile']).length,
         lootOffer: this.mapLootOffer(currentTurn?.['lootOffer']),
+        hidingZone: this.mapHidingZone(currentTurn?.['hidingZone']),
+        baseStationCandidateIds: this.stringArray(currentTurn?.['baseStationCandidateIds']),
+        baseStationSelectionRequired: Boolean(currentTurn?.['baseStationSelectionRequired']),
         activeEffects: this.mapActiveEffects(currentTurn?.['activeEffects']),
         expirations: Number(currentTurn?.['expirations'] ?? 0),
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
+        captureAttempt: this.mapCaptureAttempt(currentTurn?.['captureAttempt']),
         endgameActive: Boolean(currentTurn?.['endgameActive']),
         endgameQuestionsUnlocked: Boolean(currentTurn?.['endgameQuestionsUnlocked']),
         outOfArea: this.mapOutOfAreaStatus(currentTurn?.['outOfArea']),
@@ -498,6 +534,50 @@ export class GameFacadeService {
       drawnCardIds: this.stringArray(lootOffer['drawnCardIds']),
       takeLimit: Number(lootOffer['takeLimit'] ?? 0),
       createdAtIso: this.timestampToIso(lootOffer['createdAt']),
+    };
+  }
+
+  private mapHidingZone(value: unknown): GameBlueprint['currentTurn']['hidingZone'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const zone = value as Record<string, unknown>;
+    const center = zone['center'] as Record<string, unknown> | undefined;
+    const lat = Number(center?.['lat']);
+    const lng = Number(center?.['lng']);
+    const radiusM = Number(zone['radiusM']);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radiusM)) {
+      return null;
+    }
+
+    return {
+      stationId: typeof zone['stationId'] === 'string' ? zone['stationId'] : undefined,
+      center: { lat, lng },
+      radiusM,
+    };
+  }
+
+  private mapCaptureAttempt(value: unknown): GameBlueprint['currentTurn']['captureAttempt'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    const attempt = value as Record<string, unknown>;
+    const status = attempt['status'];
+    if (status !== 'PENDING_HIDER' && status !== 'CONFIRMED' && status !== 'REJECTED') {
+      return null;
+    }
+
+    return {
+      id: String(attempt['id'] ?? ''),
+      status,
+      createdByUid: String(attempt['createdByUid'] ?? ''),
+      createdByTeamId: String(attempt['createdByTeamId'] ?? ''),
+      createdAtIso: this.timestampToIso(attempt['createdAt']),
+      hiderResolvedByUid: typeof attempt['hiderResolvedByUid'] === 'string' ? attempt['hiderResolvedByUid'] : null,
+      hiderResolvedAtIso: this.timestampToIso(attempt['hiderResolvedAt']),
+      seekerConfirmations: this.stringArray(attempt['seekerConfirmations']),
+      completedAtIso: this.timestampToIso(attempt['completedAt']),
     };
   }
 

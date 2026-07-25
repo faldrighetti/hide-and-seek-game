@@ -8,6 +8,9 @@ interface LatLng {
 
 interface Station {
   id: string;
+  name?: string;
+  line?: string;
+  mode?: string;
   lat: number;
   lng: number;
   isInsideCaba?: boolean;
@@ -62,6 +65,27 @@ const getStations = (): Station[] => {
   cachedStations ??= (JSON.parse(readFileSync(assetPath("stations.processed.json"), "utf8")) as StationsProcessedFile).stations;
   return cachedStations;
 };
+
+export const getPlayableStations = (): Station[] => getStations().filter((station) =>
+  station.isPlayable && isValidCoordinate(station),
+);
+
+export const getPlayableStationById = (stationId: string): Station | undefined =>
+  getPlayableStations().find((station) => station.id === stationId);
+
+export const findPlayableStationZones = (
+  location: LatLng,
+  radiusM: number = STATION_ZONE_RADIUS_M,
+): Array<{station: Station; distanceM: number}> =>
+  getPlayableStations()
+    .map((station) => ({station, distanceM: distanceMeters(location, station)}))
+    .filter((match) => match.distanceM <= radiusM)
+    .sort((a, b) => a.distanceM - b.distanceM);
+
+export const findNearestPlayableStation = (location: LatLng): {station: Station; distanceM: number} | undefined =>
+  getPlayableStations()
+    .map((station) => ({station, distanceM: distanceMeters(location, station)}))
+    .sort((a, b) => a.distanceM - b.distanceM)[0];
 
 const assetPath = (fileName: string): string => join(__dirname, "..", "src", "assets", fileName);
 
