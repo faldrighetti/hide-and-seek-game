@@ -1,6 +1,6 @@
 import { Component, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { GameFacadeService } from '../../services/game-facade';
 import {
   ActiveEffect,
@@ -9,7 +9,6 @@ import {
   PendingQuestion,
   PlayerRole,
   QuestionResolution,
-  Seat,
 } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
@@ -66,6 +65,12 @@ interface QuestionsCatalog {
   }>;
 }
 
+interface TurnActionState {
+  title: string;
+  detail: string;
+  color: string;
+}
+
 @Component({
   selector: 'app-game',
   templateUrl: './game.page.html',
@@ -106,15 +111,27 @@ export class GamePage implements OnDestroy {
   resolveQuestionErrorMessage = '';
   outOfAreaActionInFlight = false;
   outOfAreaMessage = '';
+  foundActionInFlight = false;
+  foundErrorMessage = '';
+  now = Date.now();
+
+  private readonly timerId = window.setInterval(() => {
+    this.now = Date.now();
+  }, 1000);
+  private readonly blueprintSubscription: Subscription;
+  private lastLootKey: string | null = null;
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
     this.locationMonitor.start(this.gameId, this.playerRole$, this.blueprint$);
+    this.blueprintSubscription = this.blueprint$.subscribe(vm => this.syncLootSelections(vm));
     void this.loadCardsFromCatalog();
     void this.loadQuestionsCatalog();
   }
 
   ngOnDestroy(): void {
+    window.clearInterval(this.timerId);
+    this.blueprintSubscription.unsubscribe();
     this.locationMonitor.stop();
   }
 
@@ -296,6 +313,33 @@ export class GamePage implements OnDestroy {
     }
   }
 
+  canConfirmLoot(vm: GameBlueprint): boolean {
+    return (
+      !this.selectingLoot
+      && Boolean(vm.currentTurn.lootOffer)
+      && this.projectedHandSize(vm.currentTurn.hiderHandIds.length) <= vm.deckPolicy.maxSize
+    );
+  }
+
+  lootInstruction(vm: GameBlueprint): string {
+    const lootOffer = vm.currentTurn.lootOffer;
+    if (!lootOffer) {
+      return '';
+    }
+
+    const projectedSize = this.projectedHandSize(vm.currentTurn.hiderHandIds.length);
+    if (projectedSize > vm.deckPolicy.maxSize) {
+      const excess = projectedSize - vm.deckPolicy.maxSize;
+      return `Descarta ${excess} carta${excess === 1 ? '' : 's'} mas de tu mano para respetar el maximo de ${vm.deckPolicy.maxSize}.`;
+    }
+
+    if (this.selectedLootCardIds.length === 0) {
+      return 'Podes no tomar cartas y mandar todo el loot al descarte.';
+    }
+
+    return 'Listo para guardar esta seleccion.';
+  }
+
   async playCurse(card: HiderCardData, role: PlayerRole): Promise<void> {
     if (!role.isHider) {
       this.curseErrorMessage = 'Solo el hider puede activar maldiciones.';
@@ -320,8 +364,8 @@ export class GamePage implements OnDestroy {
   }
 
   async completeCurseEffect(effect: ActiveEffect, role: PlayerRole): Promise<void> {
-    if (!role.isSeeker) {
-      this.effectErrorMessage = 'Solo los seekers pueden completar maldiciones.';
+    if (!role.isSeeker && !role.isHider) {
+      this.effectErrorMessage = 'Solo jugadores del turno pueden confirmar maldiciones.';
       return;
     }
 
@@ -330,7 +374,7 @@ export class GamePage implements OnDestroy {
     try {
       await this.gameFacade.completeCurseEffect(this.gameId, effect.id);
     } catch (error) {
-      this.effectErrorMessage = error instanceof Error ? error.message : 'No se pudo completar la maldicion.';
+      this.effectErrorMessage = error instanceof Error ? error.message : 'No se pudo confirmar la maldición.';
     } finally {
       this.completingEffectId = null;
     }
@@ -366,6 +410,18 @@ export class GamePage implements OnDestroy {
 
   effectTitle(curseId: string): string {
     return this.fallbackCardByBaseId.get(curseId)?.title ?? curseId;
+  }
+
+  effectCompletionLabel(effect: ActiveEffect, role: PlayerRole): string {
+    if (this.completingEffectId === effect.id) {
+      return 'Confirmando...';
+    }
+
+    if (role.isHider) {
+      return effect.expiresAtIso ? 'Cerrar efecto' : 'Aceptar evidencia';
+    }
+
+    return effect.expiresAtIso ? 'Cerrar manualmente' : 'Confirmar por WhatsApp';
   }
 
   toggleHandDiscard(cardId: string): void {
@@ -447,10 +503,6 @@ export class GamePage implements OnDestroy {
     return cardIds.map(cardId => this.cardForId(cardId));
   }
 
-  setPhase(phase: GameBlueprint['currentTurn']['phase']): void {
-    this.gameFacade.setPhase(phase);
-  }
-
   phaseLabel(phase: GameBlueprint['currentTurn']['phase']): string {
     const labels: Record<GameBlueprint['currentTurn']['phase'], string> = {
       INTERMISSION: 'Intervalo',
@@ -462,24 +514,21 @@ export class GamePage implements OnDestroy {
     return labels[phase];
   }
 
-  voteFound(seatId: string): void {
-    this.gameFacade.voteFound(seatId);
-  }
-
-  setEndgameActive(active: boolean): void {
-    this.gameFacade.setEndgameActive(active);
-  }
-
-  getSeekerSeats(vm: GameBlueprint, lobby: LobbyState | null): Seat[] {
-    if (!lobby) {
-      return [];
+  async voteFound(role: PlayerRole): Promise<void> {
+    if (!role.isSeeker || !role.teamId) {
+      this.foundErrorMessage = 'Solo los seekers pueden marcar FOUND.';
+      return;
     }
 
-    return lobby.seats.filter(seat => seat.teamId !== vm.currentTurn.hiderTeamId);
-  }
-
-  currentSeekerSeat(role: PlayerRole): Seat[] {
-    return role.isSeeker && role.seat ? [role.seat] : [];
+    this.foundActionInFlight = true;
+    this.foundErrorMessage = '';
+    try {
+      await this.gameFacade.castFoundVote(this.gameId, role.teamId);
+    } catch (error) {
+      this.foundErrorMessage = error instanceof Error ? error.message : 'No se pudo registrar FOUND.';
+    } finally {
+      this.foundActionInFlight = false;
+    }
   }
 
   formatTime(seconds: number): string {
@@ -497,7 +546,144 @@ export class GamePage implements OnDestroy {
     if (!iso) {
       return 0;
     }
-    return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
+    return Math.max(0, Math.ceil((new Date(iso).getTime() - this.now) / 1000));
+  }
+
+  turnActionState(vm: GameBlueprint, role: PlayerRole, pendingQuestion: PendingQuestion | null): TurnActionState {
+    if (!role.isParticipant) {
+      return {
+        title: 'Sin asiento en esta partida',
+        detail: 'Unite desde el lobby con tu cuenta de Google para poder actuar.',
+        color: 'medium',
+      };
+    }
+
+    if (vm.currentTurn.phase === 'INTERMISSION') {
+      return {
+        title: 'Intervalo',
+        detail: 'El proximo escape empieza cuando termine el contador.',
+        color: 'tertiary',
+      };
+    }
+
+    if (vm.currentTurn.phase === 'ESCAPE') {
+      return role.isHider
+        ? {
+          title: 'Escape en curso',
+          detail: 'Elegir y confirmar estacion base es el proximo bloque pendiente de UX.',
+          color: 'warning',
+        }
+        : {
+          title: 'Esperando al hider',
+          detail: 'Durante ESCAPE no se pueden enviar preguntas.',
+          color: 'medium',
+        };
+    }
+
+    if (vm.currentTurn.phase === 'ENDED') {
+      return {
+        title: 'Turno cerrado',
+        detail: 'Revisen el scoreboard antes de pasar al siguiente turno.',
+        color: 'medium',
+      };
+    }
+
+    if (pendingQuestion) {
+      return role.isHider
+        ? {
+          title: 'Tenes una pregunta pendiente',
+          detail: 'Responde, veta o randomiza antes de que venza el timer.',
+          color: 'warning',
+        }
+        : {
+          title: 'Esperando respuesta',
+          detail: 'El hider esta resolviendo la pregunta pendiente.',
+          color: 'warning',
+        };
+    }
+
+    if (role.isHider && vm.currentTurn.lootOffer) {
+      return {
+        title: 'Loot pendiente',
+        detail: 'Elegi cartas nuevas y descarta de tu mano si hace falta.',
+        color: 'success',
+      };
+    }
+
+    if (role.isSeeker && this.hasQuestionBlockingEffect(vm.currentTurn.activeEffects)) {
+      return {
+        title: 'Pregunta bloqueada',
+        detail: 'Completen la condicion de la maldicion activa para volver a preguntar.',
+        color: 'warning',
+      };
+    }
+
+    if (role.isSeeker) {
+      return {
+        title: 'Elegi una pregunta',
+        detail: 'Selecciona una categoria y envia una pregunta al hider.',
+        color: 'primary',
+      };
+    }
+
+    return {
+      title: 'Sin accion pendiente',
+      detail: 'Espera la proxima pregunta de los seekers.',
+      color: 'medium',
+    };
+  }
+
+  phaseProgress(vm: GameBlueprint): number {
+    const totalByPhase: Record<GameBlueprint['currentTurn']['phase'], number> = {
+      INTERMISSION: vm.settings.intermissionSeconds,
+      ESCAPE: vm.settings.escapeSeconds,
+      CHASE: vm.settings.chaseMaxSeconds,
+      ENDED: 0,
+    };
+    const total = totalByPhase[vm.currentTurn.phase];
+    if (!total) {
+      return 1;
+    }
+
+    const remaining = this.secondsUntil(vm.currentTurn.endsAtIso);
+    return Math.min(1, Math.max(0, 1 - remaining / total));
+  }
+
+  pendingQuestionProgress(vm: GameBlueprint): number {
+    const remaining = this.secondsUntil(vm.currentTurn.pendingQuestionEndsAtIso);
+    const total = vm.currentTurn.pendingQuestionEndsAtIso && remaining > vm.questionPolicy.regularTimeoutSeconds
+      ? vm.questionPolicy.photoTimeoutSeconds
+      : vm.questionPolicy.regularTimeoutSeconds;
+    return Math.min(1, Math.max(0, 1 - remaining / total));
+  }
+
+  questionResolutionHint(resolution: QuestionResolution): string {
+    const hints: Record<QuestionResolution, string> = {
+      ANSWER: 'Registra que la respuesta fue enviada.',
+      VETO: 'Requiere tener carta Veto en mano.',
+      RANDOMIZE: 'Requiere tener carta Randomizar en mano.',
+    };
+
+    return hints[resolution];
+  }
+
+  canUseResolution(resolution: QuestionResolution, vm: GameBlueprint): boolean {
+    if (resolution === 'ANSWER') {
+      return true;
+    }
+
+    const requiredPrefix = resolution === 'VETO' ? 'powerup_veto' : 'powerup_randomize';
+    return vm.currentTurn.hiderHandIds.some(cardId => cardId.split('#')[0] === requiredPrefix);
+  }
+
+  inactiveResolutionMessage(resolution: QuestionResolution, vm: GameBlueprint): string {
+    if (this.canUseResolution(resolution, vm)) {
+      return '';
+    }
+
+    return resolution === 'VETO'
+      ? 'Necesitas una carta Veto en mano.'
+      : 'Necesitas una carta Randomizar en mano.';
   }
 
   private toHiderCardData(card: CardDefinition): HiderCardData {
@@ -538,5 +724,29 @@ export class GamePage implements OnDestroy {
       title: cardId,
       description: 'Carta no encontrada en Tarjetas_CABA.json.',
     };
+  }
+
+  private syncLootSelections(vm: GameBlueprint): void {
+    const lootOffer = vm.currentTurn.lootOffer;
+    const lootKey = lootOffer
+      ? `${lootOffer.questionId}:${lootOffer.drawnCardIds.join('|')}:${lootOffer.takeLimit}`
+      : null;
+
+    if (lootKey !== this.lastLootKey) {
+      this.selectedLootCardIds = [];
+      this.discardFromHandIds = [];
+      this.lootErrorMessage = '';
+      this.lastLootKey = lootKey;
+      return;
+    }
+
+    if (!lootOffer) {
+      return;
+    }
+
+    const drawn = new Set(lootOffer.drawnCardIds);
+    const hand = new Set(vm.currentTurn.hiderHandIds);
+    this.selectedLootCardIds = this.selectedLootCardIds.filter(cardId => drawn.has(cardId));
+    this.discardFromHandIds = this.discardFromHandIds.filter(cardId => hand.has(cardId));
   }
 }

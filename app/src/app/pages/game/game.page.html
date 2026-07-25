@@ -12,6 +12,47 @@
     <ng-container *ngIf="playerRole$ | async as role">
     <ion-row>
       <ion-col size="12">
+        <ng-container *ngIf="{ pendingQuestion: pendingQuestion$ | async } as questionContext">
+          <ion-card class="turn-summary" [class.hider]="role.isHider" [class.seeker]="role.isSeeker">
+            <ion-card-header>
+              <div class="turn-summary-header">
+                <div>
+                  <ion-card-title>{{ turnActionState(vm, role, questionContext.pendingQuestion).title }}</ion-card-title>
+                  <p>{{ turnActionState(vm, role, questionContext.pendingQuestion).detail }}</p>
+                </div>
+                <ion-chip [color]="turnActionState(vm, role, questionContext.pendingQuestion).color">
+                  {{ role.isHider ? 'Hider' : role.isSeeker ? 'Seeker' : role.isHost ? 'Host' : 'Sin seat' }}
+                </ion-chip>
+              </div>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="turn-metrics">
+                <div>
+                  <span>Fase</span>
+                  <strong>{{ phaseLabel(vm.currentTurn.phase) }}</strong>
+                </div>
+                <div>
+                  <span>Tiempo fase</span>
+                  <strong>{{ formatTime(secondsUntil(vm.currentTurn.endsAtIso)) }}</strong>
+                </div>
+                <div>
+                  <span>Hider</span>
+                  <strong>Team {{ vm.currentTurn.hiderTeamId }}</strong>
+                </div>
+                <div>
+                  <span>Tu equipo</span>
+                  <strong>{{ role.teamId || '-' }}</strong>
+                </div>
+              </div>
+              <ion-progress-bar [value]="phaseProgress(vm)"></ion-progress-bar>
+            </ion-card-content>
+          </ion-card>
+        </ng-container>
+      </ion-col>
+    </ion-row>
+
+    <ion-row>
+      <ion-col size="12">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Ubicacion</ion-card-title>
@@ -69,6 +110,27 @@
     <ion-row>
       <ion-col size="12" *ngIf="role.isHider">
         <ng-container *ngIf="vm.currentTurn.lootOffer as lootOffer">
+          <ion-card class="loot-guide">
+            <ion-card-header>
+              <ion-card-title>Elegir loot</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="loot-steps">
+                <div [class.done]="selectedLootCardIds.length > 0 || lootOffer.takeLimit === 0">
+                  <span>1</span>
+                  <p>Elegi hasta {{ lootOffer.takeLimit }} carta{{ lootOffer.takeLimit === 1 ? '' : 's' }} nueva{{ lootOffer.takeLimit === 1 ? '' : 's' }}.</p>
+                </div>
+                <div [class.done]="projectedHandSize(vm.currentTurn.hiderHandIds.length) <= vm.deckPolicy.maxSize">
+                  <span>2</span>
+                  <p>Si la mano supera {{ vm.deckPolicy.maxSize }}, marca cartas actuales para descartar.</p>
+                </div>
+                <div [class.done]="canConfirmLoot(vm)">
+                  <span>3</span>
+                  <p>Confirma para guardar la mano y descartar lo no elegido.</p>
+                </div>
+              </div>
+            </ion-card-content>
+          </ion-card>
           <app-hider-draw
             [title]="'Loot pendiente'"
             [category]="lootOffer.categoryId"
@@ -85,15 +147,18 @@
             <ion-note>
               Elegidas: {{ selectedLootCardIds.length }} / {{ lootOffer.takeLimit }}.
               Descartar de mano: {{ discardFromHandIds.length }}.
-              Mano final: {{ projectedHandSize(vm.currentTurn.hiderHandIds.length) }} / 6.
+              Mano final: {{ projectedHandSize(vm.currentTurn.hiderHandIds.length) }} / {{ vm.deckPolicy.maxSize }}.
+            </ion-note>
+            <ion-note [color]="projectedHandSize(vm.currentTurn.hiderHandIds.length) > vm.deckPolicy.maxSize ? 'danger' : 'medium'">
+              {{ lootInstruction(vm) }}
             </ion-note>
             <ion-button
               size="small"
               color="success"
-              [disabled]="selectingLoot || projectedHandSize(vm.currentTurn.hiderHandIds.length) > 6"
+              [disabled]="!canConfirmLoot(vm)"
               (click)="confirmLootSelection(role)"
             >
-              {{ selectingLoot ? 'Guardando...' : 'Llevar al mazo' }}
+              {{ selectingLoot ? 'Guardando...' : selectedLootCardIds.length ? 'Guardar seleccion' : 'Descartar loot' }}
             </ion-button>
             <ion-note *ngIf="lootErrorMessage" color="danger">{{ lootErrorMessage }}</ion-note>
           </div>
@@ -128,7 +193,7 @@
                 <ion-button
                   slot="end"
                   size="small"
-                  [disabled]="playingCurseCardId !== null"
+                  [disabled]="playingCurseCardId !== null || vm.currentTurn.phase !== 'CHASE' || vm.currentTurn.pendingQuestion"
                   (click)="playCurse(card, role)"
                 >
                   {{ playingCurseCardId === card.id ? 'Activando...' : 'Activar' }}
@@ -148,6 +213,9 @@
             <ion-card-title>Efectos activos</ion-card-title>
           </ion-card-header>
           <ion-card-content>
+            <ion-note color="medium">
+              Las maldiciones que dependen de evidencia externa se cierran manualmente cuando un lado confirma que se cumplió por WhatsApp.
+            </ion-note>
             <ion-list lines="full">
               <ion-item *ngFor="let effect of vm.currentTurn.activeEffects">
                 <ion-label>
@@ -161,38 +229,18 @@
                   <p *ngIf="effect.expiresAtIso">Hasta {{ effect.expiresAtIso | date: 'shortTime' }}</p>
                 </ion-label>
                 <ion-button
-                  *ngIf="role.isSeeker"
+                  *ngIf="role.isSeeker || role.isHider"
                   slot="end"
                   size="small"
                   fill="outline"
                   [disabled]="completingEffectId !== null"
                   (click)="completeCurseEffect(effect, role)"
                 >
-                  {{ completingEffectId === effect.id ? 'Enviando...' : 'Cumplida' }}
+                  {{ effectCompletionLabel(effect, role) }}
                 </ion-button>
               </ion-item>
             </ion-list>
             <ion-note *ngIf="effectErrorMessage" color="danger">{{ effectErrorMessage }}</ion-note>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-
-    <ion-row>
-      <ion-col size="12" *ngIf="role.isHost">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Fase actual + timer</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-chip color="tertiary">{{ phaseLabel(vm.currentTurn.phase) }}</ion-chip>
-            <p>Termina: {{ vm.currentTurn.endsAtIso | date: 'short' }}</p>
-            <div class="actions">
-              <ion-button size="small" fill="outline" (click)="setPhase('INTERMISSION')">Intervalo</ion-button>
-              <ion-button size="small" fill="outline" (click)="setPhase('ESCAPE')">Escape</ion-button>
-              <ion-button size="small" fill="outline" (click)="setPhase('CHASE')">Búsqueda</ion-button>
-              <ion-button size="small" fill="outline" color="medium" (click)="setPhase('ENDED')">Fin</ion-button>
-            </div>
           </ion-card-content>
         </ion-card>
       </ion-col>
@@ -211,8 +259,12 @@
                 <ion-chip color="warning">{{ pendingQuestion.isPhoto ? 'Foto' : pendingQuestion.categoryId }}</ion-chip>
                 <h3>{{ pendingQuestion.prompt }}</h3>
                 <p *ngIf="pendingQuestion.expiresAtIso">
-                  Vence: {{ pendingQuestion.expiresAtIso | date: 'shortTime' }}
+                  Quedan {{ formatTime(secondsUntil(pendingQuestion.expiresAtIso)) }}.
                 </p>
+                <ion-progress-bar [value]="pendingQuestionProgress(vm)" color="warning"></ion-progress-bar>
+                <ion-note *ngIf="pendingQuestion.isPhoto" color="medium">
+                  La foto se envia por fuera de la app; aca solo registren el estado de la respuesta.
+                </ion-note>
                 <div class="actions">
                   <ion-button
                     *ngIf="role.isHider"
@@ -228,7 +280,7 @@
                     size="small"
                     fill="outline"
                     color="warning"
-                    [disabled]="resolvingQuestion !== null"
+                    [disabled]="resolvingQuestion !== null || !canUseResolution('VETO', vm)"
                     (click)="resolvePendingQuestion('VETO', role)"
                   >
                     {{ resolvingQuestion === 'VETO' ? 'Enviando...' : resolutionLabel('VETO') }}
@@ -238,12 +290,18 @@
                     size="small"
                     fill="outline"
                     color="tertiary"
-                    [disabled]="resolvingQuestion !== null"
+                    [disabled]="resolvingQuestion !== null || !canUseResolution('RANDOMIZE', vm)"
                     (click)="resolvePendingQuestion('RANDOMIZE', role)"
                   >
                     {{ resolvingQuestion === 'RANDOMIZE' ? 'Enviando...' : resolutionLabel('RANDOMIZE') }}
                   </ion-button>
                 </div>
+                <ion-note *ngIf="role.isHider && inactiveResolutionMessage('VETO', vm)" color="medium">
+                  {{ inactiveResolutionMessage('VETO', vm) }}
+                </ion-note>
+                <ion-note *ngIf="role.isHider && inactiveResolutionMessage('RANDOMIZE', vm)" color="medium">
+                  {{ inactiveResolutionMessage('RANDOMIZE', vm) }}
+                </ion-note>
                 <ion-note *ngIf="resolveQuestionErrorMessage" color="danger">{{ resolveQuestionErrorMessage }}</ion-note>
               </div>
             </ng-container>
@@ -260,6 +318,7 @@
                 || vm.currentTurn.phase !== 'CHASE'
                 || sendingQuestion
                 || hasQuestionBlockingEffect(vm.currentTurn.activeEffects)
+                || vm.currentTurn.lootOffer !== null
               "
               (click)="sendSelectedQuestion(role)"
             >
@@ -267,6 +326,9 @@
             </ion-button>
             <ion-note *ngIf="hasQuestionBlockingEffect(vm.currentTurn.activeEffects)" color="warning">
               Hay una maldicion activa que bloquea preguntas.
+            </ion-note>
+            <ion-note *ngIf="vm.currentTurn.lootOffer" color="warning">
+              El hider todavia tiene loot pendiente.
             </ion-note>
             <div class="endgame-question-actions">
               <ion-button
@@ -324,30 +386,29 @@
       <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHost">
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Voto FOUND</ion-card-title>
+            <ion-card-title>FOUND</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <div class="actions">
-              <ion-button *ngIf="role.isHost" size="small" fill="outline" color="success" (click)="setEndgameActive(true)">
-                Activar Endgame
-              </ion-button>
-              <ion-button *ngIf="role.isHost" size="small" fill="outline" color="medium" (click)="setEndgameActive(false)">
-                Desactivar Endgame
-              </ion-button>
-            </div>
-            <p *ngIf="role.isHost">Endgame: {{ vm.currentTurn.endgameActive ? 'Activo' : 'Inactivo' }}</p>
-            <ng-container *ngIf="lobby$ | async as lobby">
+            <ion-chip [color]="vm.currentTurn.endgameActive ? 'success' : 'medium'">
+              Endgame {{ vm.currentTurn.endgameActive ? 'activo' : 'inactivo' }}
+            </ion-chip>
+            <ng-container *ngIf="role.isSeeker">
               <ion-button
+                expand="block"
                 size="small"
-                fill="outline"
-                *ngFor="let seat of role.isHost ? getSeekerSeats(vm, lobby) : currentSeekerSeat(role)"
-                (click)="voteFound(seat.id)"
+                color="success"
+                [disabled]="!vm.currentTurn.endgameActive || foundActionInFlight"
+                (click)="voteFound(role)"
               >
-                Vote {{ seat.displayName }} ({{ seat.teamId }})
+                {{ foundActionInFlight ? 'Registrando...' : 'Marcar FOUND' }}
               </ion-button>
-              <p>Votos (seatId): {{ vm.currentTurn.foundVotes.join(', ') || 'Sin votos' }}</p>
             </ng-container>
-            <p>FOUND confirmado: {{ vm.currentTurn.foundConfirmed ? 'Sí' : 'No' }}</p>
+            <p>Votos por equipo: {{ vm.currentTurn.foundVotes.join(', ') || 'Sin votos' }}</p>
+            <p>FOUND confirmado: {{ vm.currentTurn.foundConfirmed ? 'Si' : 'No' }}</p>
+            <ion-note *ngIf="!vm.currentTurn.endgameActive" color="medium">
+              Se habilita cuando el endgame esta activo.
+            </ion-note>
+            <ion-note *ngIf="foundErrorMessage" color="danger">{{ foundErrorMessage }}</ion-note>
           </ion-card-content>
         </ion-card>
       </ion-col>

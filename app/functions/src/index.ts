@@ -1630,8 +1630,10 @@ export const completeCurseEffect = onCall(async (request) => {
       gameRef.collection("seats").where("uid", "==", uid).limit(1),
     );
     const seatTeamId = String(seatSnap.docs[0]?.data()?.teamId ?? "");
-    if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
-      throw new HttpsError("permission-denied", "Solo los seekers pueden completar maldiciones.");
+    const isCurrentHider = seatTeamId === turn.hiderTeamId;
+    const isCurrentSeeker = Boolean(seatTeamId) && seatTeamId !== turn.hiderTeamId;
+    if (!isCurrentHider && !isCurrentSeeker) {
+      throw new HttpsError("permission-denied", "Solo jugadores del turno pueden completar maldiciones.");
     }
 
     const now = nowTs();

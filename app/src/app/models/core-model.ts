@@ -107,7 +107,6 @@ export interface EffectPolicy {
   allowOnlyInChaseOrEndgame: boolean;
   blockIfQuestionPending: boolean;
   uniqueByEffectType: boolean;
-  serverDice: boolean;
 }
 
 export interface EndgamePolicy {

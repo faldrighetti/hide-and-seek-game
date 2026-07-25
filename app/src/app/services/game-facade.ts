@@ -77,7 +77,6 @@ const buildBlueprint = (
       allowOnlyInChaseOrEndgame: true,
       blockIfQuestionPending: true,
       uniqueByEffectType: true,
-      serverDice: true,
     },
     endgamePolicy: {
       eligibleRadiusM: settings.zoneRadiusM + settings.eligibleBufferM,
@@ -223,64 +222,11 @@ export class GameFacadeService {
     this.blueprintSubject.next(buildBlueprint(mode, turnsPerTeam, winCondition));
   }
 
-  setPhase(phase: GameBlueprint['currentTurn']['phase']): void {
-    const current = this.blueprintSubject.value;
-    const durationByPhase = {
-      INTERMISSION: current.settings.intermissionSeconds,
-      ESCAPE: current.settings.escapeSeconds,
-      CHASE: current.settings.chaseMaxSeconds,
-      ENDED: 0,
-    };
-
-    this.blueprintSubject.next({
-      ...current,
-      currentTurn: {
-        ...current.currentTurn,
-        phase,
-        endsAtIso: new Date(Date.now() + durationByPhase[phase] * 1000).toISOString(),
-      },
-    });
-  }
-
-  voteFound(seatId: string): void {
-    const current = this.blueprintSubject.value;
-    const lobby = this.lobbySubject.value;
-
-    if (!lobby || !current.currentTurn.endgameActive) {
-      return;
-    }
-
-    const seat = lobby.seats.find(item => item.id === seatId);
-    if (!seat || seat.teamId === current.currentTurn.hiderTeamId) {
-      return;
-    }
-
-    const votes = current.currentTurn.foundVotes.includes(seatId)
-      ? current.currentTurn.foundVotes
-      : [...current.currentTurn.foundVotes, seatId];
-
-    this.blueprintSubject.next({
-      ...current,
-      currentTurn: {
-        ...current.currentTurn,
-        foundVotes: votes,
-        foundConfirmed: this.isFoundConfirmed(current, lobby, votes),
-      },
-    });
-  }
-
-  setEndgameActive(active: boolean): void {
-    const current = this.blueprintSubject.value;
-
-    this.blueprintSubject.next({
-      ...current,
-      currentTurn: {
-        ...current.currentTurn,
-        endgameActive: active,
-        foundVotes: active ? current.currentTurn.foundVotes : [],
-        foundConfirmed: active ? current.currentTurn.foundConfirmed : false,
-      },
-    });
+  castFoundVote(gameId: string, teamId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; teamId: string }, { ok: boolean }>(
+      'castFoundVote',
+      { gameId, teamId },
+    );
   }
 
   startGame(gameId: string): Promise<{ ok: boolean }> {
@@ -400,21 +346,6 @@ export class GameFacadeService {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>(
       'clearHiderOutOfArea',
       { gameId },
-    );
-  }
-
-  private isFoundConfirmed(current: GameBlueprint, lobby: LobbyState, votes: string[]): boolean {
-    const seekerSeats = lobby.seats.filter(seat => seat.teamId !== current.currentTurn.hiderTeamId);
-
-    if (current.mode === 'INDIVIDUAL_1v1' || current.mode === 'INDIVIDUAL_3' || current.mode === 'TEAMS_2v2') {
-      const seekerSeatIds = seekerSeats.map(seat => seat.id);
-      return seekerSeatIds.length > 0 && seekerSeatIds.every(seekerSeatId => votes.includes(seekerSeatId));
-    }
-
-    const seekerTeamIds = [...new Set(seekerSeats.map(seat => seat.teamId))];
-    return (
-      seekerTeamIds.length > 0
-      && seekerTeamIds.every(teamId => seekerSeats.some(seat => seat.teamId === teamId && votes.includes(seat.id)))
     );
   }
 
