@@ -130,6 +130,7 @@ interface ListGameNotificationsResponse {
 }
 
 interface SendQuestionOptions {
+  distanceM?: number;
   customDistanceM?: number;
 }
 
@@ -292,7 +293,14 @@ export class GameFacadeService {
     options: SendQuestionOptions = {},
   ): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<
-      { gameId: string; categoryId: string; prompt: string; isPhoto: boolean; customDistanceM?: number },
+      {
+        gameId: string;
+        categoryId: string;
+        prompt: string;
+        isPhoto: boolean;
+        distanceM?: number;
+        customDistanceM?: number;
+      },
       { ok: boolean }
     >('sendQuestion', { gameId, categoryId, prompt, isPhoto, ...options });
   }
@@ -644,6 +652,7 @@ export class GameFacadeService {
       categoryId: String(question['categoryId'] ?? ''),
       prompt: String(question['prompt'] ?? ''),
       isPhoto: Boolean(question['isPhoto']),
+      distanceM: typeof question['distanceM'] === 'number' ? question['distanceM'] : null,
       customDistanceM: typeof question['customDistanceM'] === 'number' ? question['customDistanceM'] : null,
       status: (question['status'] as PendingQuestion['status'] | undefined) ?? 'PENDING',
       createdAtIso: this.timestampToIso(question['createdAt']),

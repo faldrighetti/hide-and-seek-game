@@ -92,6 +92,7 @@ export interface PendingQuestion {
   categoryId: string;
   prompt: string;
   isPhoto: boolean;
+  distanceM: number | null;
   customDistanceM: number | null;
   status: 'PENDING' | 'RESOLVED' | 'EXPIRED';
   createdAtIso: string | null;

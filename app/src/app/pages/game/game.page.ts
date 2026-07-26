@@ -414,11 +414,13 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.questionErrorMessage = 'La pregunta seleccionada no tiene texto.';
       return;
     }
+    const distanceM = this.selectedQuestionDistanceM(question, customDistanceM);
 
     this.sendingQuestion = true;
     this.questionErrorMessage = '';
     try {
       await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos', {
+        distanceM,
         customDistanceM: customDistanceM ?? undefined,
       });
       this.selectedSeekerQuestion = null;
@@ -1189,6 +1191,14 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   private isCustomRadarQuestion(category: QuestionCategory, question: QuestionItem): boolean {
     return category.key === 'radar' && question.customDistance === true;
+  }
+
+  private selectedQuestionDistanceM(question: QuestionItem, customDistanceM?: number | null): number | undefined {
+    if (customDistanceM !== null && customDistanceM !== undefined) {
+      return customDistanceM;
+    }
+
+    return typeof question.distanceM === 'number' ? question.distanceM : undefined;
   }
 
   private async customRadarDistanceM(

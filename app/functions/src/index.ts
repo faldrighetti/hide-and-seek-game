@@ -913,6 +913,10 @@ export const sendQuestion = onCall(async (request) => {
   const prompt = String(request.data?.prompt ?? "").trim();
   const categoryId = String(request.data?.categoryId ?? "").trim();
   const isPhoto = Boolean(request.data?.isPhoto);
+  const distanceMRaw = request.data?.distanceM;
+  const distanceM = distanceMRaw === undefined || distanceMRaw === null ?
+    null :
+    Number(distanceMRaw);
   const customDistanceMRaw = request.data?.customDistanceM;
   const customDistanceM = customDistanceMRaw === undefined || customDistanceMRaw === null ?
     null :
@@ -920,6 +924,12 @@ export const sendQuestion = onCall(async (request) => {
 
   if (!gameId || !prompt || !categoryId) {
     throw new HttpsError("invalid-argument", "gameId, prompt y categoryId son obligatorios.");
+  }
+  if (distanceM !== null && (!Number.isFinite(distanceM) || distanceM <= 0 || distanceM > 10000)) {
+    throw new HttpsError("invalid-argument", "distanceM invalida.");
+  }
+  if (categoryId === "thermometer" && ![100, 200, 500, 1000, 2000].includes(distanceM ?? -1)) {
+    throw new HttpsError("invalid-argument", "distanceM invalida para termometro.");
   }
   if (
     customDistanceM !== null &&
@@ -976,6 +986,7 @@ export const sendQuestion = onCall(async (request) => {
       prompt,
       isPhoto,
       categoryId,
+      distanceM,
       customDistanceM,
       status: "PENDING",
       createdAt: now,
@@ -1000,6 +1011,7 @@ export const sendQuestion = onCall(async (request) => {
         categoryId,
         isPhoto,
         prompt,
+        distanceM,
         customDistanceM,
         expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
       },
