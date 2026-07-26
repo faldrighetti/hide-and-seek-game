@@ -152,6 +152,9 @@ coverage/
 .firebaserc.*.local
 *.log
 
+# Local tooling
+.tools/
+
 # Capacitor / Cordova
 android/app/build/
 ios/App/build/
