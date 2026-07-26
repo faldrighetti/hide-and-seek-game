@@ -189,6 +189,48 @@ export interface GameBlueprint {
   endgamePolicy: EndgamePolicy;
 }
 
+export type NotificationImportance = 'CRITICAL' | 'MEDIUM' | 'LOW';
+export type SerializedTimestamp = string | { iso?: string; millis?: number } | null;
+
+export interface GameEvent {
+  id: string;
+  type: string;
+  createdAt: SerializedTimestamp;
+  actorUid: string | null;
+  actorTeamId: string | null;
+  runNumber: number | null;
+  phase: string | null;
+  hiderTeamId: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface GameNotification {
+  id: string;
+  eventId: string;
+  eventType: string;
+  createdAt: SerializedTimestamp;
+  actorUid: string | null;
+  actorTeamId: string | null;
+  runNumber: number | null;
+  phase: string | null;
+  hiderTeamId: string | null;
+  importance: NotificationImportance;
+  audience: 'HIDER' | 'SEEKERS' | 'ALL';
+  recipientTeamIds: string[];
+  requiresAction: boolean;
+  category: string;
+  title: string;
+  body: string;
+  deliveryStatus: string;
+  payload: Record<string, unknown>;
+}
+
+export interface NotificationPreferences {
+  criticalAlwaysEnabled: boolean;
+  medium: Record<string, boolean>;
+  low: Record<string, boolean>;
+}
+
 export const DEFAULT_SETTINGS: GameSettings = {
   turnsPerTeam: 2,
   winCondition: 'TOTAL_TIME',

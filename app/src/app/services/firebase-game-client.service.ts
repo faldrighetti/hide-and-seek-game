@@ -4,6 +4,7 @@ import {
   Auth,
   GoogleAuthProvider,
   User,
+  connectAuthEmulator,
   getAuth,
   onAuthStateChanged,
   signInWithPopup,
@@ -12,13 +13,14 @@ import {
 import {
   Firestore,
   collection,
+  connectFirestoreEmulator,
   doc,
   getFirestore,
   onSnapshot,
   query,
   Unsubscribe,
 } from 'firebase/firestore';
-import { Functions, getFunctions, httpsCallable } from 'firebase/functions';
+import { Functions, connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -32,6 +34,7 @@ export class FirebaseGameClientService {
   readonly user$ = this.userSubject.asObservable();
 
   constructor() {
+    this.connectEmulatorsIfEnabled();
     onAuthStateChanged(this.auth, user => this.userSubject.next(user));
   }
 
@@ -116,5 +119,16 @@ export class FirebaseGameClientService {
 
       return () => unsubscribe?.();
     });
+  }
+
+  private connectEmulatorsIfEnabled(): void {
+    const config = environment.firebaseEmulators;
+    if (!config?.enabled) {
+      return;
+    }
+
+    connectAuthEmulator(this.auth, config.authUrl, { disableWarnings: true });
+    connectFirestoreEmulator(this.firestore, config.firestoreHost, config.firestorePort);
+    connectFunctionsEmulator(this.functions, config.functionsHost, config.functionsPort);
   }
 }

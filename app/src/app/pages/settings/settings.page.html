@@ -1,0 +1,62 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Settings</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [disabled]="loading || saving" (click)="save()">Guardar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-progress-bar *ngIf="loading || saving" type="indeterminate"></ion-progress-bar>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Notificaciones</ion-card-title>
+      <ion-card-subtitle>Las críticas quedan siempre activas</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item lines="full">
+        <ion-label>
+          <h2>Críticas</h2>
+          <p>Fases, preguntas urgentes, captura, seguridad y acciones obligatorias.</p>
+        </ion-label>
+        <ion-toggle slot="end" [checked]="true" [disabled]="true"></ion-toggle>
+      </ion-item>
+
+      <ion-list>
+        <ion-list-header>
+          <ion-label>Importancia media</ion-label>
+        </ion-list-header>
+        <ion-item *ngFor="let category of categories">
+          <ion-label>{{ category.label }}</ion-label>
+          <ion-toggle
+            slot="end"
+            [checked]="preferences.medium[category.key]"
+            (ionChange)="setPreference('medium', category.key, $event.detail.checked)"
+          ></ion-toggle>
+        </ion-item>
+      </ion-list>
+
+      <ion-list>
+        <ion-list-header>
+          <ion-label>Importancia baja</ion-label>
+        </ion-list-header>
+        <ion-item *ngFor="let category of categories">
+          <ion-label>{{ category.label }}</ion-label>
+          <ion-toggle
+            slot="end"
+            [checked]="preferences.low[category.key]"
+            (ionChange)="setPreference('low', category.key, $event.detail.checked)"
+          ></ion-toggle>
+        </ion-item>
+      </ion-list>
+
+      <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
+      <ion-note *ngIf="savedMessage" color="success">{{ savedMessage }}</ion-note>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

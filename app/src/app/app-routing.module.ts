@@ -18,6 +18,10 @@ const routes: Routes = [
     path: 'rules',
     loadChildren: () => import('../app/pages/rules/rules.module').then(m => m.RulesPageModule),
   },
+  {
+    path: 'settings',
+    loadChildren: () => import('../app/pages/settings/settings.module').then(m => m.SettingsPageModule),
+  },
   { 
     path: 'join/:gameId', 
     loadChildren: () => import('../app/pages/join/join.module').then(m => m.JoinPageModule) 
@@ -25,6 +29,10 @@ const routes: Routes = [
   {
     path: 'lobby/:gameId',
     loadChildren: () => import('../app/pages/lobby/lobby.module').then(m => m.LobbyPageModule),
+  },
+  {
+    path: 'game/:gameId/history',
+    loadChildren: () => import('../app/pages/history/history.module').then(m => m.HistoryPageModule),
   },
   {
     path: 'game/:gameId',

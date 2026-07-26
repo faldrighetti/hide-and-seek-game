@@ -1,0 +1,53 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/game/' + gameId"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Historial {{ gameId }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [disabled]="loading" (click)="refresh()">Actualizar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-segment [(ngModel)]="segment">
+    <ion-segment-button value="events">
+      <ion-label>Eventos</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="notifications">
+      <ion-label>Notificaciones</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
+  <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
+
+  <ion-list *ngIf="segment === 'events'" inset>
+    <ion-item *ngFor="let event of events">
+      <ion-label class="ion-text-wrap">
+        <h2>{{ event.type }}</h2>
+        <p>{{ formatDate(event.createdAt) }} · Run {{ event.runNumber || '-' }} · {{ event.phase || '-' }}</p>
+        <p *ngIf="event.actorTeamId">Actor: Team {{ event.actorTeamId }}</p>
+        <p *ngIf="payloadText(event.payload)" class="payload">{{ payloadText(event.payload) }}</p>
+      </ion-label>
+    </ion-item>
+    <ion-item *ngIf="!loading && events.length === 0">
+      <ion-label>No hay eventos registrados.</ion-label>
+    </ion-item>
+  </ion-list>
+
+  <ion-list *ngIf="segment === 'notifications'" inset>
+    <ion-item *ngFor="let notification of notifications">
+      <ion-label class="ion-text-wrap">
+        <h2>{{ notification.title }}</h2>
+        <p>{{ notification.body }}</p>
+        <p>{{ formatDate(notification.createdAt) }} · {{ notification.importance }} · {{ notification.category }}</p>
+        <ion-badge *ngIf="notification.requiresAction" color="warning">Acción</ion-badge>
+      </ion-label>
+    </ion-item>
+    <ion-item *ngIf="!loading && notifications.length === 0">
+      <ion-label>No hay notificaciones registradas.</ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>

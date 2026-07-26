@@ -1,0 +1,19 @@
+:host {
+  ion-content {
+    --background: #f4f5f8;
+  }
+}
+
+ion-card {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+ion-list {
+  margin-top: 1rem;
+}
+
+ion-note {
+  display: block;
+  margin-top: 1rem;
+}

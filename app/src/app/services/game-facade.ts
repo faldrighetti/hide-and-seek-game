@@ -3,9 +3,12 @@ import { BehaviorSubject, combineLatest, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
   DEFAULT_SETTINGS,
+  GameEvent,
+  GameNotification,
   GameBlueprint,
   GameMode,
   LobbyState,
+  NotificationPreferences,
   PendingQuestion,
   PlayerRole,
   QuestionResolution,
@@ -114,6 +117,16 @@ interface CreateGameResponse {
   joinUrl: string;
   mode: GameMode;
   settings: GameBlueprint['settings'];
+}
+
+interface ListGameEventsResponse {
+  ok: boolean;
+  events: GameEvent[];
+}
+
+interface ListGameNotificationsResponse {
+  ok: boolean;
+  notifications: GameNotification[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -424,6 +437,33 @@ export class GameFacadeService {
 
   clearTemporaryDisconnect(gameId: string): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('clearTemporaryDisconnect', { gameId });
+  }
+
+  async listGameEvents(gameId: string, limit = 100): Promise<GameEvent[]> {
+    const response = await this.firebaseClient.callFunction<
+      { gameId: string; limit: number },
+      ListGameEventsResponse
+    >('listGameEvents', { gameId, limit });
+    return response.events;
+  }
+
+  async listGameNotifications(gameId: string, limit = 100): Promise<GameNotification[]> {
+    const response = await this.firebaseClient.callFunction<
+      { gameId: string; limit: number },
+      ListGameNotificationsResponse
+    >('listGameNotifications', { gameId, limit });
+    return response.notifications;
+  }
+
+  getNotificationPreferences(): Promise<NotificationPreferences> {
+    return this.firebaseClient.callFunction<object, NotificationPreferences>('getNotificationPreferences', {});
+  }
+
+  updateNotificationPreferences(preferences: Pick<NotificationPreferences, 'medium' | 'low'>): Promise<NotificationPreferences> {
+    return this.firebaseClient.callFunction<
+      Pick<NotificationPreferences, 'medium' | 'low'>,
+      NotificationPreferences
+    >('updateNotificationPreferences', preferences);
   }
 
   private mapGameDocToLobby(

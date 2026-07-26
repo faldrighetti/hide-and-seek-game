@@ -1,0 +1,14 @@
+:host {
+  ion-content {
+    --background: #f4f5f8;
+  }
+}
+
+ion-segment {
+  margin-bottom: 1rem;
+}
+
+.payload {
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  overflow-wrap: anywhere;
+}
