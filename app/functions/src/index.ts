@@ -913,9 +913,19 @@ export const sendQuestion = onCall(async (request) => {
   const prompt = String(request.data?.prompt ?? "").trim();
   const categoryId = String(request.data?.categoryId ?? "").trim();
   const isPhoto = Boolean(request.data?.isPhoto);
+  const customDistanceMRaw = request.data?.customDistanceM;
+  const customDistanceM = customDistanceMRaw === undefined || customDistanceMRaw === null ?
+    null :
+    Number(customDistanceMRaw);
 
   if (!gameId || !prompt || !categoryId) {
     throw new HttpsError("invalid-argument", "gameId, prompt y categoryId son obligatorios.");
+  }
+  if (
+    customDistanceM !== null &&
+    (!Number.isFinite(customDistanceM) || customDistanceM < 200 || customDistanceM > 4000)
+  ) {
+    throw new HttpsError("invalid-argument", "customDistanceM debe estar entre 200 y 4000 metros.");
   }
 
   await requireGameMembership(db, gameId, uid);
@@ -966,6 +976,7 @@ export const sendQuestion = onCall(async (request) => {
       prompt,
       isPhoto,
       categoryId,
+      customDistanceM,
       status: "PENDING",
       createdAt: now,
       expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
@@ -989,6 +1000,7 @@ export const sendQuestion = onCall(async (request) => {
         categoryId,
         isPhoto,
         prompt,
+        customDistanceM,
         expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
       },
     });

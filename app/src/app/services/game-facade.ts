@@ -129,6 +129,10 @@ interface ListGameNotificationsResponse {
   notifications: GameNotification[];
 }
 
+interface SendQuestionOptions {
+  customDistanceM?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GameFacadeService {
   constructor(private readonly firebaseClient: FirebaseGameClientService) {}
@@ -280,11 +284,17 @@ export class GameFacadeService {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('startGame', { gameId });
   }
 
-  sendQuestion(gameId: string, categoryId: string, prompt: string, isPhoto: boolean): Promise<{ ok: boolean }> {
+  sendQuestion(
+    gameId: string,
+    categoryId: string,
+    prompt: string,
+    isPhoto: boolean,
+    options: SendQuestionOptions = {},
+  ): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<
-      { gameId: string; categoryId: string; prompt: string; isPhoto: boolean },
+      { gameId: string; categoryId: string; prompt: string; isPhoto: boolean; customDistanceM?: number },
       { ok: boolean }
-    >('sendQuestion', { gameId, categoryId, prompt, isPhoto });
+    >('sendQuestion', { gameId, categoryId, prompt, isPhoto, ...options });
   }
 
   publishSeekerLocation(
@@ -634,6 +644,7 @@ export class GameFacadeService {
       categoryId: String(question['categoryId'] ?? ''),
       prompt: String(question['prompt'] ?? ''),
       isPhoto: Boolean(question['isPhoto']),
+      customDistanceM: typeof question['customDistanceM'] === 'number' ? question['customDistanceM'] : null,
       status: (question['status'] as PendingQuestion['status'] | undefined) ?? 'PENDING',
       createdAtIso: this.timestampToIso(question['createdAt']),
       expiresAtIso: this.timestampToIso(question['expiresAt']),

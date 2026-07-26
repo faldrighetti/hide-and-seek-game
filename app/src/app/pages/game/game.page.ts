@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { AlertController } from '@ionic/angular';
 import { Observable, Subscription } from 'rxjs';
 import * as L from 'leaflet';
 import { GameFacadeService } from '../../services/game-facade';
@@ -32,6 +33,8 @@ interface QuestionItem {
   requisito?: string;
   places?: string;
   distance?: string;
+  distanceM?: number | null;
+  customDistance?: boolean;
   availability?: string;
   answerGroups?: AnswerGroup[];
   endgameOnly?: boolean;
@@ -90,6 +93,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
   private readonly gameFacade = inject(GameFacadeService);
   private readonly cardCatalog = inject(CardCatalogService);
   private readonly locationMonitor = inject(LocationMonitorService);
+  private readonly alertController = inject(AlertController);
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
@@ -400,7 +404,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     const { category, question } = this.selectedSeekerQuestion;
-    const prompt = this.questionPromptText(category, question);
+    const customDistanceM = await this.customRadarDistanceM(category, question);
+    if (customDistanceM === null && this.isCustomRadarQuestion(category, question)) {
+      return;
+    }
+
+    const prompt = this.questionPromptText(category, question, customDistanceM ?? undefined);
     if (!prompt.trim()) {
       this.questionErrorMessage = 'La pregunta seleccionada no tiene texto.';
       return;
@@ -409,7 +418,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.sendingQuestion = true;
     this.questionErrorMessage = '';
     try {
-      await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos');
+      await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos', {
+        customDistanceM: customDistanceM ?? undefined,
+      });
       this.selectedSeekerQuestion = null;
     } catch (error) {
       this.questionErrorMessage = error instanceof Error ? error.message : 'No se pudo enviar la pregunta.';
@@ -756,9 +767,21 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return question.label ?? question.asunto ?? 'Pregunta';
   }
 
-  questionText(category: QuestionCategory, question: QuestionItem): string {
+  questionText(category: QuestionCategory, question: QuestionItem, customDistanceM?: number): string {
     if (question.prompt) {
       return question.prompt;
+    }
+
+    if (category.prompt && category.placeholder && question.distance) {
+      return category.prompt.replace(category.placeholder, question.distance);
+    }
+
+    if (category.prompt && category.placeholder && customDistanceM !== undefined) {
+      return category.prompt.replace(category.placeholder, `${customDistanceM} metros`);
+    }
+
+    if (category.prompt && category.placeholder && question.customDistance) {
+      return category.prompt.replace(category.placeholder, 'una distancia personalizada');
     }
 
     if (category.prompt && category.placeholder && question.asunto) {
@@ -768,8 +791,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return question.asunto ?? '';
   }
 
-  questionPromptText(category: QuestionCategory, question: QuestionItem): string {
-    const questionText = this.questionText(category, question);
+  questionPromptText(category: QuestionCategory, question: QuestionItem, customDistanceM?: number): string {
+    const questionText = this.questionText(category, question, customDistanceM);
     const answerText = this.answerGroupsText(question);
     return answerText ? `${questionText} ${answerText}` : questionText;
   }
@@ -1162,6 +1185,62 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   private latestBlueprint(): GameBlueprint | undefined {
     return this.latestGameBlueprint ?? undefined;
+  }
+
+  private isCustomRadarQuestion(category: QuestionCategory, question: QuestionItem): boolean {
+    return category.key === 'radar' && question.customDistance === true;
+  }
+
+  private async customRadarDistanceM(
+    category: QuestionCategory,
+    question: QuestionItem,
+  ): Promise<number | null | undefined> {
+    if (!this.isCustomRadarQuestion(category, question)) {
+      return undefined;
+    }
+
+    let distanceM: number | null = null;
+    const alert = await this.alertController.create({
+      header: 'Radar personalizado',
+      message: 'Ingresá una distancia entre 200 y 4000 metros.',
+      inputs: [
+        {
+          name: 'distanceM',
+          type: 'number',
+          placeholder: 'Metros',
+          min: 200,
+          max: 4000,
+          attributes: {
+            inputmode: 'numeric',
+            step: '1',
+          },
+        },
+      ],
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
+        {
+          text: 'Enviar',
+          role: 'confirm',
+          handler: data => {
+            const parsed = Number(data?.distanceM);
+            if (!Number.isFinite(parsed) || parsed < 200 || parsed > 4000) {
+              this.questionErrorMessage = 'La distancia del radar personalizado debe estar entre 200 y 4000 metros.';
+              return false;
+            }
+
+            distanceM = parsed;
+            return true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm' ? distanceM : null;
   }
 
   private ensureBaseStationMap(): void {
