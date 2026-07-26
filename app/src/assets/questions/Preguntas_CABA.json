@@ -10,67 +10,57 @@
       "items": [
         {
           "label": "Línea de subte",
-          "prompt": "¿Tu línea de subte más cercana es la misma que mi línea de subte más cercana?",
+          "prompt": "¿La línea de subte más cercana a tu estación base/de la estación que elegiste es la misma que mi línea de subte más cercana?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Línea de trenes",
-          "prompt": "¿Tu línea de trenes más cercana es la misma que mi línea de trenes más cercana?",
+          "prompt": "¿La línea de trenes más cercana a tu estación base/de la estación que elegiste es la misma que mi línea de trenes más cercana?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Terminal de línea de trenes",
-          "prompt": "¿Tu terminal de línea de trenes más cercana es la misma que mi terminal de línea de trenes más cercana?",
+          "prompt": "¿La terminal de trenes más cercana a tu estación base/de la estación que elegiste es la misma que mi terminal de línea de trenes más cercana?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "¿La longitud del nombre de la estación más cercana a vos es la misma que la de la estación más cercana a mí?",
+          "prompt": "¿La longitud del nombre de tu estación base es la misma que la de la estación más cercana a mí?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Autopista",
-          "prompt": "¿Tu autopista más cercana es la misma que mi autopista más cercana?",
+          "prompt": "¿La autopista más cercana a tu estación base es la misma que mi autopista más cercana?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "3.ª división administrativa (localidad/comuna)",
-          "prompt": "¿Tu localidad o comuna es la misma que mi localidad o comuna?",
+          "prompt": "¿La localidad o comuna de tu estación base es la misma que mi localidad o comuna?",
           "resolutionMode": "AUTOMATIC"
-        },
-        {
-          "label": "4.ª división administrativa (barrio)",
-          "prompt": "¿Tu barrio es el mismo que mi barrio?",
-          "resolutionMode": "AUTOMATIC"
-        },
-        {
-          "label": "Cementerio",
-          "prompt": "¿Tu cementerio más cercano es el mismo que mi cementerio más cercano?",
-          "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Estadio de fútbol profesional",
-          "prompt": "¿Tu estadio de fútbol profesional más cercano es el mismo que mi estadio de fútbol profesional más cercano?",
+          "prompt": "¿El estadio de fútbol profesional más cercano a tu estación base es el mismo que mi estadio de fútbol profesional más cercano?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "¿Tu parque más cercano es el mismo que mi parque más cercano?",
+          "prompt": "¿El parque más cercano a tu estación base es el mismo que mi parque más cercano?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Museo",
-          "prompt": "¿Tu museo más cercano es el mismo que mi museo más cercano?",
+          "prompt": "¿El museo más cercano a tu estación base es el mismo que mi museo más cercano?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "¿Tu cine más cercano es el mismo que mi cine más cercano?",
+          "prompt": "¿El cine más cercano a tu estación base es el mismo que mi cine más cercano?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "¿Tu hospital más cercano es el mismo que mi hospital más cercano?",
+          "prompt": "¿El hospital más cercano a tu estación base es el mismo que mi hospital más cercano?",
           "resolutionMode": "MANUAL_CIRCLE"
         }
       ],
@@ -98,67 +88,67 @@
         },
         {
           "label": "1.ª división administrativa (provincia)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la provincia ____?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de la provincia ____?",
           "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "2.ª división administrativa (partido)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del partido de ____?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del partido de ____?",
           "resolutionMode": "MANUAL_STATIONS"
         },
         {
           "label": "3.ª división administrativa (localidad/comuna)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos la localidad/comuna de ___?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos la localidad/comuna de ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "4.ª división administrativa (barrio)",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del barrio ___?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Estadio de fútbol",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un estadio de fútbol?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un parque?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Museo",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un museo?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un museo?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un cine?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de un hospital?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "General Paz",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de la Avenida General Paz?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Riachuelo",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos del Riachuelo?",
+          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Número de comuna",
-          "prompt": "¿El número de la comuna donde estás es mayor, menor o igual al de la comuna donde estoy?",
+          "prompt": "¿El número de la comuna de tu estación base es mayor, menor o igual al de la comuna donde estoy?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Orden alfabético del barrio",
-          "prompt": "¿La inicial del barrio en el que estás está antes, después o es la misma que la del barrio donde estoy?",
+          "prompt": "¿La inicial del barrio de tu estación base está antes, después o es la misma que la del barrio donde estoy?",
           "resolutionMode": "AUTOMATIC"
         }
       ],
@@ -401,6 +391,13 @@
           "availability": "Solo endgame",
           "endgameOnly": true,
           "resolutionMode": "MANUAL"
+        },
+        {
+          "label": "Barrio",
+          "prompt": "¿Tu estación base está en el mismo barrio en el que estoy parado?",
+          "availability": "Solo endgame",
+          "endgameOnly": true,
+          "resolutionMode": "AUTOMATIC"
         }
       ],
       "resolutionMode": "MANUAL",

@@ -1,5 +1,6 @@
 interface QuestionItem {
   label?: string;
+  prompt?: string;
   asunto?: string;
   distanceM?: number | null;
   customDistance?: boolean;
@@ -36,6 +37,7 @@ describe('Preguntas_CABA', () => {
     expect(matchingLabels).not.toContain('1.ª división administrativa (provincia)');
     expect(matchingLabels).not.toContain('2.ª división administrativa (partido)');
     expect(matchingLabels).not.toContain('Comisaría');
+    expect(matchingLabels).not.toContain('4.ª división administrativa (barrio)');
     expect(measuringLabels).not.toContain('Línea de subte');
     expect(measuringLabels).not.toContain('Línea de trenes');
     expect(measuringLabels).not.toContain('Río de la Plata');
@@ -61,6 +63,7 @@ describe('Preguntas_CABA', () => {
     const streetDirection = endgame.items.find(item => item.label === 'Dirección de calle/avenida');
     const blockTransit = endgame.items.find(item => item.label === 'Parada o estación en la cuadra');
     const streetType = endgame.items.find(item => item.label === 'Tipo de vía');
+    const barrio = endgame.items.find(item => item.label === 'Barrio');
 
     expect(endgame.endgameOnly).toBeTrue();
     expect(endgame.items.every(item => item.endgameOnly)).toBeTrue();
@@ -68,6 +71,7 @@ describe('Preguntas_CABA', () => {
       'Dirección de calle/avenida',
       'Parada o estación en la cuadra',
       'Tipo de vía',
+      'Barrio',
     ]);
     expect(streetDirection).toBeDefined();
     expect(streetDirection?.answerGroups?.[0].options).toEqual(['diagonal', 'horizontal o vertical']);
@@ -82,6 +86,8 @@ describe('Preguntas_CABA', () => {
       'Ninguno',
     ]);
     expect(streetType?.answerGroups?.[0].options).toEqual(['Calle', 'Avenida', 'Otro']);
+    expect(barrio?.prompt).toBe('¿Tu estación base está en el mismo barrio en el que estoy parado?');
+    expect(barrio?.resolutionMode).toBe('AUTOMATIC');
   });
 
   it('marks photos as external metadata without file storage', () => {
