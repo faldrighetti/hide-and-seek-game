@@ -68,8 +68,8 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
    - Pendiente: pantalla/admin viewer para consultar historial/incidentes sin abrir Firestore.
 
 8. Notificaciones.
-   - Pregunta al hider.
-   - Respuesta a seekers.
-   - Curse activada / lock activo.
-   - Inicio/desactivacion de endgame.
-   - Alertas operativas.
+   - Catalogo server-side modularizado en `functions/src/notifications.ts`, documentado en `arch/NOTIFICATION_CATALOG.md`, conectado al historial con `importance`, `audience`, `requiresAction`, `category`, titulo y cuerpo.
+   - Notificaciones persistidas en `games/{gameId}/notifications`, vinculadas por `eventId`.
+   - Lectura via `listGameNotifications`.
+   - Preferencias por usuario via `getNotificationPreferences` y `updateNotificationPreferences`; criticas siempre activas.
+   - Pendiente: UI de feed/settings y envio push real.
