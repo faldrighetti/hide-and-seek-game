@@ -68,13 +68,14 @@
           "cantidad": 2
         }
       ],
-      "cantidad_maldiciones_en_mazo": 11
+      "cantidad_maldiciones_en_mazo": 12
     }
   },
   "maldiciones": [
     {
       "id": 1,
       "nombre": "Maldición del Zoólogo",
+      "enabled": false,
       "etiquetas": [
         "foto",
         "animal",

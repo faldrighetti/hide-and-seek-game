@@ -636,6 +636,66 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return effects.some(effect => effect.blocksQuestions);
   }
 
+  curseActivationHint(card: HiderCardData): string {
+    const curseId = this.baseCardId(card.id);
+    const specific: Record<string, string> = {
+      curse_2: 'Prepará la imagen de Street View y mandala por WhatsApp; no se automatiza la búsqueda.',
+      curse_5: 'No bloquea acciones: dejala activa como recordatorio durante las próximas 3 preguntas.',
+      curse_8: 'Aplicación inmediata: los seekers bajan en la próxima estación si hay alternativa dentro de 30 minutos.',
+      curse_19: 'Antes de activarla, filmá el pájaro y acordá por WhatsApp la duración objetivo.',
+      curse_26: 'Ubicación manual: los seekers confirman por WhatsApp cuando cruzan a otro barrio.',
+      curse_29: 'Ubicación manual: los seekers confirman por WhatsApp cuando llegan a una avenida.',
+      curse_34: 'Aplica a las próximas 5 preguntas; cada mensaje empieza con audios y lista de animales.',
+      curse_39: 'El personaje se define manualmente entre jugadores; el sistema sólo controla los 15 minutos.',
+    };
+
+    if (specific[curseId]) {
+      return specific[curseId];
+    }
+    if (card.blocksQuestions || card.blocksTransport) {
+      return 'Bloqueo hasta completar: la prueba se manda y confirma por WhatsApp.';
+    }
+    return 'Efecto recordatorio: usalo para dejar visible la regla mientras esté activa.';
+  }
+
+  curseCompletionHint(curseIdWithCopy: string): string {
+    const curseId = this.baseCardId(curseIdWithCopy);
+    const specific: Record<string, string> = {
+      curse_2: 'Completar cuando una foto del lugar real sea aceptada por hider o seekers.',
+      curse_5: 'Completar manualmente después de resolver 3 preguntas bajo este modificador.',
+      curse_8: 'Completar cuando los seekers informen que bajaron o que no había alternativa válida.',
+      curse_19: 'Completar cuando el video seeker iguale o supere la duración objetivo.',
+      curse_26: 'Completar cuando al menos un lado confirme el cambio de barrio por WhatsApp.',
+      curse_29: 'Completar cuando al menos un lado confirme llegada a una avenida por WhatsApp.',
+      curse_34: 'Completar después de 5 preguntas con audios/lista de animales aceptados.',
+      curse_39: 'Se completa solo por tiempo o manualmente si ambas partes lo dan por terminado.',
+    };
+
+    if (specific[curseId]) {
+      return specific[curseId];
+    }
+    return 'Completar cuando la evidencia enviada por WhatsApp quede aceptada por al menos un lado.';
+  }
+
+  activeCurseProgressLabel(effect: ActiveEffect): string {
+    const curseId = this.baseCardId(effect.curseId);
+    const labels: Record<string, string> = {
+      curse_5: 'Progreso manual: próximas 3 preguntas.',
+      curse_34: 'Progreso manual: próximas 5 preguntas.',
+      curse_39: 'Progreso por tiempo: 15 minutos desde activación.',
+      curse_26: 'Validación manual de ubicación: cambio de barrio.',
+      curse_29: 'Validación manual de ubicación: avenida.',
+    };
+
+    if (labels[curseId]) {
+      return labels[curseId];
+    }
+    if (effect.blocksQuestions || effect.blocksTransport) {
+      return 'Pendiente de evidencia/confirmación.';
+    }
+    return 'Activo como recordatorio operativo.';
+  }
+
   effectTitle(curseId: string): string {
     return this.fallbackCardByBaseId.get(curseId)?.title ?? curseId;
   }
@@ -643,6 +703,14 @@ export class GamePage implements AfterViewInit, OnDestroy {
   effectCompletionLabel(effect: ActiveEffect, role: PlayerRole): string {
     if (this.completingEffectId === effect.id) {
       return 'Confirmando...';
+    }
+
+    const curseId = this.baseCardId(effect.curseId);
+    if (curseId === 'curse_5' || curseId === 'curse_34') {
+      return 'Marcar completada';
+    }
+    if (curseId === 'curse_26' || curseId === 'curse_29') {
+      return 'Confirmar ubicación';
     }
 
     if (role.isHider) {
@@ -1050,7 +1118,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return card;
     }
 
-    const baseId = cardId.split('#')[0];
+    const baseId = this.baseCardId(cardId);
     const fallback = this.fallbackCardByBaseId.get(baseId);
     if (fallback) {
       return { ...fallback, id: cardId };
@@ -1062,6 +1130,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
       title: cardId,
       description: 'Carta no encontrada en Tarjetas_CABA.json.',
     };
+  }
+
+  private baseCardId(cardId: string): string {
+    return cardId.split('#')[0];
   }
 
   private syncLootSelections(vm: GameBlueprint): void {

@@ -45,7 +45,8 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
    - Mostrar `activeEffects` en pantalla de partida.
    - Lock effects bloquean preguntas en `sendQuestion` y los seekers pueden limpiarlos manualmente con `completeCurseEffect`.
    - Limpieza manual por WhatsApp confirmable por seekers o hider.
-   - Pendiente futuro: UX especifica por tipo de curse cuando aporte valor (evidencia enviada/aceptada/rebotada, duracion objetivo, etc.).
+   - UX especifica MVP para curses con evidencia, ubicacion manual, contador de preguntas o duracion fija.
+   - Pendiente futuro: tracking automatico solo donde aporte valor real y no reemplace confirmaciones por WhatsApp.
    - No implementar dado server-side: no habra curses que precisen dado.
    - No implementar Zoologist ni Gambler's Feet: curses desestimadas.
 

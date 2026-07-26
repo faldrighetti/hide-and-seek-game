@@ -326,6 +326,8 @@
                     <ng-container *ngIf="card.blocksTransport">Bloquea transporte</ng-container>
                     <ng-container *ngIf="card.durationMinutes"> · {{ card.durationMinutes }} min</ng-container>
                   </p>
+                  <p>{{ curseActivationHint(card) }}</p>
+                  <ion-note color="medium">{{ curseCompletionHint(card.id) }}</ion-note>
                 </ion-label>
                 <ion-button
                   slot="end"
@@ -364,6 +366,8 @@
                     <ng-container *ngIf="!effect.blocksQuestions && !effect.blocksTransport">Activo</ng-container>
                   </p>
                   <p *ngIf="effect.expiresAtIso">Hasta {{ effect.expiresAtIso | date: 'shortTime' }}</p>
+                  <p>{{ activeCurseProgressLabel(effect) }}</p>
+                  <ion-note color="medium">{{ curseCompletionHint(effect.curseId) }}</ion-note>
                 </ion-label>
                 <ion-button
                   *ngIf="role.isSeeker || role.isHider"

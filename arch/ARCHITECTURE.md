@@ -150,7 +150,7 @@ Si expira:
 - Libera el slot para otra pregunta.
 
 ### 7.4 Fotos
-MVP: la app no sube ni almacena archivos. El hider envÃ­a la foto por un canal externo y la app registra metadata manual: enviada, recibida, vÃ¡lida/rebotada, timestamps y actor.
+MVP: la app no sube ni almacena archivos. El hider envía la foto por un canal externo y la app registra metadata manual: enviada, recibida, válida/rebotada, timestamps y actor.
 - Seekers pueden “Rebotar foto” si no cumple/no se ve.
 - Máximo 1 rebote por foto.
 - Rebote **no resetea** timer.
@@ -275,7 +275,7 @@ UI siempre muestra ambos (`totalTime` y `bestSingleRun`), pero el ranking princi
 
 ### Iteración 2
 - Effects/Curses + dado server-side
-- Zoologist lock + fotos externas + confirmaciÃ³n/rebote manual
+- Zoologist lock + fotos externas + confirmación/rebote manual
 
 ### Iteración 3
 - stations JSON (hardcode mini)

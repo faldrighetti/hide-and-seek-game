@@ -333,7 +333,7 @@ Los intentos fallidos quedan registrados y generan un cooldown técnico.
 
 ---
 
-Las preguntas de foto se resuelven por canal externo: la app no almacena imÃ¡genes ni URLs, solo registra que la foto fue enviada, recibida y validada o rebotada.
+Las preguntas de foto se resuelven por canal externo: la app no almacena imágenes ni URLs, solo registra que la foto fue enviada, recibida y validada o rebotada.
 
 ## 11. Vetos
 

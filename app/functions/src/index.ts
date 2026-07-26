@@ -227,23 +227,18 @@ const BASE_HIDER_DECK = [
   ...expandCopies("powerup_discard1_draw2", 4),
   ...expandCopies("powerup_discard2_draw3", 4),
   ...expandCopies("powerup_draw1_expand1", 2),
-  ...expandCopies("curse_1", 1),
   ...expandCopies("curse_2", 1),
-  ...expandCopies("curse_3", 1),
-  ...expandCopies("curse_4", 1),
   ...expandCopies("curse_5", 1),
-  ...expandCopies("curse_6", 1),
   ...expandCopies("curse_7", 1),
   ...expandCopies("curse_8", 1),
-  ...expandCopies("curse_9", 1),
-  ...expandCopies("curse_10", 1),
-  ...expandCopies("curse_11", 1),
-  ...expandCopies("curse_17", 1),
-  ...expandCopies("curse_18", 1),
   ...expandCopies("curse_19", 1),
-  ...expandCopies("curse_24", 1),
   ...expandCopies("curse_25", 1),
   ...expandCopies("curse_26", 1),
+  ...expandCopies("curse_27", 1),
+  ...expandCopies("curse_28", 1),
+  ...expandCopies("curse_29", 1),
+  ...expandCopies("curse_34", 1),
+  ...expandCopies("curse_39", 1),
 ];
 
 const timeBonusSecondsByCardPrefix: Record<string, number> = {
@@ -277,7 +272,7 @@ const validateLobbyTeams = (mode: GameMode, seats: DocumentData[]): void => {
   for (const seat of seats) {
     const teamId = String(seat.teamId ?? "");
     if (!validTeams.has(teamId)) {
-      throw new HttpsError("failed-precondition", "Todos los jugadores deben tener un equipo vÃ¡lido.");
+      throw new HttpsError("failed-precondition", "Todos los jugadores deben tener un equipo válido.");
     }
     countsByTeam.set(teamId, (countsByTeam.get(teamId) ?? 0) + 1);
   }
@@ -474,7 +469,7 @@ const hasDuplicates = (items: string[]): boolean => new Set(items).size !== item
 
 const assertValidCoordinate = (lat: number, lng: number): void => {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-    throw new HttpsError("invalid-argument", "Coordenadas invÃ¡lidas.");
+    throw new HttpsError("invalid-argument", "Coordenadas inválidas.");
   }
 };
 
@@ -1021,7 +1016,7 @@ export const randomizeTeams = onCall(async (request) => {
     const gameSnap = await tx.get(gameRef);
     if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = gameSnap.data() as GameDoc;
-    if (game.teamsLocked) throw new HttpsError("failed-precondition", "Los equipos estÃ¡n bloqueados.");
+    if (game.teamsLocked) throw new HttpsError("failed-precondition", "Los equipos están bloqueados.");
 
     const teamIds = modeTeamIds(game.mode);
     const seatsSnap = await tx.get(gameRef.collection("seats"));
@@ -1129,7 +1124,7 @@ export const setTurnHidingZone = onCall(async (request) => {
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
   assertValidCoordinate(lat, lng);
   if (!Number.isFinite(radiusM) || radiusM <= 0 || radiusM > 5000) {
-    throw new HttpsError("invalid-argument", "radiusM invÃ¡lido.");
+    throw new HttpsError("invalid-argument", "radiusM inválido.");
   }
   await requireHost(db, gameId, uid);
 
@@ -1140,7 +1135,7 @@ export const setTurnHidingZone = onCall(async (request) => {
     const game = gameSnap.data() as GameDoc;
     const turn = game.currentTurn;
     if (game.status !== "LIVE" || !turn) {
-      throw new HttpsError("failed-precondition", "La partida no estÃ¡ en juego activo.");
+      throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
     }
 
     const now = nowTs();
@@ -1273,13 +1268,13 @@ export const publishSeekerLocation = onCall(async (request) => {
     const game = gameSnap.data() as GameDoc;
     const turn = game.currentTurn;
     if (game.status !== "LIVE" || !turn) {
-      throw new HttpsError("failed-precondition", "La partida no estÃ¡ en juego activo.");
+      throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
     }
 
     const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
-    if (!seatTeamId) throw new HttpsError("permission-denied", "No tenÃ©s seat en esta partida.");
+    if (!seatTeamId) throw new HttpsError("permission-denied", "No tenés seat en esta partida.");
     if (seatTeamId === turn.hiderTeamId) {
-      throw new HttpsError("permission-denied", "El hider no publica ubicaciÃ³n exacta.");
+      throw new HttpsError("permission-denied", "El hider no publica ubicación exacta.");
     }
 
     const now = nowTs();
@@ -1593,7 +1588,7 @@ export const verifyEndgame = onCall(async (request) => {
     }
     assertOperationalPlayAllowed(game);
     if (!turn.hidingZone) {
-      throw new HttpsError("failed-precondition", "La zona del hider todavÃ­a no estÃ¡ fijada.");
+      throw new HttpsError("failed-precondition", "La zona del hider todavía no está fijada.");
     }
 
     const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
@@ -1649,7 +1644,7 @@ export const consultEndgameQuestions = onCall(async (request) => {
     }
     assertOperationalPlayAllowed(game);
     if (!turn.hidingZone) {
-      throw new HttpsError("failed-precondition", "La zona del hider todavÃƒÂ­a no estÃƒÂ¡ fijada.");
+      throw new HttpsError("failed-precondition", "La zona del hider todavía no está fijada.");
     }
 
     const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
@@ -1903,24 +1898,24 @@ export const selectLoot = onCall(async (request) => {
 
     const drawn = turn.lootOffer.drawnCardIds;
     if (selectedCardIds.length > turn.lootOffer.takeLimit) {
-      throw new HttpsError("invalid-argument", "Seleccionaste mÃ¡s cartas que el lÃ­mite.");
+      throw new HttpsError("invalid-argument", "Seleccionaste más cartas que el límite.");
     }
     if (!selectedCardIds.every((cardId) => drawn.includes(cardId))) {
-      throw new HttpsError("invalid-argument", "Solo podÃ©s elegir cartas del loot actual.");
+      throw new HttpsError("invalid-argument", "Solo podés elegir cartas del loot actual.");
     }
 
     const hand = [...(turn.hiderHand ?? [])];
     const remainingHand = [...hand];
     for (const cardId of discardFromHandIds) {
       const index = remainingHand.indexOf(cardId);
-      if (index < 0) throw new HttpsError("invalid-argument", "No podÃ©s descartar una carta que no estÃ¡ en la mano.");
+      if (index < 0) throw new HttpsError("invalid-argument", "No podés descartar una carta que no está en la mano.");
       remainingHand.splice(index, 1);
     }
 
     const selected = [...selectedCardIds];
     const nextHand = [...remainingHand, ...selected];
     if (nextHand.length > DECK_MAX_SIZE) {
-      throw new HttpsError("failed-precondition", "La mano supera el mÃ¡ximo de 6 cartas.");
+      throw new HttpsError("failed-precondition", "La mano supera el máximo de 6 cartas.");
     }
 
     const selectedSet = new Set(selected);
@@ -1970,7 +1965,7 @@ export const playCurse = onCall(async (request) => {
   const expiresAtMillis = typeof expiresAtMillisRaw === "number" ? expiresAtMillisRaw : null;
 
   if (!gameId || !cardId || !curseId.startsWith("curse_")) {
-    throw new HttpsError("invalid-argument", "gameId y cardId de maldiciÃ³n son obligatorios.");
+    throw new HttpsError("invalid-argument", "gameId y cardId de maldición son obligatorios.");
   }
 
   await requireGameMembership(db, gameId, uid);
@@ -2064,7 +2059,7 @@ export const completeCurseEffect = onCall(async (request) => {
     const game = snap.data() as GameDoc;
     const turn = game.currentTurn;
     if (game.status !== "LIVE" || !turn) {
-      throw new HttpsError("failed-precondition", "La partida no estÃ¡ en juego activo.");
+      throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
     }
     assertOperationalPlayAllowed(game);
 

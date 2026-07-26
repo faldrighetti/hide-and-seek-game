@@ -89,7 +89,7 @@ penalidad: -30 min al score final del turno
 Fotos:
 Seekers pueden “Rebotar foto” (si no cumple/no se ve). Máximo 1 rebote.
 Rebotar no resetea el timer.
-MVP: la app no almacena fotos ni URLs. El hider envÃ­a la foto por un canal externo y registra "foto enviada"; los seekers registran si fue recibida y vÃ¡lida.
+MVP: la app no almacena fotos ni URLs. El hider envía la foto por un canal externo y registra "foto enviada"; los seekers registran si fue recibida y válida.
 Randomize:
 El hider usa Randomize ⇒ el sistema reemplaza Q1 por Q2 (misma categoría) ⇒ el hider debe contestar Q2 en esa misma interacción.
 Q1 queda bloqueada el resto del turno.
@@ -144,7 +144,7 @@ Hasta que seekers manden una foto de un animal de la misma categoría, no pueden
 Hider acepta o rebota la foto de limpieza.
 No tiene duración máxima: queda bloqueado hasta limpiarla.
 
-La foto real se comparte por fuera de la app; la app solo guarda el estado de envÃ­o/recepciÃ³n/validez.
+La foto real se comparte por fuera de la app; la app solo guarda el estado de envío/recepción/validez.
 9) Captura FOUND
 Encontrar al hider requiere reconocimiento inequívoco en persona; la proximidad GPS solo habilita el procedimiento.
 El botón ENCONTRADO permanece visible durante CHASE/Búsqueda, pero solo se habilita cuando se cumplen condiciones de proximidad y el endgame está activo.
@@ -196,7 +196,7 @@ cargar JSON de preguntas ES y categorías
 pendiente única
 expiración por tipo (5/10) con penalidad y sin loot
 randomize (bloquea Q1 resto del turno, reemplaza por Q2)
-fotos externas + confirmaciÃ³n manual de envÃ­o/recepciÃ³n/validez (sin Storage en MVP)
+fotos externas + confirmación manual de envío/recepción/validez (sin Storage en MVP)
 
 D) Deck/Cards
 JSON de cartas ES
