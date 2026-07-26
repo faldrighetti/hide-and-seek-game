@@ -58,12 +58,13 @@ Registro operativo de lo que falta implementar. `SPEC_MASTER.md` y `REGLAMENTO_C
    - Pendiente futuro: validacion GPS fina de distancia de captura y auditoria/historial server-side.
 
 7. Reglamento operativo.
-   - Conexion degradada/desconexion temporal.
-   - Salida de mapa.
-   - Pausas/intermission controlado.
-   - Emergencia/stand-by/cancelacion.
+   - Conexion degradada/desconexion temporal conectada con reportes de jugador y eventos.
+   - Salida de mapa conectada con estado `outOfArea`, confirmacion de seguridad y eventos.
+   - Pausa/reanudacion manual host-only conectada con congelamiento de timers.
+   - Emergencia/stand-by host-only conectada como pausa operativa con bloqueo de acciones.
+   - Cancelacion host-only conectada con cierre de partida y evento.
    - Historial server-side MVP conectado para eventos de partida, turno, base, endgame, preguntas, loot, curses, captura y salida de area, con lectura via `listGameEvents`.
-   - Pendiente: pantalla/admin viewer para consultar el historial sin abrir Firestore.
+   - Pendiente: pantalla/admin viewer para consultar historial/incidentes sin abrir Firestore.
 
 8. Notificaciones.
    - Pregunta al hider.

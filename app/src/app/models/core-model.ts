@@ -166,10 +166,21 @@ export interface LobbyState {
   teamsLocked: boolean;
 }
 
+export interface OperationalState {
+  mode: 'NORMAL' | 'PAUSED' | 'EMERGENCY';
+  reason: string | null;
+  changedAtIso: string | null;
+  phaseRemainingSeconds: number | null;
+  pendingQuestionRemainingSeconds: number | null;
+  canceledAtIso: string | null;
+  cancellationReason: string | null;
+}
+
 export interface GameBlueprint {
   gameName: string;
   mode: GameMode;
   settings: GameSettings;
+  operational: OperationalState;
   currentTurn: TurnStatus;
   standings: TeamStanding[];
   questionPolicy: QuestionPolicy;

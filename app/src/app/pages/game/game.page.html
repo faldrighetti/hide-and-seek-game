@@ -55,6 +55,81 @@
       <ion-col size="12">
         <ion-card>
           <ion-card-header>
+            <ion-card-title>Operación</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-chip [color]="vm.operational.mode === 'NORMAL' ? 'success' : vm.operational.mode === 'PAUSED' ? 'warning' : 'danger'">
+              {{ vm.operational.mode === 'NORMAL' ? 'Normal' : vm.operational.mode === 'PAUSED' ? 'Pausada' : 'Emergencia' }}
+            </ion-chip>
+            <ion-note *ngIf="vm.operational.reason" color="medium">{{ vm.operational.reason }}</ion-note>
+
+            <div class="operational-actions">
+              <ion-button
+                *ngIf="role.isHost && vm.operational.mode === 'NORMAL'"
+                size="small"
+                fill="outline"
+                [disabled]="operationalActionInFlight"
+                (click)="pauseGame(role)"
+              >
+                Pausar
+              </ion-button>
+              <ion-button
+                *ngIf="role.isHost && vm.operational.mode !== 'NORMAL'"
+                size="small"
+                color="success"
+                [disabled]="operationalActionInFlight"
+                (click)="resumeGame(role)"
+              >
+                Reanudar
+              </ion-button>
+              <ion-button
+                *ngIf="role.isHost"
+                size="small"
+                color="danger"
+                fill="outline"
+                [disabled]="operationalActionInFlight || vm.operational.mode === 'EMERGENCY'"
+                (click)="declareEmergency(role)"
+              >
+                Emergencia
+              </ion-button>
+              <ion-button
+                *ngIf="role.isHost"
+                size="small"
+                color="danger"
+                [disabled]="operationalActionInFlight"
+                (click)="cancelGame(role)"
+              >
+                Cancelar
+              </ion-button>
+              <ion-button
+                *ngIf="role.isParticipant"
+                size="small"
+                fill="outline"
+                [disabled]="operationalActionInFlight"
+                (click)="reportTemporaryDisconnect(role)"
+              >
+                Desconexión
+              </ion-button>
+              <ion-button
+                *ngIf="role.isParticipant"
+                size="small"
+                fill="outline"
+                [disabled]="operationalActionInFlight"
+                (click)="clearTemporaryDisconnect(role)"
+              >
+                Reconectado
+              </ion-button>
+            </div>
+            <ion-note *ngIf="operationalMessage" color="medium">{{ operationalMessage }}</ion-note>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <ion-row>
+      <ion-col size="12">
+        <ion-card>
+          <ion-card-header>
             <ion-card-title>Ubicacion</ion-card-title>
           </ion-card-header>
           <ion-card-content>

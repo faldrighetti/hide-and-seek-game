@@ -40,6 +40,15 @@ const buildBlueprint = (
     gameName: 'Jet Lag Hide & Seek AMBA',
     mode,
     settings,
+    operational: {
+      mode: 'NORMAL',
+      reason: null,
+      changedAtIso: null,
+      phaseRemainingSeconds: null,
+      pendingQuestionRemainingSeconds: null,
+      canceledAtIso: null,
+      cancellationReason: null,
+    },
     currentTurn: {
       runNumber: 1,
       hiderTeamId: 'A',
@@ -381,6 +390,42 @@ export class GameFacadeService {
     );
   }
 
+  pauseGame(gameId: string, reason: string | null): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; reason: string | null }, { ok: boolean }>(
+      'pauseGame',
+      { gameId, reason },
+    );
+  }
+
+  resumeGame(gameId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('resumeGame', { gameId });
+  }
+
+  declareEmergency(gameId: string, reason: string | null): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; reason: string | null }, { ok: boolean }>(
+      'declareEmergency',
+      { gameId, reason },
+    );
+  }
+
+  cancelGame(gameId: string, reason: string | null): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; reason: string | null }, { ok: boolean }>(
+      'cancelGame',
+      { gameId, reason },
+    );
+  }
+
+  reportTemporaryDisconnect(gameId: string, reason: string | null): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; reason: string | null }, { ok: boolean }>(
+      'reportTemporaryDisconnect',
+      { gameId, reason },
+    );
+  }
+
+  clearTemporaryDisconnect(gameId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('clearTemporaryDisconnect', { gameId });
+  }
+
   private mapGameDocToLobby(
     gameId: string,
     game: Record<string, unknown>,
@@ -423,6 +468,7 @@ export class GameFacadeService {
       gameName: String(game['gameName'] ?? fallback.gameName),
       mode,
       settings,
+      operational: this.mapOperationalState(game['operational']),
       standings: standings.length ? standings : fallback.standings,
       currentTurn: {
         ...fallback.currentTurn,
@@ -448,6 +494,38 @@ export class GameFacadeService {
         endgameQuestionsUnlocked: Boolean(currentTurn?.['endgameQuestionsUnlocked']),
         outOfArea: this.mapOutOfAreaStatus(currentTurn?.['outOfArea']),
       },
+    };
+  }
+
+  private mapOperationalState(value: unknown): GameBlueprint['operational'] {
+    if (!value || typeof value !== 'object') {
+      return {
+        mode: 'NORMAL',
+        reason: null,
+        changedAtIso: null,
+        phaseRemainingSeconds: null,
+        pendingQuestionRemainingSeconds: null,
+        canceledAtIso: null,
+        cancellationReason: null,
+      };
+    }
+
+    const operational = value as Record<string, unknown>;
+    const mode = operational['mode'];
+    return {
+      mode: mode === 'PAUSED' || mode === 'EMERGENCY' ? mode : 'NORMAL',
+      reason: typeof operational['reason'] === 'string' ? operational['reason'] : null,
+      changedAtIso: this.timestampToIso(operational['changedAt']),
+      phaseRemainingSeconds: typeof operational['phaseRemainingSeconds'] === 'number'
+        ? operational['phaseRemainingSeconds']
+        : null,
+      pendingQuestionRemainingSeconds: typeof operational['pendingQuestionRemainingSeconds'] === 'number'
+        ? operational['pendingQuestionRemainingSeconds']
+        : null,
+      canceledAtIso: this.timestampToIso(operational['canceledAt']),
+      cancellationReason: typeof operational['cancellationReason'] === 'string'
+        ? operational['cancellationReason']
+        : null,
     };
   }
 

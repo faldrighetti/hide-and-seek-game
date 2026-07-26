@@ -42,6 +42,7 @@ type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
 type Phase = "INTERMISSION" | "ESCAPE" | "CHASE" | "ENDED";
 type GameStatus = "LOBBY" | "LIVE" | "FINISHED";
+type OperationalMode = "NORMAL" | "PAUSED" | "EMERGENCY";
 
 interface GameSettings {
   turnsPerTeam: 1 | 2 | 3;
@@ -116,6 +117,24 @@ interface CaptureAttempt {
   completedAt?: Timestamp | null;
 }
 
+interface OperationalState {
+  mode: OperationalMode;
+  reason?: string | null;
+  changedByUid?: string | null;
+  changedAt?: Timestamp | null;
+  pausedAt?: Timestamp | null;
+  phaseRemainingSeconds?: number | null;
+  pendingQuestionRemainingSeconds?: number | null;
+  emergency?: {
+    declaredByUid: string;
+    declaredAt: Timestamp;
+    reason: string | null;
+  } | null;
+  canceledAt?: Timestamp | null;
+  canceledByUid?: string | null;
+  cancellationReason?: string | null;
+}
+
 interface TurnState {
   runNumber: number;
   hiderTeamId: string;
@@ -157,6 +176,7 @@ interface GameDoc {
   startedAt?: Timestamp;
   finishedAt?: Timestamp;
   settings: GameSettings;
+  operational?: OperationalState | null;
   teamOrder: string[];
   currentTurn?: TurnState;
   standings: Record<string, TeamStanding>;
@@ -368,6 +388,23 @@ const isFoundMajorityReached = (teamCount: number, votedTeams: string[]): boolea
 
 const requiredSeekerCaptureConfirmations = (game: GameDoc): number =>
   game.teamOrder.length <= 2 ? 1 : 2;
+
+const isOperationallyStopped = (game: GameDoc): boolean =>
+  game.operational?.mode === "PAUSED" || game.operational?.mode === "EMERGENCY";
+
+const assertOperationalPlayAllowed = (game: GameDoc): void => {
+  if (game.operational?.mode === "PAUSED") {
+    throw new HttpsError("failed-precondition", "GAME_PAUSED");
+  }
+  if (game.operational?.mode === "EMERGENCY") {
+    throw new HttpsError("failed-precondition", "GAME_EMERGENCY");
+  }
+};
+
+const secondsRemaining = (deadline: Timestamp | null | undefined, baseNow: Timestamp): number | null => {
+  if (!deadline) return null;
+  return Math.max(0, Math.ceil((deadline.toMillis() - baseNow.toMillis()) / 1000));
+};
 
 const getPhaseDurationSeconds = (settings: GameSettings, phase: Phase): number => {
   if (phase === "INTERMISSION") return settings.intermissionSeconds;
@@ -841,6 +878,12 @@ export const createGame = onCall(async (request) => {
     createdAt,
     updatedAt: createdAt,
     settings,
+    operational: {
+      mode: "NORMAL",
+      reason: null,
+      changedByUid: uid,
+      changedAt: createdAt,
+    },
     teamOrder: teamIds,
     standings,
   };
@@ -1548,6 +1591,7 @@ export const verifyEndgame = onCall(async (request) => {
     if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE") {
       throw new HttpsError("failed-precondition", "Endgame solo se verifica en CHASE.");
     }
+    assertOperationalPlayAllowed(game);
     if (!turn.hidingZone) {
       throw new HttpsError("failed-precondition", "La zona del hider todavÃ­a no estÃ¡ fijada.");
     }
@@ -1603,6 +1647,7 @@ export const consultEndgameQuestions = onCall(async (request) => {
     if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE") {
       throw new HttpsError("failed-precondition", "Las preguntas de endgame solo se consultan en CHASE.");
     }
+    assertOperationalPlayAllowed(game);
     if (!turn.hidingZone) {
       throw new HttpsError("failed-precondition", "La zona del hider todavÃƒÂ­a no estÃƒÂ¡ fijada.");
     }
@@ -1667,6 +1712,7 @@ export const sendQuestion = onCall(async (request) => {
     if (game.status !== "LIVE" || !game.currentTurn) {
       throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
     }
+    assertOperationalPlayAllowed(game);
     if (game.currentTurn.phase !== "CHASE") {
       throw new HttpsError("failed-precondition", "Solo se puede preguntar en CHASE.");
     }
@@ -1756,6 +1802,7 @@ export const resolveQuestion = onCall(async (request) => {
     if (!turn?.pendingQuestionId) {
       throw new HttpsError("failed-precondition", "No hay pregunta pendiente.");
     }
+    assertOperationalPlayAllowed(game);
     const seatSnap = await tx.get(
       gameRef.collection("seats").where("uid", "==", uid).limit(1),
     );
@@ -1845,6 +1892,7 @@ export const selectLoot = onCall(async (request) => {
     if (game.status !== "LIVE" || !turn?.lootOffer) {
       throw new HttpsError("failed-precondition", "No hay loot pendiente.");
     }
+    assertOperationalPlayAllowed(game);
     const seatSnap = await tx.get(
       gameRef.collection("seats").where("uid", "==", uid).limit(1),
     );
@@ -2018,6 +2066,7 @@ export const completeCurseEffect = onCall(async (request) => {
     if (game.status !== "LIVE" || !turn) {
       throw new HttpsError("failed-precondition", "La partida no estÃ¡ en juego activo.");
     }
+    assertOperationalPlayAllowed(game);
 
     const seatSnap = await tx.get(
       gameRef.collection("seats").where("uid", "==", uid).limit(1),
@@ -2077,6 +2126,7 @@ export const startCaptureAttempt = onCall(async (request) => {
     if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE") {
       throw new HttpsError("failed-precondition", "La captura solo se intenta en CHASE.");
     }
+    assertOperationalPlayAllowed(game);
     if (!turn.endgameActive) {
       throw new HttpsError("failed-precondition", "CAPTURE_REQUIRES_ENDGAME");
     }
@@ -2142,6 +2192,7 @@ export const resolveCaptureAttempt = onCall(async (request) => {
     if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE" || !turn.captureAttempt) {
       throw new HttpsError("failed-precondition", "No hay intento de captura activo.");
     }
+    assertOperationalPlayAllowed(game);
     if (turn.captureAttempt.status !== "PENDING_HIDER") {
       throw new HttpsError("failed-precondition", "El intento de captura ya fue resuelto.");
     }
@@ -2205,6 +2256,7 @@ export const confirmCaptureBySeeker = onCall(async (request) => {
     if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE" || !turn.captureAttempt) {
       throw new HttpsError("failed-precondition", "No hay intento de captura activo.");
     }
+    assertOperationalPlayAllowed(game);
     if (turn.captureAttempt.status === "CONFIRMED") {
       throw new HttpsError("failed-precondition", "La captura ya fue confirmada.");
     }
@@ -2405,6 +2457,298 @@ export const nextTurn = onCall(async (request) => {
   return {ok: true};
 });
 
+export const pauseGame = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const reason = String(request.data?.reason ?? "").trim() || null;
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    if (game.status !== "LIVE" || !game.currentTurn) {
+      throw new HttpsError("failed-precondition", "Solo se puede pausar una partida activa.");
+    }
+    if (game.operational?.mode === "PAUSED") {
+      throw new HttpsError("failed-precondition", "La partida ya esta pausada.");
+    }
+    if (game.operational?.mode === "EMERGENCY") {
+      throw new HttpsError("failed-precondition", "La partida esta en emergencia.");
+    }
+
+    const now = nowTs();
+    const operational: OperationalState = {
+      mode: "PAUSED",
+      reason,
+      changedByUid: uid,
+      changedAt: now,
+      pausedAt: now,
+      phaseRemainingSeconds: secondsRemaining(game.currentTurn.phaseEndsAt, now),
+      pendingQuestionRemainingSeconds: secondsRemaining(game.currentTurn.pendingQuestionEndsAt, now),
+      emergency: null,
+    };
+
+    tx.update(gameRef, {
+      operational,
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "GAME_PAUSED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: null,
+      payload: {
+        reason,
+        phaseRemainingSeconds: operational.phaseRemainingSeconds,
+        pendingQuestionRemainingSeconds: operational.pendingQuestionRemainingSeconds,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
+export const resumeGame = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn) {
+      throw new HttpsError("failed-precondition", "Solo se puede reanudar una partida activa.");
+    }
+    if (game.operational?.mode !== "PAUSED" && game.operational?.mode !== "EMERGENCY") {
+      throw new HttpsError("failed-precondition", "La partida no esta pausada.");
+    }
+
+    const now = nowTs();
+    const phaseRemainingSeconds = game.operational.phaseRemainingSeconds ?? secondsRemaining(turn.phaseEndsAt, now) ?? 0;
+    const pendingQuestionRemainingSeconds = game.operational.pendingQuestionRemainingSeconds;
+    const nextTurn: TurnState = {
+      ...turn,
+      phaseStartedAt: now,
+      phaseEndsAt: Timestamp.fromMillis(now.toMillis() + phaseRemainingSeconds * 1000),
+      pendingQuestionEndsAt: pendingQuestionRemainingSeconds === null || pendingQuestionRemainingSeconds === undefined ?
+        turn.pendingQuestionEndsAt ?? null :
+        Timestamp.fromMillis(now.toMillis() + pendingQuestionRemainingSeconds * 1000),
+    };
+
+    tx.update(gameRef, {
+      currentTurn: nextTurn,
+      operational: {
+        mode: "NORMAL",
+        reason: null,
+        changedByUid: uid,
+        changedAt: now,
+        pausedAt: null,
+        phaseRemainingSeconds: null,
+        pendingQuestionRemainingSeconds: null,
+        emergency: null,
+      },
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
+      type: "GAME_RESUMED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: null,
+      payload: {
+        previousMode: game.operational.mode,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
+export const declareEmergency = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const reason = String(request.data?.reason ?? "").trim() || null;
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    if (game.status !== "LIVE" || !game.currentTurn) {
+      throw new HttpsError("failed-precondition", "Solo se puede declarar emergencia en partida activa.");
+    }
+
+    const now = nowTs();
+    const operational: OperationalState = {
+      mode: "EMERGENCY",
+      reason,
+      changedByUid: uid,
+      changedAt: now,
+      pausedAt: now,
+      phaseRemainingSeconds: secondsRemaining(game.currentTurn.phaseEndsAt, now),
+      pendingQuestionRemainingSeconds: secondsRemaining(game.currentTurn.pendingQuestionEndsAt, now),
+      emergency: {
+        declaredByUid: uid,
+        declaredAt: now,
+        reason,
+      },
+    };
+
+    tx.update(gameRef, {
+      operational,
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "EMERGENCY_DECLARED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: null,
+      payload: {
+        reason,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
+export const cancelGame = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const reason = String(request.data?.reason ?? "").trim() || null;
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    if (game.status === "FINISHED") {
+      throw new HttpsError("failed-precondition", "La partida ya esta cerrada.");
+    }
+
+    const now = nowTs();
+    const previousTurn = game.currentTurn;
+    if (game.currentTurn) {
+      game.currentTurn = {
+        ...game.currentTurn,
+        phase: "ENDED",
+        phaseStartedAt: now,
+        phaseEndsAt: now,
+      };
+    }
+
+    tx.update(gameRef, {
+      status: "FINISHED",
+      finishedAt: now,
+      currentTurn: game.currentTurn ?? null,
+      operational: {
+        mode: "NORMAL",
+        reason: null,
+        changedByUid: uid,
+        changedAt: now,
+        canceledAt: now,
+        canceledByUid: uid,
+        cancellationReason: reason,
+      },
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, {...game, currentTurn: previousTurn}, {
+      type: "GAME_CANCELED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: null,
+      payload: {
+        reason,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
+export const reportTemporaryDisconnect = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const reason = String(request.data?.reason ?? "").trim() || null;
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const seatSnap = await tx.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
+    if (seatSnap.empty) throw new HttpsError("permission-denied", "No tenes seat en esta partida.");
+    const seatDoc = seatSnap.docs[0];
+    const seatTeamId = String(seatDoc.data()?.teamId ?? "");
+    const now = nowTs();
+
+    tx.update(seatDoc.ref, {
+      online: false,
+      connectionStatus: "TEMPORARILY_DISCONNECTED",
+      disconnectReason: reason,
+      disconnectedAt: now,
+      updatedAt: now,
+    });
+    tx.update(gameRef, {updatedAt: now});
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "PLAYER_TEMPORARILY_DISCONNECTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId || null,
+      payload: {
+        reason,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
+export const clearTemporaryDisconnect = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const seatSnap = await tx.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
+    if (seatSnap.empty) throw new HttpsError("permission-denied", "No tenes seat en esta partida.");
+    const seatDoc = seatSnap.docs[0];
+    const seatTeamId = String(seatDoc.data()?.teamId ?? "");
+    const now = nowTs();
+
+    tx.update(seatDoc.ref, {
+      online: true,
+      connectionStatus: "ONLINE",
+      disconnectReason: null,
+      disconnectedAt: null,
+      lastSeenAt: now,
+      updatedAt: now,
+    });
+    tx.update(gameRef, {updatedAt: now});
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "PLAYER_RECONNECTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId || null,
+    });
+  });
+
+  return {ok: true};
+});
+
 export const scoring = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
@@ -2534,6 +2878,7 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
       const game = fresh.data() as GameDoc;
       let turn = game.currentTurn;
       if (!turn || game.status !== "LIVE") return;
+      if (isOperationallyStopped(game)) return;
 
       const txNow = nowTs();
       let changed = false;

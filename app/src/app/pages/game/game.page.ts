@@ -119,6 +119,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
   resolveQuestionErrorMessage = '';
   outOfAreaActionInFlight = false;
   outOfAreaMessage = '';
+  operationalActionInFlight = false;
+  operationalMessage = '';
   foundActionInFlight = false;
   foundErrorMessage = '';
   stations: Station[] = [];
@@ -551,6 +553,78 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.outOfAreaMessage = error instanceof Error ? error.message : 'No se pudo confirmar.';
     } finally {
       this.outOfAreaActionInFlight = false;
+    }
+  }
+
+  async pauseGame(role: PlayerRole): Promise<void> {
+    if (!role.isHost) {
+      this.operationalMessage = 'Solo el host puede pausar.';
+      return;
+    }
+    const reason = window.prompt('Motivo de pausa')?.trim() || null;
+    await this.runOperationalAction(() => this.gameFacade.pauseGame(this.gameId, reason), 'Partida pausada.');
+  }
+
+  async resumeGame(role: PlayerRole): Promise<void> {
+    if (!role.isHost) {
+      this.operationalMessage = 'Solo el host puede reanudar.';
+      return;
+    }
+    await this.runOperationalAction(() => this.gameFacade.resumeGame(this.gameId), 'Partida reanudada.');
+  }
+
+  async declareEmergency(role: PlayerRole): Promise<void> {
+    if (!role.isHost) {
+      this.operationalMessage = 'Solo el host puede declarar emergencia.';
+      return;
+    }
+    const reason = window.prompt('Motivo de emergencia')?.trim() || null;
+    await this.runOperationalAction(() => this.gameFacade.declareEmergency(this.gameId, reason), 'Emergencia declarada.');
+  }
+
+  async cancelGame(role: PlayerRole): Promise<void> {
+    if (!role.isHost) {
+      this.operationalMessage = 'Solo el host puede cancelar la partida.';
+      return;
+    }
+    const reason = window.prompt('Motivo de cancelación')?.trim() || null;
+    const confirmed = window.confirm('¿Cancelar y cerrar la partida? Esta acción no continúa el turno.');
+    if (!confirmed) {
+      return;
+    }
+    await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida cancelada.');
+  }
+
+  async reportTemporaryDisconnect(role: PlayerRole): Promise<void> {
+    if (!role.isParticipant) {
+      this.operationalMessage = 'Solo jugadores de la partida pueden reportar desconexión.';
+      return;
+    }
+    const reason = window.prompt('Motivo de desconexión temporal')?.trim() || null;
+    await this.runOperationalAction(
+      () => this.gameFacade.reportTemporaryDisconnect(this.gameId, reason),
+      'Desconexión temporal registrada.',
+    );
+  }
+
+  async clearTemporaryDisconnect(role: PlayerRole): Promise<void> {
+    if (!role.isParticipant) {
+      this.operationalMessage = 'Solo jugadores de la partida pueden reconectarse.';
+      return;
+    }
+    await this.runOperationalAction(() => this.gameFacade.clearTemporaryDisconnect(this.gameId), 'Reconexión registrada.');
+  }
+
+  private async runOperationalAction(action: () => Promise<{ ok: boolean }>, successMessage: string): Promise<void> {
+    this.operationalActionInFlight = true;
+    this.operationalMessage = '';
+    try {
+      await action();
+      this.operationalMessage = successMessage;
+    } catch (error) {
+      this.operationalMessage = error instanceof Error ? error.message : 'No se pudo ejecutar la acción operativa.';
+    } finally {
+      this.operationalActionInFlight = false;
     }
   }
 
