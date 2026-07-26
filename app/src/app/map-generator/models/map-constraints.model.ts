@@ -58,14 +58,43 @@ export interface RadarConstraint {
 
 export interface ThermometerConstraint {
   type: 'THERMOMETER';
+  previousSeekerPosition: {
+    lat: number;
+    lng: number;
+  };
+  currentSeekerPosition: {
+    lat: number;
+    lng: number;
+  };
+  answer: 'HOTTER' | 'COLDER';
+  toleranceM?: number;
 }
 
 export interface MeasuringConstraint {
   type: 'MEASURING';
+  target: 'GENERAL_PAZ' | 'RIACHUELO' | 'POINT';
+  answer: 'CLOSER' | 'FARTHER' | 'EQUAL';
+  seekerPosition?: {
+    lat: number;
+    lng: number;
+  };
+  seekerDistanceM?: number;
+  targetPoint?: {
+    lat: number;
+    lng: number;
+  };
+  nearestTargetPoint?: {
+    lat: number;
+    lng: number;
+  };
+  toleranceM?: number;
 }
 
 export interface MatchingConstraint {
   type: 'MATCHING';
+  field: 'BARRIO' | 'COMUNA' | 'BASE_STATION';
+  seekerValue: string | number;
+  answer: 'MATCH' | 'NO_MATCH';
 }
 
 export interface TentaclesConstraint {

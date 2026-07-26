@@ -2,6 +2,13 @@ import { getStationComparisonKey, Station } from '../../models/station.model';
 import { GAME_CONFIG } from '../../config/game-config';
 import { ConstraintRecord, StationEvaluation } from '../models/map-constraints.model';
 import { GeometryService } from '../services/geometry.service';
+import {
+  evaluateTentaclesConstraint,
+  shouldEliminateByMatching,
+  shouldEliminateByMeasuring,
+  shouldEliminateByRadar,
+  shouldEliminateByThermometer,
+} from './constraint-stubs';
 
 export function evaluateStationsFromHistory(
   stations: Station[],
@@ -49,6 +56,38 @@ export function evaluateStationsFromHistory(
         }
       }
     }
+
+    if (record.data.type === 'RADAR') {
+      const data = record.data;
+      eliminateMatchingStations(stations, statusByKey, eliminatedByKey, record.id, station =>
+        shouldEliminateByRadar(station, data, geometry),
+      );
+    }
+
+    if (record.data.type === 'THERMOMETER') {
+      const data = record.data;
+      eliminateMatchingStations(stations, statusByKey, eliminatedByKey, record.id, station =>
+        shouldEliminateByThermometer(station, data, geometry),
+      );
+    }
+
+    if (record.data.type === 'MEASURING') {
+      const data = record.data;
+      eliminateMatchingStations(stations, statusByKey, eliminatedByKey, record.id, station =>
+        shouldEliminateByMeasuring(station, data, geometry),
+      );
+    }
+
+    if (record.data.type === 'MATCHING') {
+      const data = record.data;
+      eliminateMatchingStations(stations, statusByKey, eliminatedByKey, record.id, station =>
+        shouldEliminateByMatching(station, data),
+      );
+    }
+
+    if (record.data.type === 'TENTACLES') {
+      evaluateTentaclesConstraint();
+    }
   }
 
   return stations.map(station => {
@@ -60,4 +99,20 @@ export function evaluateStationsFromHistory(
       eliminatedByConstraintId: eliminatedByKey.get(key) ?? eliminatedByKey.get(station.id),
     };
   });
+}
+
+function eliminateMatchingStations(
+  stations: Station[],
+  statusByKey: Map<string, StationEvaluation['status']>,
+  eliminatedByKey: Map<string, string | undefined>,
+  recordId: string,
+  predicate: (station: Station) => boolean,
+): void {
+  for (const station of stations) {
+    if (predicate(station)) {
+      const stationKey = getStationComparisonKey(station);
+      statusByKey.set(stationKey, 'ELIMINATED');
+      eliminatedByKey.set(stationKey, recordId);
+    }
+  }
 }

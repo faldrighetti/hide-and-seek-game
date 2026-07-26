@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
 import * as L from 'leaflet';
 import { FeatureCollection, Geometry } from 'geojson';
+import { Subscription } from 'rxjs';
 import { getStationComparisonKey, Station, StationsProcessedFile } from '../models/station.model';
 import { groupStationsByLine, StationLineGroup } from '../data/station-groups';
 import {
@@ -8,13 +9,23 @@ import {
   HidingZone,
   ManualCircleConstraint,
   MapGeneratorMode,
+  MatchingConstraint,
+  MeasuringConstraint,
+  RadarConstraint,
   SeekerMapState,
   StationCandidateView,
   StationEvaluation,
+  ThermometerConstraint,
 } from './models/map-constraints.model';
 import { SeekerMapStateService } from './services/seeker-map-state.service';
 import { StationEvaluatorService } from './services/station-evaluator.service';
 import { createHidingZone } from './services/hiding-zone';
+import { GeometryService } from './services/geometry.service';
+import {
+  SeekerLocationReferenceService,
+  SeekerLocationReferenceState,
+} from './services/seeker-location-reference.service';
+import { CabaLocationClassification, classifyCabaLocation } from './services/seeker-location-classifier';
 
 type CandidateStationView = Station & Pick<StationCandidateView, 'status' | 'selected'>;
 
@@ -32,6 +43,40 @@ interface MapNavigationBoundsAsset {
   northEast: { lat: number; lng: number };
   bufferM: number;
   sources: string[];
+}
+
+interface QuestionCatalogAsset {
+  questions?: {
+    radar?: {
+      items?: Array<{ label?: string; distanceM?: number | null; customDistance?: boolean }>;
+    };
+    thermometer?: {
+      items?: Array<{ label?: string; distanceM?: number }>;
+    };
+    measuring?: {
+      items?: Array<{ label?: string; resolutionMode?: string }>;
+    };
+    matching?: {
+      items?: Array<{ label?: string; resolutionMode?: string }>;
+    };
+  };
+}
+
+interface QuestionCatalogOption {
+  id: string;
+  category: 'radar' | 'thermometer' | 'measuring' | 'matching';
+  label: string;
+  distanceM?: number;
+  automation: 'AUTOMATIC' | 'MANUAL_CIRCLE' | 'MANUAL_STATIONS' | 'MANUAL';
+}
+
+interface ReferenceLineAsset {
+  features?: Array<{
+    geometry?: {
+      type?: string;
+      coordinates?: number[][];
+    };
+  }>;
 }
 
 @Component({
@@ -57,25 +102,52 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   circleMode: ManualCircleConstraint['mode'] = 'ELIMINATE_INSIDE';
   circleReason = '';
   circleValidationError = '';
+  answeredQuestionOptions: QuestionCatalogOption[] = [];
+  selectedQuestionOptionId = '';
+  questionOriginLat: number | null = null;
+  questionOriginLng: number | null = null;
+  previousSeekerLat: number | null = null;
+  previousSeekerLng: number | null = null;
+  currentSeekerLat: number | null = null;
+  currentSeekerLng: number | null = null;
+  questionRadiusM: number | null = null;
+  questionAnswer: RadarConstraint['answer'] | ThermometerConstraint['answer'] | MeasuringConstraint['answer'] | MatchingConstraint['answer'] = 'INSIDE';
+  measuringTarget: MeasuringConstraint['target'] = 'GENERAL_PAZ';
+  matchingField: MatchingConstraint['field'] = 'BARRIO';
+  matchingValue = '';
+  questionValidationError = '';
+  seekerLocationState: SeekerLocationReferenceState | null = null;
+  seekerLocationClassification: CabaLocationClassification = { barrio: null, comuna: null };
+  referenceLines: Record<'GENERAL_PAZ' | 'RIACHUELO', Array<{ lat: number; lng: number }>> = {
+    GENERAL_PAZ: [],
+    RIACHUELO: [],
+  };
 
   private map?: L.Map;
   private barriosLayer?: L.GeoJSON;
   private stationsLayer = L.layerGroup();
   private restrictionsLayer = L.layerGroup();
   private stationMarkers = new Map<string, L.CircleMarker>();
+  private seekerLocationSubscription?: Subscription;
+  private barrios: FeatureCollection<Geometry> | null = null;
   private readonly minZoom = 11;
   private readonly maxZoom = 18;
 
   constructor(
     private readonly seekerMapState: SeekerMapStateService,
     private readonly stationEvaluator: StationEvaluatorService,
+    private readonly geometry: GeometryService,
+    private readonly seekerLocationReference: SeekerLocationReferenceService,
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
+    this.startSeekerLocationReference();
     await this.loadMapData();
   }
 
   ngOnDestroy(): void {
+    this.seekerLocationSubscription?.unsubscribe();
+    this.seekerLocationReference.stop();
     this.map?.remove();
   }
 
@@ -170,11 +242,36 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     });
   }
 
+  get computedMeasuringDistanceM(): number | null {
+    if (!this.isValidLatLng(this.currentSeekerLat, this.currentSeekerLng)) {
+      return null;
+    }
+    const line = this.referenceLines[this.measuringTarget === 'RIACHUELO' ? 'RIACHUELO' : 'GENERAL_PAZ'];
+    const distanceM = this.geometry.distanceToPolylineMeters(
+      { lat: Number(this.currentSeekerLat), lng: Number(this.currentSeekerLng) },
+      line,
+    );
+    return Number.isFinite(distanceM) ? Math.round(distanceM) : null;
+  }
+
+  get computedMeasuringNearestPoint(): { lat: number; lng: number } | null {
+    if (!this.isValidLatLng(this.currentSeekerLat, this.currentSeekerLng)) {
+      return null;
+    }
+    const line = this.referenceLines[this.measuringTarget === 'RIACHUELO' ? 'RIACHUELO' : 'GENERAL_PAZ'];
+    const result = this.geometry.closestPointOnPolyline(
+      { lat: Number(this.currentSeekerLat), lng: Number(this.currentSeekerLng) },
+      line,
+    );
+    return result?.point ?? null;
+  }
+
   setMode(mode: MapGeneratorMode): void {
     this.mode = mode;
     this.selectedStationIds.clear();
     setTimeout(() => this.map?.invalidateSize(), 0);
     this.renderStations();
+    this.renderRestrictionOverlays();
   }
 
   selectHiderStation(station: Station): void {
@@ -298,6 +395,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       if (this.mode === 'SEEKER') {
         this.circleCenterLat = Number(event.latlng.lat.toFixed(6));
         this.circleCenterLng = Number(event.latlng.lng.toFixed(6));
+        this.seekerLocationReference.setManualReference(this.circleCenterLat, this.circleCenterLng);
       }
     });
     this.map.fitBounds(maxBounds, { padding: [12, 12], animate: false });
@@ -306,10 +404,20 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private async loadMapData(): Promise<void> {
     try {
       const loadStartedAt = performance.now();
-      const [boundsResponse, barriosResponse, stationsResponse] = await Promise.all([
+      const [
+        boundsResponse,
+        barriosResponse,
+        stationsResponse,
+        questionsResponse,
+        generalPazResponse,
+        riachueloResponse,
+      ] = await Promise.all([
         fetch('assets/map-generator.bounds.json', { cache: 'no-store' }),
         fetch('assets/barrios_caba.simplified.json', { cache: 'force-cache' }),
         fetch('assets/stations.processed.json', { cache: 'no-store' }),
+        fetch('assets/questions/Preguntas_CABA.json', { cache: 'force-cache' }),
+        fetch('assets/general_paz.geojson', { cache: 'force-cache' }),
+        fetch('assets/riachuelo.geojson', { cache: 'force-cache' }),
       ]);
 
       if (!boundsResponse.ok || !barriosResponse.ok || !stationsResponse.ok) {
@@ -318,7 +426,18 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
       const boundsAsset = (await boundsResponse.json()) as MapNavigationBoundsAsset;
       const barrios = (await barriosResponse.json()) as FeatureCollection<Geometry>;
+      this.barrios = barrios;
+      this.updateSeekerLocationClassification();
       const stationsFile = (await stationsResponse.json()) as StationsProcessedFile;
+      if (questionsResponse.ok) {
+        this.answeredQuestionOptions = this.buildQuestionOptions((await questionsResponse.json()) as QuestionCatalogAsset);
+      }
+      if (generalPazResponse.ok) {
+        this.referenceLines.GENERAL_PAZ = this.extractReferenceLine((await generalPazResponse.json()) as ReferenceLineAsset);
+      }
+      if (riachueloResponse.ok) {
+        this.referenceLines.RIACHUELO = this.extractReferenceLine((await riachueloResponse.json()) as ReferenceLineAsset);
+      }
       this.initMap(boundsAsset);
       this.allProcessedStations = stationsFile.stations;
       this.stations = stationsFile.stations.filter(station => station.isPlayable);
@@ -339,6 +458,55 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
   }
 
+  onQuestionOptionChange(optionId: string): void {
+    this.selectedQuestionOptionId = optionId;
+    this.questionValidationError = '';
+    const option = this.selectedQuestionOption;
+    if (!option) {
+      return;
+    }
+
+    if (option.category === 'radar') {
+      this.questionRadiusM = option.distanceM ?? this.questionRadiusM;
+      this.questionAnswer = 'INSIDE';
+    } else if (option.category === 'thermometer') {
+      this.questionAnswer = 'HOTTER';
+    } else if (option.category === 'measuring') {
+      this.questionAnswer = 'CLOSER';
+      this.measuringTarget = this.getMeasuringTargetFromLabel(option.label);
+    } else if (option.category === 'matching') {
+      this.questionAnswer = 'MATCH';
+      this.matchingField = this.getMatchingFieldFromLabel(option.label);
+      this.updateMatchingValueFromSeekerLocation();
+    }
+  }
+
+  saveAnsweredQuestion(): void {
+    this.questionValidationError = '';
+    const option = this.selectedQuestionOption;
+    if (!option) {
+      this.questionValidationError = 'Elegi una pregunta del catalogo.';
+      return;
+    }
+
+    const data = this.buildAnsweredConstraint(option);
+    if (!data) {
+      return;
+    }
+
+    const record: ConstraintRecord = {
+      id: `question-${Date.now()}`,
+      questionId: option.id,
+      category: option.category,
+      createdAt: new Date().toISOString(),
+      enabled: true,
+      data,
+    };
+
+    this.seekerState = this.seekerMapState.append(this.seekerState, record);
+    this.recalculateEvaluations();
+  }
+
   private renderBarrios(barrios: FeatureCollection<Geometry>): void {
     if (!this.map) {
       return;
@@ -355,6 +523,22 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }).addTo(this.map);
     this.bringLayerGroupToFront(this.stationsLayer);
     this.bringLayerGroupToFront(this.restrictionsLayer);
+  }
+
+  private startSeekerLocationReference(): void {
+    this.seekerLocationSubscription = this.seekerLocationReference.state$.subscribe(state => {
+      this.seekerLocationState = state;
+      if (state.lastLat === null || state.lastLng === null) {
+        return;
+      }
+
+      this.questionOriginLat = Number(state.lastLat.toFixed(6));
+      this.questionOriginLng = Number(state.lastLng.toFixed(6));
+      this.currentSeekerLat = Number(state.lastLat.toFixed(6));
+      this.currentSeekerLng = Number(state.lastLng.toFixed(6));
+      this.updateSeekerLocationClassification();
+    });
+    this.seekerLocationReference.start();
   }
 
   private renderStations(): void {
@@ -393,6 +577,41 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       weight: 2,
       interactive: false,
     }).addTo(this.restrictionsLayer);
+    this.bringLayerGroupToFront(this.stationsLayer);
+  }
+
+  private renderRestrictionOverlays(): void {
+    if (!this.map) {
+      return;
+    }
+    this.restrictionsLayer.clearLayers();
+    if (this.mode === 'HIDER') {
+      this.renderSelectedZone();
+      return;
+    }
+
+    for (const record of this.visibleRecords.filter(item => item.enabled)) {
+      if (record.data.type === 'MANUAL_CIRCLE') {
+        L.circle([record.data.center.lat, record.data.center.lng], {
+          radius: record.data.radiusM,
+          color: record.data.mode === 'ELIMINATE_INSIDE' ? '#a13f3f' : '#315f73',
+          fillColor: record.data.mode === 'ELIMINATE_INSIDE' ? '#e86f68' : '#6aa6c8',
+          fillOpacity: 0.08,
+          weight: 2,
+          interactive: false,
+        }).addTo(this.restrictionsLayer);
+      }
+      if (record.data.type === 'RADAR') {
+        L.circle([record.data.origin.lat, record.data.origin.lng], {
+          radius: record.data.radiusM,
+          color: record.data.answer === 'INSIDE' ? '#1f7a4d' : '#a13f3f',
+          fillColor: record.data.answer === 'INSIDE' ? '#4ade80' : '#e86f68',
+          fillOpacity: 0.08,
+          weight: 2,
+          interactive: false,
+        }).addTo(this.restrictionsLayer);
+      }
+    }
     this.bringLayerGroupToFront(this.stationsLayer);
   }
 
@@ -460,6 +679,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private recalculateEvaluations(): void {
     this.evaluations = this.stationEvaluator.evaluate(this.stations, this.visibleRecords);
     this.renderStations();
+    this.renderRestrictionOverlays();
   }
 
   private getEvaluation(stationId: string): StationEvaluation | undefined {
@@ -499,6 +719,15 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     if (record.data.type === 'RADAR') {
       return `Radar de ${record.data.radiusM} m`;
     }
+    if (record.data.type === 'THERMOMETER') {
+      return 'Termometro';
+    }
+    if (record.data.type === 'MEASURING') {
+      return `Comparacion ${record.data.target}`;
+    }
+    if (record.data.type === 'MATCHING') {
+      return `Matching ${record.data.field}`;
+    }
     return record.data.type;
   }
 
@@ -509,6 +738,18 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     if (record.data.type === 'MANUAL_CIRCLE') {
       return record.data.mode === 'ELIMINATE_INSIDE' ? 'Eliminar dentro' : 'Eliminar fuera';
     }
+    if (record.data.type === 'RADAR') {
+      return record.data.answer === 'INSIDE' ? 'Respuesta si' : 'Respuesta no';
+    }
+    if (record.data.type === 'THERMOMETER') {
+      return record.data.answer === 'HOTTER' ? 'Mas caliente' : 'Mas frio';
+    }
+    if (record.data.type === 'MEASURING') {
+      return record.data.answer.toLocaleLowerCase('es-AR');
+    }
+    if (record.data.type === 'MATCHING') {
+      return `${record.data.answer === 'MATCH' ? 'Coincide' : 'No coincide'}: ${record.data.seekerValue}`;
+    }
     return record.questionId ?? record.category;
   }
 
@@ -518,5 +759,191 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     const stationKeys = new Set(record.data.stationKeys);
     return eliminatedStations.filter(station => Boolean(station.hub_id) && stationKeys.has(station.hub_id ?? '') && !stationKeys.has(station.id));
+  }
+
+  get selectedQuestionOption(): QuestionCatalogOption | undefined {
+    return this.answeredQuestionOptions.find(option => option.id === this.selectedQuestionOptionId);
+  }
+
+  private buildQuestionOptions(catalog: QuestionCatalogAsset): QuestionCatalogOption[] {
+    const options: QuestionCatalogOption[] = [];
+    for (const item of catalog.questions?.radar?.items ?? []) {
+      options.push({
+        id: `radar:${item.label ?? item.distanceM ?? 'custom'}`,
+        category: 'radar',
+        label: `Radar - ${item.label ?? 'custom'}`,
+        distanceM: item.distanceM ?? undefined,
+        automation: 'AUTOMATIC',
+      });
+    }
+    for (const item of catalog.questions?.thermometer?.items ?? []) {
+      options.push({
+        id: `thermometer:${item.label ?? item.distanceM ?? 'custom'}`,
+        category: 'thermometer',
+        label: `Termometro - ${item.label ?? 'custom'}`,
+        distanceM: item.distanceM,
+        automation: 'AUTOMATIC',
+      });
+    }
+    for (const item of catalog.questions?.measuring?.items ?? []) {
+      const label = item.label ?? 'target';
+      if (item.resolutionMode === 'AUTOMATIC' && this.isSupportedMeasuringLabel(label)) {
+        options.push({
+          id: `measuring:${label}`,
+          category: 'measuring',
+          label: `Comparacion - ${label}`,
+          automation: 'AUTOMATIC',
+        });
+      }
+    }
+    options.push(
+      {
+        id: 'matching:barrios-caba',
+        category: 'matching',
+        label: 'Matching - Barrio',
+        automation: 'AUTOMATIC',
+      },
+      {
+        id: 'matching:comunas-caba',
+        category: 'matching',
+        label: 'Matching - Comuna',
+        automation: 'AUTOMATIC',
+      },
+      {
+        id: 'matching:base-station',
+        category: 'matching',
+        label: 'Matching - Estacion base',
+        automation: 'AUTOMATIC',
+      },
+    );
+    for (const item of catalog.questions?.matching?.items ?? []) {
+      const label = item.label ?? 'field';
+      if (item.resolutionMode === 'AUTOMATIC' && this.isSupportedMatchingLabel(label)) {
+        options.push({
+          id: `matching:${label}`,
+          category: 'matching',
+          label: `Matching - ${label}`,
+          automation: 'AUTOMATIC',
+        });
+      }
+    }
+    return options;
+  }
+
+  private buildAnsweredConstraint(option: QuestionCatalogOption): RadarConstraint | ThermometerConstraint | MeasuringConstraint | MatchingConstraint | null {
+    if (option.category === 'radar') {
+      if (!this.isValidLatLng(this.questionOriginLat, this.questionOriginLng) || !Number.isFinite(this.questionRadiusM) || Number(this.questionRadiusM) <= 0) {
+        this.questionValidationError = 'Carga origen y radio del radar.';
+        return null;
+      }
+      return {
+        id: `radar-${Date.now()}`,
+        type: 'RADAR',
+        origin: { lat: Number(this.questionOriginLat), lng: Number(this.questionOriginLng) },
+        radiusM: Number(this.questionRadiusM),
+        answer: this.questionAnswer === 'OUTSIDE' ? 'OUTSIDE' : 'INSIDE',
+      };
+    }
+
+    if (option.category === 'thermometer') {
+      if (!this.isValidLatLng(this.previousSeekerLat, this.previousSeekerLng) || !this.isValidLatLng(this.currentSeekerLat, this.currentSeekerLng)) {
+        this.questionValidationError = 'Carga posicion anterior y nueva.';
+        return null;
+      }
+      return {
+        type: 'THERMOMETER',
+        previousSeekerPosition: { lat: Number(this.previousSeekerLat), lng: Number(this.previousSeekerLng) },
+        currentSeekerPosition: { lat: Number(this.currentSeekerLat), lng: Number(this.currentSeekerLng) },
+        answer: this.questionAnswer === 'COLDER' ? 'COLDER' : 'HOTTER',
+      };
+    }
+
+    if (option.category === 'measuring') {
+      const calculatedDistanceM = this.computedMeasuringDistanceM;
+      const nearestPoint = this.computedMeasuringNearestPoint;
+      if (calculatedDistanceM === null) {
+        this.questionValidationError = 'Carga la posicion del seeker para calcular la distancia al target.';
+        return null;
+      }
+      return {
+        type: 'MEASURING',
+        target: this.measuringTarget,
+        seekerPosition: { lat: Number(this.currentSeekerLat), lng: Number(this.currentSeekerLng) },
+        seekerDistanceM: calculatedDistanceM,
+        nearestTargetPoint: nearestPoint ?? undefined,
+        answer: this.questionAnswer === 'FARTHER' || this.questionAnswer === 'EQUAL' ? this.questionAnswer : 'CLOSER',
+      };
+    }
+
+    this.updateMatchingValueFromSeekerLocation();
+    const trimmedValue = this.matchingValue.trim();
+    if (!trimmedValue) {
+      this.questionValidationError = 'Carga el valor observado para matching.';
+      return null;
+    }
+    return {
+      type: 'MATCHING',
+      field: this.matchingField,
+      seekerValue: this.matchingField === 'COMUNA' && Number.isFinite(Number(trimmedValue)) ? Number(trimmedValue) : trimmedValue,
+      answer: this.questionAnswer === 'NO_MATCH' ? 'NO_MATCH' : 'MATCH',
+    };
+  }
+
+  private getMeasuringTargetFromLabel(label: string): MeasuringConstraint['target'] {
+    const normalized = label.toLocaleLowerCase('es-AR');
+    if (normalized.includes('riachuelo')) {
+      return 'RIACHUELO';
+    }
+    return 'GENERAL_PAZ';
+  }
+
+  private isSupportedMeasuringLabel(label: string): boolean {
+    const normalized = label.toLocaleLowerCase('es-AR');
+    return normalized.includes('general paz') || normalized.includes('riachuelo');
+  }
+
+  private getMatchingFieldFromLabel(label: string): MatchingConstraint['field'] {
+    const normalized = label.toLocaleLowerCase('es-AR');
+    if (normalized.includes('comuna')) {
+      return 'COMUNA';
+    }
+    if (normalized.includes('estacion base') || normalized.includes('estaci')) {
+      return 'BASE_STATION';
+    }
+    return 'BARRIO';
+  }
+
+  private isSupportedMatchingLabel(label: string): boolean {
+    const normalized = label.toLocaleLowerCase('es-AR');
+    return normalized.includes('barrio') || normalized.includes('comuna') || normalized.includes('estacion base');
+  }
+
+  private updateSeekerLocationClassification(): void {
+    if (!this.barrios || !this.isValidLatLng(this.currentSeekerLat, this.currentSeekerLng)) {
+      this.seekerLocationClassification = { barrio: null, comuna: null };
+      return;
+    }
+
+    this.seekerLocationClassification = classifyCabaLocation(
+      { lat: Number(this.currentSeekerLat), lng: Number(this.currentSeekerLng) },
+      this.barrios,
+    );
+    this.updateMatchingValueFromSeekerLocation();
+  }
+
+  updateMatchingValueFromSeekerLocation(): void {
+    if (this.matchingField === 'BARRIO' && this.seekerLocationClassification.barrio) {
+      this.matchingValue = this.seekerLocationClassification.barrio;
+    }
+    if (this.matchingField === 'COMUNA' && this.seekerLocationClassification.comuna !== null) {
+      this.matchingValue = String(this.seekerLocationClassification.comuna);
+    }
+  }
+
+  private extractReferenceLine(asset: ReferenceLineAsset): Array<{ lat: number; lng: number }> {
+    const lineFeature = asset.features?.find(feature => feature.geometry?.type === 'LineString');
+    return (lineFeature?.geometry?.coordinates ?? [])
+      .filter(coordinate => coordinate.length >= 2 && Number.isFinite(coordinate[0]) && Number.isFinite(coordinate[1]))
+      .map(([lng, lat]) => ({ lat, lng }));
   }
 }

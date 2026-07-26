@@ -64,6 +64,32 @@
           <span>Dudosas<br><strong>{{ unknownCount }}</strong></span>
         </div>
 
+        <div class="seeker-reference">
+          <div>
+            <span>Ubicación seeker</span>
+            <strong>{{ seekerLocationState?.active ? 'GPS activo' : 'GPS inactivo' }}</strong>
+          </div>
+          <div>
+            <span>Barrio actual</span>
+            <strong>{{ seekerLocationClassification.barrio || 'Sin barrio detectado' }}</strong>
+          </div>
+          <div>
+            <span>Comuna</span>
+            <strong>{{ seekerLocationClassification.comuna !== null ? seekerLocationClassification.comuna : '-' }}</strong>
+          </div>
+          <p *ngIf="seekerLocationState?.lastLat !== null && seekerLocationState?.lastLng !== null">
+            {{ seekerLocationState?.lastLat | number: '1.5-5' }},
+            {{ seekerLocationState?.lastLng | number: '1.5-5' }}
+            <span *ngIf="seekerLocationState?.lastAccuracyM !== null">
+              · precisión {{ seekerLocationState?.lastAccuracyM | number: '1.0-0' }} m
+            </span>
+            <span *ngIf="seekerLocationState?.updatedAtIso">
+              · {{ seekerLocationState?.updatedAtIso | date: 'HH:mm:ss' }}
+            </span>
+          </p>
+          <ion-note color="danger" *ngIf="seekerLocationState?.lastError">{{ seekerLocationState?.lastError }}</ion-note>
+        </div>
+
         <ion-note *ngIf="selectedHubSummaries.length === 0 && selectedStationIds.size > 0">
           La accion afectara solamente las estaciones seleccionadas que no pertenezcan a hubs.
         </ion-note>
@@ -121,6 +147,104 @@
           ></ion-input>
           <ion-note color="danger" *ngIf="circleValidationError">{{ circleValidationError }}</ion-note>
           <ion-button size="small" fill="outline" (click)="saveManualCircle()">Guardar círculo</ion-button>
+        </div>
+
+        <div class="answered-question">
+          <h2>Pregunta respondida</h2>
+          <ion-select
+            label="Catálogo"
+            labelPlacement="stacked"
+            interface="popover"
+            [value]="selectedQuestionOptionId"
+            (ionChange)="onQuestionOptionChange($any($event.detail.value))"
+          >
+            <ion-select-option *ngFor="let option of answeredQuestionOptions" [value]="option.id">
+              {{ option.label }}
+            </ion-select-option>
+          </ion-select>
+
+          <ng-container *ngIf="selectedQuestionOption as option">
+            <div class="coordinate-grid" *ngIf="option.category === 'radar'">
+              <ion-input label="Lat seeker" labelPlacement="stacked" type="number" [(ngModel)]="questionOriginLat"></ion-input>
+              <ion-input label="Lng seeker" labelPlacement="stacked" type="number" [(ngModel)]="questionOriginLng"></ion-input>
+              <ion-input label="Radio m" labelPlacement="stacked" type="number" min="1" [(ngModel)]="questionRadiusM"></ion-input>
+            </div>
+            <ion-segment *ngIf="option.category === 'radar'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
+              <ion-segment-button value="INSIDE">
+                <ion-label>Sí</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="OUTSIDE">
+                <ion-label>No</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+
+            <div class="coordinate-grid" *ngIf="option.category === 'thermometer'">
+              <ion-input label="Lat anterior" labelPlacement="stacked" type="number" [(ngModel)]="previousSeekerLat"></ion-input>
+              <ion-input label="Lng anterior" labelPlacement="stacked" type="number" [(ngModel)]="previousSeekerLng"></ion-input>
+              <ion-input label="Lat nueva" labelPlacement="stacked" type="number" [(ngModel)]="currentSeekerLat"></ion-input>
+              <ion-input label="Lng nueva" labelPlacement="stacked" type="number" [(ngModel)]="currentSeekerLng"></ion-input>
+            </div>
+            <ion-segment *ngIf="option.category === 'thermometer'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
+              <ion-segment-button value="HOTTER">
+                <ion-label>Caliente</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="COLDER">
+                <ion-label>Frío</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+
+            <div class="coordinate-grid" *ngIf="option.category === 'measuring'">
+              <ion-select label="Target" labelPlacement="stacked" interface="popover" [(ngModel)]="measuringTarget">
+                <ion-select-option value="GENERAL_PAZ">General Paz</ion-select-option>
+                <ion-select-option value="RIACHUELO">Riachuelo</ion-select-option>
+              </ion-select>
+              <ion-input label="Lat seeker" labelPlacement="stacked" type="number" [(ngModel)]="currentSeekerLat"></ion-input>
+              <ion-input label="Lng seeker" labelPlacement="stacked" type="number" [(ngModel)]="currentSeekerLng"></ion-input>
+            </div>
+            <ion-note *ngIf="option.category === 'measuring' && computedMeasuringDistanceM !== null">
+              Distancia calculada: {{ computedMeasuringDistanceM }} m
+            </ion-note>
+            <ion-note *ngIf="option.category === 'measuring' && computedMeasuringNearestPoint as nearestPoint">
+              Punto más cercano: {{ nearestPoint.lat | number: '1.5-5' }}, {{ nearestPoint.lng | number: '1.5-5' }}
+            </ion-note>
+            <ion-segment *ngIf="option.category === 'measuring'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
+              <ion-segment-button value="CLOSER">
+                <ion-label>Más cerca</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="FARTHER">
+                <ion-label>Más lejos</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="EQUAL">
+                <ion-label>Igual</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+
+            <div class="coordinate-grid" *ngIf="option.category === 'matching'">
+              <ion-select
+                label="Campo"
+                labelPlacement="stacked"
+                interface="popover"
+                [(ngModel)]="matchingField"
+                (ionChange)="updateMatchingValueFromSeekerLocation()"
+              >
+                <ion-select-option value="BARRIO">Barrio</ion-select-option>
+                <ion-select-option value="COMUNA">Comuna</ion-select-option>
+                <ion-select-option value="BASE_STATION">Estación base</ion-select-option>
+              </ion-select>
+              <ion-input label="Valor seeker" labelPlacement="stacked" [(ngModel)]="matchingValue"></ion-input>
+            </div>
+            <ion-segment *ngIf="option.category === 'matching'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
+              <ion-segment-button value="MATCH">
+                <ion-label>Coincide</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="NO_MATCH">
+                <ion-label>No coincide</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </ng-container>
+
+          <ion-note color="danger" *ngIf="questionValidationError">{{ questionValidationError }}</ion-note>
+          <ion-button size="small" fill="outline" (click)="saveAnsweredQuestion()">Aplicar pregunta</ion-button>
         </div>
 
         <ion-accordion-group>
