@@ -1,7 +1,9 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import * as L from 'leaflet';
 import { FeatureCollection, Geometry } from 'geojson';
 import { Subscription } from 'rxjs';
+import { PendingQuestion } from '../models/core-model';
 import { getStationComparisonKey, Station, StationsProcessedFile } from '../models/station.model';
 import { groupStationsByLine, StationLineGroup } from '../data/station-groups';
 import {
@@ -26,6 +28,7 @@ import {
   SeekerLocationReferenceState,
 } from './services/seeker-location-reference.service';
 import { CabaLocationClassification, classifyCabaLocation } from './services/seeker-location-classifier';
+import { GameFacadeService } from '../services/game-facade';
 
 type CandidateStationView = Station & Pick<StationCandidateView, 'status' | 'selected'>;
 
@@ -116,6 +119,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   matchingField: MatchingConstraint['field'] = 'BARRIO';
   matchingValue = '';
   questionValidationError = '';
+  activeGameId = '';
+  pendingGameQuestion: PendingQuestion | null = null;
+  loadedGameQuestion: PendingQuestion | null = null;
+  questionCatalogLoaded = false;
   seekerLocationState: SeekerLocationReferenceState | null = null;
   seekerLocationClassification: CabaLocationClassification = { barrio: null, comuna: null };
   referenceLines: Record<'GENERAL_PAZ' | 'RIACHUELO', Array<{ lat: number; lng: number }>> = {
@@ -129,15 +136,18 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private restrictionsLayer = L.layerGroup();
   private stationMarkers = new Map<string, L.CircleMarker>();
   private seekerLocationSubscription?: Subscription;
+  private pendingQuestionSubscription?: Subscription;
   private barrios: FeatureCollection<Geometry> | null = null;
   private readonly minZoom = 11;
   private readonly maxZoom = 18;
 
   constructor(
+    private readonly route: ActivatedRoute,
     private readonly seekerMapState: SeekerMapStateService,
     private readonly stationEvaluator: StationEvaluatorService,
     private readonly geometry: GeometryService,
     private readonly seekerLocationReference: SeekerLocationReferenceService,
+    private readonly gameFacade: GameFacadeService,
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
@@ -147,6 +157,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.seekerLocationSubscription?.unsubscribe();
+    this.pendingQuestionSubscription?.unsubscribe();
     this.seekerLocationReference.stop();
     this.map?.remove();
   }
@@ -298,12 +309,12 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   }
 
   undo(): void {
-    this.seekerState = this.seekerMapState.undo(this.seekerState);
+    this.seekerState = this.seekerMapState.undo(this.seekerState, this.stateScopeKey);
     this.recalculateEvaluations();
   }
 
   redo(): void {
-    this.seekerState = this.seekerMapState.redo(this.seekerState);
+    this.seekerState = this.seekerMapState.redo(this.seekerState, this.stateScopeKey);
     this.recalculateEvaluations();
   }
 
@@ -340,13 +351,13 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       data,
     };
 
-    this.seekerState = this.seekerMapState.append(this.seekerState, record);
+    this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
     this.circleReason = '';
     this.recalculateEvaluations();
   }
 
   toggleRecordEnabled(record: ConstraintRecord): void {
-    this.seekerState = this.seekerMapState.setRecordEnabled(this.seekerState, record.id, !record.enabled);
+    this.seekerState = this.seekerMapState.setRecordEnabled(this.seekerState, record.id, !record.enabled, this.stateScopeKey);
     this.recalculateEvaluations();
   }
 
@@ -403,6 +414,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   private async loadMapData(): Promise<void> {
     try {
+      this.syncGameContextFromRoute();
       const loadStartedAt = performance.now();
       const [
         boundsResponse,
@@ -431,6 +443,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       const stationsFile = (await stationsResponse.json()) as StationsProcessedFile;
       if (questionsResponse.ok) {
         this.answeredQuestionOptions = this.buildQuestionOptions((await questionsResponse.json()) as QuestionCatalogAsset);
+        this.questionCatalogLoaded = true;
+        if (this.pendingGameQuestion && !this.loadedGameQuestion && !this.selectedQuestionOptionId) {
+          this.loadPendingGameQuestion();
+        }
       }
       if (generalPazResponse.ok) {
         this.referenceLines.GENERAL_PAZ = this.extractReferenceLine((await generalPazResponse.json()) as ReferenceLineAsset);
@@ -441,7 +457,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       this.initMap(boundsAsset);
       this.allProcessedStations = stationsFile.stations;
       this.stations = stationsFile.stations.filter(station => station.isPlayable);
-      this.seekerState = this.seekerMapState.load();
+      this.seekerState = this.seekerMapState.load(this.stateScopeKey);
       this.recalculateEvaluations();
 
       this.renderBarrios(barrios);
@@ -496,14 +512,17 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
     const record: ConstraintRecord = {
       id: `question-${Date.now()}`,
-      questionId: option.id,
+      questionId: this.loadedGameQuestion?.id ?? this.pendingGameQuestion?.id ?? option.id,
       category: option.category,
       createdAt: new Date().toISOString(),
       enabled: true,
       data,
     };
 
-    this.seekerState = this.seekerMapState.append(this.seekerState, record);
+    this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
+    if (this.loadedGameQuestion?.id === record.questionId) {
+      this.loadedGameQuestion = null;
+    }
     this.recalculateEvaluations();
   }
 
@@ -661,7 +680,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       },
     };
 
-    this.seekerState = this.seekerMapState.append(this.seekerState, record);
+    this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
     this.selectedStationIds.clear();
     this.recalculateEvaluations();
   }
@@ -763,6 +782,34 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   get selectedQuestionOption(): QuestionCatalogOption | undefined {
     return this.answeredQuestionOptions.find(option => option.id === this.selectedQuestionOptionId);
+  }
+
+  loadPendingGameQuestion(): void {
+    if (!this.questionCatalogLoaded) {
+      return;
+    }
+    if (!this.pendingGameQuestion) {
+      this.questionValidationError = 'No hay pregunta pendiente de partida.';
+      return;
+    }
+
+    const option = this.findQuestionOptionForPendingQuestion(this.pendingGameQuestion);
+    if (!option) {
+      this.questionValidationError = 'La pregunta pendiente no tiene motor automatizable en el mapa.';
+      return;
+    }
+
+    this.loadedGameQuestion = this.pendingGameQuestion;
+    this.onQuestionOptionChange(option.id);
+    const distanceM = this.pendingGameQuestion.customDistanceM ?? this.pendingGameQuestion.distanceM;
+    if (option.category === 'radar' && distanceM) {
+      this.questionRadiusM = distanceM;
+    }
+    this.questionValidationError = '';
+  }
+
+  get stateScopeKey(): string | null {
+    return this.activeGameId ? `game.${this.activeGameId}` : null;
   }
 
   private buildQuestionOptions(catalog: QuestionCatalogAsset): QuestionCatalogOption[] {
@@ -887,6 +934,50 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       seekerValue: this.matchingField === 'COMUNA' && Number.isFinite(Number(trimmedValue)) ? Number(trimmedValue) : trimmedValue,
       answer: this.questionAnswer === 'NO_MATCH' ? 'NO_MATCH' : 'MATCH',
     };
+  }
+
+  private syncGameContextFromRoute(): void {
+    const gameId = (this.route.snapshot.queryParamMap.get('gameId') ?? '').trim().toUpperCase();
+    if (!gameId || this.activeGameId === gameId) {
+      return;
+    }
+
+    this.activeGameId = gameId;
+    this.setMode('SEEKER');
+    this.gameFacade.loadGame(gameId);
+    this.pendingQuestionSubscription?.unsubscribe();
+    this.pendingQuestionSubscription = this.gameFacade.pendingQuestion$.subscribe(question => {
+      if (!question || question.id !== this.pendingGameQuestion?.id) {
+        this.loadedGameQuestion = null;
+      }
+      this.pendingGameQuestion = question;
+      if (question && this.questionCatalogLoaded && !this.loadedGameQuestion && !this.selectedQuestionOptionId) {
+        this.loadPendingGameQuestion();
+      }
+    });
+  }
+
+  private findQuestionOptionForPendingQuestion(question: PendingQuestion): QuestionCatalogOption | undefined {
+    const category = question.categoryId as QuestionCatalogOption['category'];
+    if (!['radar', 'thermometer', 'measuring', 'matching'].includes(category)) {
+      return undefined;
+    }
+    const sameCategory = this.answeredQuestionOptions.filter(option => option.category === category);
+    if (category === 'radar' || category === 'thermometer') {
+      const distanceM = question.customDistanceM ?? question.distanceM;
+      return sameCategory.find(option => option.distanceM === distanceM) ?? sameCategory[0];
+    }
+    if (category === 'measuring') {
+      const normalizedPrompt = question.prompt.toLocaleLowerCase('es-AR');
+      return sameCategory.find(option => normalizedPrompt.includes(option.label.toLocaleLowerCase('es-AR').replace('comparacion - ', '')))
+        ?? sameCategory[0];
+    }
+    if (category === 'matching') {
+      const normalizedPrompt = question.prompt.toLocaleLowerCase('es-AR');
+      return sameCategory.find(option => normalizedPrompt.includes(option.label.toLocaleLowerCase('es-AR').replace('matching - ', '')))
+        ?? sameCategory[0];
+    }
+    return undefined;
   }
 
   private getMeasuringTargetFromLabel(label: string): MeasuringConstraint['target'] {

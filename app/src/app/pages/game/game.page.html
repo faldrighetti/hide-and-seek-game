@@ -6,7 +6,7 @@
     <ion-title>Game {{ gameId }}</ion-title>
     <ion-buttons slot="end">
       <ion-button [routerLink]="['/game', gameId, 'history']">Historial</ion-button>
-      <ion-button routerLink="/settings">Settings</ion-button>
+      <ion-button routerLink="/settings">Notificaciones</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -181,6 +181,25 @@
                 <ion-note *ngIf="outOfAreaMessage" color="medium">{{ outOfAreaMessage }}</ion-note>
               </div>
             </ng-container>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <ion-row *ngIf="role.isSeeker">
+      <ion-col size="12">
+        <ion-card class="seeker-map-card">
+          <ion-card-header>
+            <ion-card-title>Mapa seeker</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p>
+              Abrí el motor de mapa para esta partida. Precarga la pregunta pendiente,
+              usa la ubicación seeker actual y guarda el historial local asociado al questionId.
+            </p>
+            <ion-button expand="block" fill="outline" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId }">
+              Abrir mapa de partida
+            </ion-button>
           </ion-card-content>
         </ion-card>
       </ion-col>

@@ -90,6 +90,27 @@
           <ion-note color="danger" *ngIf="seekerLocationState?.lastError">{{ seekerLocationState?.lastError }}</ion-note>
         </div>
 
+        <div class="game-question-link" *ngIf="activeGameId">
+          <div>
+            <span>Partida conectada</span>
+            <strong>{{ activeGameId }}</strong>
+          </div>
+          <ng-container *ngIf="pendingGameQuestion; else noPendingGameQuestion">
+            <p>
+              {{ pendingGameQuestion.categoryId }} · {{ pendingGameQuestion.prompt }}
+            </p>
+            <ion-button size="small" fill="outline" (click)="loadPendingGameQuestion()">
+              Precargar pregunta
+            </ion-button>
+          </ng-container>
+          <ng-template #noPendingGameQuestion>
+            <p>No hay pregunta pendiente en la partida.</p>
+          </ng-template>
+          <ion-note *ngIf="loadedGameQuestion" color="primary">
+            La proxima respuesta se guardara con {{ loadedGameQuestion.id }}
+          </ion-note>
+        </div>
+
         <ion-note *ngIf="selectedHubSummaries.length === 0 && selectedStationIds.size > 0">
           La accion afectara solamente las estaciones seleccionadas que no pertenezcan a hubs.
         </ion-note>
@@ -150,7 +171,7 @@
         </div>
 
         <div class="answered-question">
-          <h2>Pregunta respondida</h2>
+          <h2>Respuesta del hider</h2>
           <ion-select
             label="Catálogo"
             labelPlacement="stacked"
@@ -244,7 +265,7 @@
           </ng-container>
 
           <ion-note color="danger" *ngIf="questionValidationError">{{ questionValidationError }}</ion-note>
-          <ion-button size="small" fill="outline" (click)="saveAnsweredQuestion()">Aplicar pregunta</ion-button>
+          <ion-button size="small" fill="outline" (click)="saveAnsweredQuestion()">Aplicar respuesta al mapa</ion-button>
         </div>
 
         <ion-accordion-group>

@@ -82,6 +82,17 @@ describe('map generator logic', () => {
     expect(evaluateStationsFromHistory([retiroC, retiroE], service.load().records.slice(0, service.load().cursor)).every(item => item.status === 'ELIMINATED')).toBeTrue();
   });
 
+  it('keeps seeker map state isolated by game scope', () => {
+    const service = new SeekerMapStateService();
+    service.append(service.load('game.AAAAAA'), record('MANUAL_ELIMINATION', ['hub-retiro']), 'game.AAAAAA');
+    service.append(service.load('game.BBBBBB'), record('MANUAL_ELIMINATION', ['subte_b_callao']), 'game.BBBBBB');
+
+    expect(service.load('game.AAAAAA').records[0].data.type).toBe('MANUAL_ELIMINATION');
+    expect(service.load('game.AAAAAA').records[0].id).toContain('hub-retiro');
+    expect(service.load('game.BBBBBB').records[0].id).toContain('subte_b_callao');
+    expect(service.load().records.length).toBe(0);
+  });
+
   it('persists manual circle records', () => {
     const service = new SeekerMapStateService();
     const state = service.append(service.load(), manualCircleRecord('ELIMINATE_INSIDE', 700));
