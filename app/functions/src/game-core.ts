@@ -375,7 +375,11 @@ export const requireAuthUid = (uid: string | undefined): string => {
 };
 
 export const requireGameMembership = async (firestore: Firestore, gameId: string, uid: string): Promise<void> => {
-  const seats = await firestore.collection("games").doc(gameId).collection("seats")
+  const seatsRef = firestore.collection("games").doc(gameId).collection("seats");
+  const seatById = await seatsRef.doc(uid).get();
+  if (seatById.exists) return;
+
+  const seats = await seatsRef
     .where("uid", "==", uid)
     .limit(1)
     .get();
@@ -528,6 +532,11 @@ export const resolveSeatTeamId = async (
   gameRef: DocumentReference,
   uid: string,
 ): Promise<string> => {
+  const seatById = await firestore.get(gameRef.collection("seats").doc(uid));
+  if (seatById.exists) {
+    return String(seatById.data()?.teamId ?? "");
+  }
+
   const seatSnap = await firestore.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
   return String(seatSnap.docs[0]?.data()?.teamId ?? "");
 };
@@ -693,4 +702,5 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   };
   return game;
 };
+
 
