@@ -1,9 +1,7 @@
 import {Filter, Timestamp} from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
-import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "./firebase";
-import {evaluatePlayableArea} from "./playable-area";
 import {
   ActiveEffect,
   CaptureAttempt,
@@ -13,40 +11,37 @@ import {
   GameDoc,
   GameMode,
   GameSettings,
-  HIDING_ZONE_RADIUS_M,
-  OutOfAreaState,
+
   QUESTION_DRAW_RULES,
   SEAT_OFFLINE_SECONDS,
   TeamStanding,
   TurnState,
   WinCondition,
-  alertOutOfAreaIfExpired,
+
   appendGameEventInTx,
+  assertRateLimitInTx,
+  assertUserRateLimit,
   assertOperationalPlayAllowed,
-  assertValidCoordinate,
+
   buildHidingZoneForStation,
   createInitialDeckState,
-  createOutOfAreaState,
-  distanceMeters,
+
   drawFromDeck,
   endTurnInTx,
-  getMaxGeofenceAccuracyM,
+
   getNextHiderTeamId,
-  getOutOfAreaConfirmationSeconds,
-  getOutOfAreaSustainedSeconds,
+
   hasDuplicates,
   isFoundMajorityReached,
-  isFreshLocation,
+
   isOperationallyStopped,
   modeMaxSeats,
   modeTeamIds,
   nowTs,
   pickInitialHider,
   randomCode,
-  readLocationPoint,
-  refreshEndgameStateInTx,
+
   requireAuthUid,
-  requireCurrentHiderInTx,
   requireGameMembership,
   requireHost,
   requiredSeekerCaptureConfirmations,
@@ -59,6 +54,7 @@ import {
 
 export const createGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertUserRateLimit(db, uid, "create_game", 30);
   const mode = (request.data?.mode ?? "INDIVIDUAL_3") as GameMode;
   const turnsPerTeam = (request.data?.turnsPerTeam ?? 2) as 1 | 2 | 3;
   const winCondition = (request.data?.winCondition ?? "TOTAL_TIME") as WinCondition;
@@ -306,7 +302,6 @@ export const startGame = onCall(async (request) => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
-      outOfArea: null,
       expirations: 0,
       foundVotes: [],
       captureAttempt: null,
@@ -327,58 +322,6 @@ export const startGame = onCall(async (request) => {
       payload: {
         hiderTeamId,
       },
-    });
-  });
-
-  return {ok: true};
-});
-
-export const setTurnHidingZone = onCall(async (request) => {
-  throw new HttpsError("failed-precondition", "Usar confirmBaseStation.");
-  const uid = requireAuthUid(request.auth?.uid);
-  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-  const stationId = String(request.data?.stationId ?? "").trim();
-  const lat = Number(request.data?.lat);
-  const lng = Number(request.data?.lng);
-  const radiusM = Number(request.data?.radiusM ?? HIDING_ZONE_RADIUS_M);
-
-  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
-  assertValidCoordinate(lat, lng);
-  if (!Number.isFinite(radiusM) || radiusM <= 0 || radiusM > 5000) {
-    throw new HttpsError("invalid-argument", "radiusM inválido.");
-  }
-  await requireHost(db, gameId, uid);
-
-  const gameRef = db.collection("games").doc(gameId);
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
-    const game = gameSnap.data() as GameDoc;
-    const turn = game.currentTurn;
-    if (game.status !== "LIVE" || !turn) {
-      throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
-    }
-
-    const now = nowTs();
-    tx.update(gameRef, {
-      currentTurn: {
-        ...turn,
-        hidingZone: {
-          ...(stationId ? {stationId} : {}),
-          center: {lat, lng},
-          radiusM,
-        },
-        endgameActive: false,
-        endgameAnchorPoint: null,
-        endgameLastChangedAt: null,
-        lastEndgameVerificationAt: null,
-        endgameQuestionsUnlocked: false,
-        lastEndgameQuestionsConsultAt: null,
-        outOfArea: null,
-        foundVotes: [],
-      captureAttempt: null,
-      },
-      updatedAt: now,
     });
   });
 
@@ -422,18 +365,6 @@ export const confirmBaseStation = onCall(async (request) => {
       if (allowedCandidateIds.length > 0 && !allowedCandidateIds.includes(stationId)) {
         throw new HttpsError("failed-precondition", "Esa estacion no esta entre las opciones detectadas al final del escape.");
       }
-    } else {
-      const privateLocation = (await tx.get(gameRef.collection("privateLocations").doc(uid))).data();
-      const point = readLocationPoint(privateLocation);
-      const updatedAt = privateLocation?.updatedAt as Timestamp | undefined;
-      const geofenceReliable = privateLocation?.geofenceReliable !== false;
-      if (!point || !updatedAt || !isFreshLocation(updatedAt, nowTs()) || !geofenceReliable) {
-        throw new HttpsError("failed-precondition", "Necesitas una ubicacion reciente y confiable para confirmar estacion base.");
-      }
-
-      if (distanceMeters(point, hidingZone.center) > radiusM) {
-        throw new HttpsError("failed-precondition", "Todavia no estas dentro de la zona de esa estacion.");
-      }
     }
 
     const now = nowTs();
@@ -449,9 +380,8 @@ export const confirmBaseStation = onCall(async (request) => {
         lastEndgameVerificationAt: null,
         endgameQuestionsUnlocked: false,
         lastEndgameQuestionsConsultAt: null,
-        outOfArea: null,
         foundVotes: [],
-      captureAttempt: null,
+        captureAttempt: null,
       },
       updatedAt: now,
     });
@@ -465,327 +395,6 @@ export const confirmBaseStation = onCall(async (request) => {
         radiusM,
         selectionWasPending: turn.baseStationSelectionRequired ?? false,
       },
-    });
-  });
-
-  return {ok: true};
-});
-
-export const publishSeekerLocation = onCall(async (request) => {
-  const uid = requireAuthUid(request.auth?.uid);
-  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-  const lat = Number(request.data?.lat);
-  const lng = Number(request.data?.lng);
-  const isOnPublicTransport = Boolean(request.data?.isOnPublicTransport);
-
-  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
-  assertValidCoordinate(lat, lng);
-  await requireGameMembership(db, gameId, uid);
-
-  const gameRef = db.collection("games").doc(gameId);
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
-    const game = gameSnap.data() as GameDoc;
-    const turn = game.currentTurn;
-    if (game.status !== "LIVE" || !turn) {
-      throw new HttpsError("failed-precondition", "La partida no está en juego activo.");
-    }
-
-    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
-    if (!seatTeamId) throw new HttpsError("permission-denied", "No tenés seat en esta partida.");
-    if (seatTeamId === turn.hiderTeamId) {
-      throw new HttpsError("permission-denied", "El hider no publica ubicación exacta.");
-    }
-
-    const now = nowTs();
-    const locationPayload = {
-      uid,
-      teamId: seatTeamId,
-      lat,
-      lng,
-      isOnPublicTransport,
-      updatedAt: now,
-    };
-
-    const endgameChanged = await refreshEndgameStateInTx(tx, gameRef, game, now, {
-      [uid]: locationPayload,
-    });
-    tx.set(gameRef.collection("locations").doc(uid), locationPayload, {merge: true});
-    if (endgameChanged) {
-      tx.update(gameRef, {
-        currentTurn: game.currentTurn,
-        updatedAt: now,
-      });
-      appendGameEventInTx(tx, gameRef, game, {
-        type: game.currentTurn?.endgameActive ? "ENDGAME_ACTIVATED" : "ENDGAME_DEACTIVATED",
-        createdAt: now,
-        actorUid: uid,
-        actorTeamId: seatTeamId,
-        payload: {
-          source: "seeker_location",
-        },
-      });
-    }
-  });
-
-  return {ok: true};
-});
-
-export const publishHiderPrivateLocation = onCall(async (request) => {
-  const uid = requireAuthUid(request.auth?.uid);
-  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-  const lat = Number(request.data?.lat);
-  const lng = Number(request.data?.lng);
-  const accuracyM = Number(request.data?.accuracyM);
-
-  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
-  assertValidCoordinate(lat, lng);
-  if (!Number.isFinite(accuracyM) || accuracyM < 0) {
-    throw new HttpsError("invalid-argument", "accuracyM inválida.");
-  }
-  await requireGameMembership(db, gameId, uid);
-
-  const gameRef = db.collection("games").doc(gameId);
-  let response: {
-    ok: boolean;
-    isInsidePlayableArea: boolean | null;
-    geofenceReliable: boolean;
-    outOfAreaStatus: OutOfAreaState["status"] | null;
-  } = {
-    ok: true,
-    isInsidePlayableArea: null,
-    geofenceReliable: false,
-    outOfAreaStatus: null,
-  };
-
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
-    const game = gameSnap.data() as GameDoc;
-    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
-    if (turn.phase !== "ESCAPE" && turn.phase !== "CHASE") {
-      throw new HttpsError("failed-precondition", "La ubicación privada del hider solo aplica en ESCAPE o CHASE.");
-    }
-
-    const now = nowTs();
-    const privateLocationRef = gameRef.collection("privateLocations").doc(uid);
-    const privateLocationSnap = await tx.get(privateLocationRef);
-    const previousOutsideSinceAt = privateLocationSnap.data()?.outsideSinceAt as Timestamp | undefined;
-    const geofenceReliable = accuracyM <= getMaxGeofenceAccuracyM(game.settings);
-    let isInsidePlayableArea: boolean | null = null;
-    let outsideSinceAt: Timestamp | null = previousOutsideSinceAt ?? null;
-    let nextTurn: TurnState | null = null;
-
-    if (geofenceReliable) {
-      const evaluation = evaluatePlayableArea({lat, lng});
-      isInsidePlayableArea = evaluation.isInsidePlayableArea;
-
-      if (isInsidePlayableArea) {
-        outsideSinceAt = null;
-        if (turn.outOfArea) {
-          nextTurn = {
-            ...turn,
-            outOfArea: null,
-          };
-        }
-      } else {
-        outsideSinceAt ??= now;
-        const sustainedMillis = getOutOfAreaSustainedSeconds(game.settings) * 1000;
-        const hasSustainedExit = now.toMillis() - outsideSinceAt.toMillis() >= sustainedMillis;
-        if (hasSustainedExit) {
-          nextTurn = {
-            ...turn,
-            outOfArea: turn.outOfArea ?? createOutOfAreaState(uid, game.settings, now),
-          };
-          alertOutOfAreaIfExpired(nextTurn, now);
-        } else if (turn.outOfArea?.status === "SUSPECTED") {
-          nextTurn = {...turn};
-          alertOutOfAreaIfExpired(nextTurn, now);
-        }
-      }
-    }
-
-    tx.set(privateLocationRef, {
-      uid,
-      teamId: turn.hiderTeamId,
-      lat,
-      lng,
-      accuracyM,
-      updatedAt: now,
-      geofenceReliable,
-      isInsidePlayableArea,
-      outsideSinceAt,
-    }, {merge: true});
-
-    if (nextTurn) {
-      const previousStatus = turn.outOfArea?.status ?? null;
-      const nextStatus = nextTurn.outOfArea?.status ?? null;
-      tx.update(gameRef, {
-        currentTurn: nextTurn,
-        updatedAt: now,
-      });
-      response.outOfAreaStatus = nextTurn.outOfArea?.status ?? null;
-      if (previousStatus !== nextStatus) {
-        appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
-          type: nextStatus ? `OUT_OF_AREA_${nextStatus}` : "OUT_OF_AREA_CLEARED_BY_LOCATION",
-          createdAt: now,
-          actorUid: uid,
-          actorTeamId: turn.hiderTeamId,
-          payload: {
-            geofenceReliable,
-            isInsidePlayableArea,
-          },
-        });
-      }
-    } else {
-      response.outOfAreaStatus = turn.outOfArea?.status ?? null;
-    }
-    response = {
-      ok: true,
-      isInsidePlayableArea,
-      geofenceReliable,
-      outOfAreaStatus: response.outOfAreaStatus,
-    };
-  });
-
-  return response;
-});
-
-export const reportHiderOutOfArea = onCall(async (request) => {
-  const uid = requireAuthUid(request.auth?.uid);
-  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-
-  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
-  await requireGameMembership(db, gameId, uid);
-
-  const gameRef = db.collection("games").doc(gameId);
-  let status: OutOfAreaState["status"] = "SUSPECTED";
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
-    const game = gameSnap.data() as GameDoc;
-    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
-    if (turn.phase !== "ESCAPE" && turn.phase !== "CHASE") {
-      throw new HttpsError("failed-precondition", "La salida de área del hider solo se gestiona en ESCAPE o CHASE.");
-    }
-
-    const now = nowTs();
-    const activeState = turn.outOfArea?.status === "SUSPECTED" || turn.outOfArea?.status === "ALERTED" ?
-      turn.outOfArea :
-      createOutOfAreaState(uid, game.settings, now);
-
-    const nextTurn: TurnState = {
-      ...turn,
-      outOfArea: activeState,
-    };
-    alertOutOfAreaIfExpired(nextTurn, now);
-    status = nextTurn.outOfArea?.status ?? "SUSPECTED";
-
-    tx.update(gameRef, {
-      currentTurn: nextTurn,
-      updatedAt: now,
-    });
-    appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
-      type: "OUT_OF_AREA_REPORTED",
-      createdAt: now,
-      actorUid: uid,
-      actorTeamId: turn.hiderTeamId,
-      payload: {
-        status,
-      },
-    });
-  });
-
-  return {ok: true, status};
-});
-
-export const confirmHiderOutOfAreaSafety = onCall(async (request) => {
-  const uid = requireAuthUid(request.auth?.uid);
-  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-
-  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
-  await requireGameMembership(db, gameId, uid);
-
-  const gameRef = db.collection("games").doc(gameId);
-  let status: OutOfAreaState["status"] = "SUSPECTED";
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
-    const game = gameSnap.data() as GameDoc;
-    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
-    const outOfArea = turn.outOfArea;
-    if (!outOfArea) {
-      throw new HttpsError("failed-precondition", "No hay una salida de área pendiente.");
-    }
-    if (outOfArea.status === "ALERTED") {
-      status = "ALERTED";
-      return;
-    }
-
-    const now = nowTs();
-    const nextTurn: TurnState = {...turn};
-    if (alertOutOfAreaIfExpired(nextTurn, now)) {
-      status = "ALERTED";
-    } else {
-      const nextConfirmationMillis = Math.min(
-        now.toMillis() + getOutOfAreaConfirmationSeconds(game.settings) * 1000,
-        outOfArea.maxExpiresAt.toMillis(),
-      );
-      nextTurn.outOfArea = {
-        ...outOfArea,
-        lastConfirmedAt: now,
-        confirmationExpiresAt: Timestamp.fromMillis(nextConfirmationMillis),
-      };
-      status = "SUSPECTED";
-    }
-
-    tx.update(gameRef, {
-      currentTurn: nextTurn,
-      updatedAt: now,
-    });
-    appendGameEventInTx(tx, gameRef, {...game, currentTurn: nextTurn}, {
-      type: status === "ALERTED" ? "OUT_OF_AREA_ALERTED" : "OUT_OF_AREA_SAFETY_CONFIRMED",
-      createdAt: now,
-      actorUid: uid,
-      actorTeamId: turn.hiderTeamId,
-      payload: {
-        status,
-        confirmationExpiresAt: nextTurn.outOfArea?.confirmationExpiresAt ?? null,
-      },
-    });
-  });
-
-  return {ok: true, status};
-});
-
-export const clearHiderOutOfArea = onCall(async (request) => {
-  const uid = requireAuthUid(request.auth?.uid);
-  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-
-  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
-  await requireGameMembership(db, gameId, uid);
-
-  const gameRef = db.collection("games").doc(gameId);
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
-    const game = gameSnap.data() as GameDoc;
-    const turn = await requireCurrentHiderInTx(tx, gameRef, game, uid);
-    const now = nowTs();
-
-    tx.update(gameRef, {
-      currentTurn: {
-        ...turn,
-        outOfArea: null,
-      },
-      updatedAt: now,
-    });
-    appendGameEventInTx(tx, gameRef, game, {
-      type: "OUT_OF_AREA_CLEARED_MANUALLY",
-      createdAt: now,
-      actorUid: uid,
-      actorTeamId: turn.hiderTeamId,
     });
   });
 
@@ -824,16 +433,17 @@ export const verifyEndgame = onCall(async (request) => {
       throw new HttpsError("resource-exhausted", "ENDGAME_VERIFICATION_COOLDOWN");
     }
 
-    await refreshEndgameStateInTx(tx, gameRef, game, now);
     tx.update(gameRef, {
       currentTurn: {
-        ...game.currentTurn!,
+        ...turn,
+        endgameActive: true,
+        endgameLastChangedAt: turn.endgameActive ? turn.endgameLastChangedAt ?? now : now,
         lastEndgameVerificationAt: now,
       },
       updatedAt: now,
     });
     appendGameEventInTx(tx, gameRef, game, {
-      type: game.currentTurn?.endgameActive ? "ENDGAME_VERIFIED_ACTIVE" : "ENDGAME_VERIFIED_INACTIVE",
+      type: "ENDGAME_VERIFIED_ACTIVE",
       createdAt: now,
       actorUid: uid,
       actorTeamId: seatTeamId,
@@ -874,8 +484,7 @@ export const consultEndgameQuestions = onCall(async (request) => {
     }
 
     const now = nowTs();
-    await refreshEndgameStateInTx(tx, gameRef, game, now);
-    const refreshedTurn = game.currentTurn!;
+    const refreshedTurn = turn;
     unlocked = Boolean(refreshedTurn.endgameActive);
 
     if (!unlocked) {
@@ -979,6 +588,7 @@ export const sendQuestion = onCall(async (request) => {
       throw new HttpsError("failed-precondition", "CATEGORY_COOLDOWN_ACTIVE");
     }
 
+    await assertRateLimitInTx(tx, gameRef, uid, "send_question", now, 10);
     const timeoutSeconds = isPhoto ? 600 : 300;
     const questionRef = gameRef.collection("questions").doc();
     tx.set(questionRef, {
@@ -1054,11 +664,12 @@ export const resolveQuestion = onCall(async (request) => {
     const now = nowTs();
     const qRef = gameRef.collection("questions").doc(turn.pendingQuestionId);
     const qSnap = await tx.get(qRef);
+    await assertRateLimitInTx(tx, gameRef, uid, "resolve_question", now, 5);
     if (!qSnap.exists) throw new HttpsError("not-found", "Pregunta no encontrada.");
     const categoryId = String(qSnap.data()?.categoryId ?? "").trim();
     const drawRule = QUESTION_DRAW_RULES[categoryId] ?? {draw: 1, take: 1};
     const deckDraw = drawFromDeck(turn, drawRule.draw);
-    
+
     tx.update(qRef, {
       status: "RESOLVED",
       resolution,
@@ -1141,6 +752,7 @@ export const selectLoot = onCall(async (request) => {
       throw new HttpsError("permission-denied", "Solo el hider puede elegir loot.");
     }
 
+    await assertRateLimitInTx(tx, gameRef, uid, "select_loot", nowTs(), 5);
     const drawn = turn.lootOffer.drawnCardIds;
     if (selectedCardIds.length > turn.lootOffer.takeLimit) {
       throw new HttpsError("invalid-argument", "Seleccionaste más cartas que el límite.");
@@ -1240,6 +852,7 @@ export const playCurse = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "play_curse", now, 5);
     const activeEffects = (turn.activeEffects ?? []).filter((effect) =>
       !effect.expiresAt || effect.expiresAt.toMillis() > now.toMillis(),
     );
@@ -1319,6 +932,7 @@ export const completeCurseEffect = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "complete_curse", now, 5);
     const activeEffects = (turn.activeEffects ?? []).filter((effect) =>
       !effect.expiresAt || effect.expiresAt.toMillis() > now.toMillis(),
     );
@@ -1380,6 +994,7 @@ export const startCaptureAttempt = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "start_capture", now, 5);
     attemptId = gameRef.collection("captureAttempts").doc().id;
     const captureAttempt: CaptureAttempt = {
       id: attemptId,
@@ -1443,6 +1058,7 @@ export const resolveCaptureAttempt = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "resolve_capture", now, 5);
     game.currentTurn = {
       ...turn,
       captureAttempt: {
@@ -1506,6 +1122,7 @@ export const confirmCaptureBySeeker = onCall(async (request) => {
       throw new HttpsError("permission-denied", "Solo seekers pueden confirmar captura.");
     }
 
+    await assertRateLimitInTx(tx, gameRef, uid, "confirm_capture", nowTs(), 5);
     const confirmations = turn.captureAttempt.seekerConfirmations.includes(seatTeamId) ?
       turn.captureAttempt.seekerConfirmations :
       [...turn.captureAttempt.seekerConfirmations, seatTeamId];
@@ -1673,7 +1290,6 @@ export const nextTurn = onCall(async (request) => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
-      outOfArea: null,
       expirations: 0,
       foundVotes: [],
       captureAttempt: null,
@@ -1715,45 +1331,13 @@ export {
   finishGame,
 } from "./query-callables";
 
-export const onLocationWritten = onDocumentWritten("games/{gameId}/locations/{uid}", async (event) => {
-  const gameId = String(event.params.gameId ?? "").trim().toUpperCase();
-  if (!gameId) return;
-
-  const gameRef = db.collection("games").doc(gameId);
-  await db.runTransaction(async (tx) => {
-    const gameSnap = await tx.get(gameRef);
-    if (!gameSnap.exists) return;
-    const game = gameSnap.data() as GameDoc;
-    const txNow = nowTs();
-    const changed = await refreshEndgameStateInTx(tx, gameRef, game, txNow);
-    if (!changed) return;
-
-    tx.update(gameRef, {
-      currentTurn: game.currentTurn,
-      updatedAt: txNow,
-    });
-    appendGameEventInTx(tx, gameRef, game, {
-      type: game.currentTurn?.endgameActive ? "ENDGAME_ACTIVATED" : "ENDGAME_DEACTIVATED",
-      createdAt: txNow,
-      actorUid: null,
-      actorTeamId: null,
-      payload: {
-        source: "location_trigger",
-      },
-    });
-  });
-});
-
-export const scheduledTick = onSchedule("every 1 minutes", async () => {
+export const scheduledTick = onSchedule({schedule: "every 1 minutes", maxInstances: 1}, async () => {
   const now = nowTs();
   const gamesSnap = await db.collection("games")
     .where("status", "==", "LIVE")
     .where(Filter.or(
       Filter.where("currentTurn.phaseEndsAt", "<=", now),
       Filter.where("currentTurn.pendingQuestionEndsAt", "<=", now),
-      Filter.where("currentTurn.endgameActive", "==", true),
-      Filter.where("currentTurn.outOfArea.confirmationExpiresAt", "<=", now),
-      Filter.where("currentTurn.outOfArea.maxExpiresAt", "<=", now),
     ))
     .get();
 
@@ -1768,28 +1352,6 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
 
       const txNow = nowTs();
       let changed = false;
-
-      if (turn.endgameActive) {
-        const endgameChanged = await refreshEndgameStateInTx(tx, docSnap.ref, game, txNow);
-        changed = endgameChanged || changed;
-        turn = game.currentTurn;
-        if (!turn) return;
-        if (endgameChanged) {
-          appendGameEventInTx(tx, docSnap.ref, game, {
-            type: turn.endgameActive ? "ENDGAME_ACTIVATED" : "ENDGAME_DEACTIVATED",
-            createdAt: txNow,
-            actorUid: null,
-            actorTeamId: null,
-            payload: {
-              source: "scheduled_tick",
-            },
-          });
-        }
-      }
-
-      if (turn.outOfArea?.status === "SUSPECTED") {
-        changed = alertOutOfAreaIfExpired(turn, txNow) || changed;
-      }
 
       if (turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis()) {
         const expiredQuestionId = turn.pendingQuestionId;
@@ -1873,4 +1435,3 @@ export const scheduledTick = onSchedule("every 1 minutes", async () => {
 
   await Promise.all(tasks);
 });
-

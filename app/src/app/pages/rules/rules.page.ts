@@ -70,7 +70,7 @@ export class RulesPage {
       items: [
         'El endgame se activa automáticamente cuando los buscadores están dentro de la zona de escondite y no están subidos a un medio de transporte.',
         'Una vez iniciado el endgame, el escondido debe quedarse fijo en un punto público, legalmente accesible, en planta baja y razonablemente visible. No tiene permitido cambiar de ubicación.',
-        'Encontrar al escondido requiere reconocimiento inequívoco en persona. La proximidad GPS habilita el procedimiento, pero no reemplaza el reconocimiento visual.',
+        'Encontrar al escondido requiere reconocimiento inequivoco en persona y confirmacion manual entre jugadores.',
         'Cuando los buscadores se encuentran a 15 metros o menos del escondido, se activará el botón para confirmar la captura al sistema.',
         'Una vez que se confirma la captura, inicia la fase de intervalo y el turno termina. Los roles se invierten y al finalizar la fase de intervalo, empieza la fase de escape.'
       ],
@@ -83,9 +83,9 @@ export class RulesPage {
       ],
     },
     {
-      title: 'GPS, pausas y emergencias',
+      title: 'Pausas y emergencias',
       items: [
-        'El GPS es obligatorio. La app distingue conexión degradada, desconexión temporal y abandono técnico.',
+        'La ubicacion se coordina por fuera de la app. La app registra pausas, emergencias, desconexion temporal y abandono tecnico.',
         'Si un jugador sale del área de juego de manera sostenida, se alerta a todos y el turno puede congelarse hasta resolverlo.',
         'Cualquier jugador puede declarar una emergencia. La seguridad prevalece sobre la competencia y se revelan las ubicaciones.',
       ],
@@ -93,7 +93,7 @@ export class RulesPage {
     {
       title: 'Reglas sociales',
       items: [
-        'Algunas reglas se aplican por buena fe: no usar Street View, no explotar errores de GPS, respetar los transportes permitidos y mantenerse juntos como buscadores.',
+        'Algunas reglas se aplican por buena fe: no usar Street View, respetar los transportes permitidos y mantenerse juntos como buscadores.',
         'Las herramientas externas estan permitidas salvo Google Street View.',
         'Ante dudas o casos no cubiertos, los jugadores deben priorizar seguridad, juego limpio y acuerdo social. Se mantiene Whatsapp como canal secundario de comunicación entre los jugadores.',
       ],

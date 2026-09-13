@@ -3,6 +3,7 @@ import {db} from "./firebase";
 import {sanitizeNotificationCategoryPreferences} from "./notifications";
 import {
   GameDoc,
+  assertUserRateLimit,
   findWinnerIds,
   nowTs,
   requireAuthUid,
@@ -14,6 +15,7 @@ import {
 export const scoring = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  await assertUserRateLimit(db, uid, "scoring", 5);
   await requireGameMembership(db, gameId, uid);
 
   const snap = await db.collection("games").doc(gameId).get();
@@ -34,6 +36,7 @@ export const listGameEvents = onCall(async (request) => {
   const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.floor(limitRaw))) : 100;
 
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await assertUserRateLimit(db, uid, "list_game_events", 5);
   await requireGameMembership(db, gameId, uid);
 
   const eventsSnap = await db.collection("games").doc(gameId).collection("events")
@@ -69,6 +72,7 @@ export const listGameNotifications = onCall(async (request) => {
   const category = String(request.data?.category ?? "").trim();
 
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await assertUserRateLimit(db, uid, "list_game_notifications", 5);
   await requireGameMembership(db, gameId, uid);
 
   const query = db.collection("games").doc(gameId).collection("notifications")
@@ -112,6 +116,7 @@ export const listGameNotifications = onCall(async (request) => {
 
 export const getNotificationPreferences = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertUserRateLimit(db, uid, "get_notification_preferences", 10);
   const preferencesSnap = await db.collection("users").doc(uid)
     .collection("notificationPreferences")
     .doc("default")
@@ -130,6 +135,7 @@ export const updateNotificationPreferences = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const medium = sanitizeNotificationCategoryPreferences(request.data?.medium);
   const low = sanitizeNotificationCategoryPreferences(request.data?.low);
+  await assertUserRateLimit(db, uid, "update_notification_preferences", 10);
   const now = nowTs();
 
   await db.collection("users").doc(uid)
@@ -153,6 +159,7 @@ export const updateNotificationPreferences = onCall(async (request) => {
 export const finishGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  await assertUserRateLimit(db, uid, "finish_game", 10);
   await requireHost(db, gameId, uid);
 
   const gameRef = db.collection("games").doc(gameId);

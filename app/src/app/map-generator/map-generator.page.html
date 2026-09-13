@@ -66,8 +66,8 @@
 
         <div class="seeker-reference">
           <div>
-            <span>Ubicación seeker</span>
-            <strong>{{ seekerLocationState?.active ? 'GPS activo' : 'GPS inactivo' }}</strong>
+            <span>Referencia seeker</span>
+            <strong>Manual</strong>
           </div>
           <div>
             <span>Barrio actual</span>
@@ -80,9 +80,6 @@
           <p *ngIf="seekerLocationState?.lastLat !== null && seekerLocationState?.lastLng !== null">
             {{ seekerLocationState?.lastLat | number: '1.5-5' }},
             {{ seekerLocationState?.lastLng | number: '1.5-5' }}
-            <span *ngIf="seekerLocationState?.lastAccuracyM !== null">
-              · precisión {{ seekerLocationState?.lastAccuracyM | number: '1.0-0' }} m
-            </span>
             <span *ngIf="seekerLocationState?.updatedAtIso">
               · {{ seekerLocationState?.updatedAtIso | date: 'HH:mm:ss' }}
             </span>

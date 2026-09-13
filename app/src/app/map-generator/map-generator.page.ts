@@ -158,7 +158,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.seekerLocationSubscription?.unsubscribe();
     this.pendingQuestionSubscription?.unsubscribe();
-    this.seekerLocationReference.stop();
     this.map?.remove();
   }
 
@@ -557,7 +556,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       this.currentSeekerLng = Number(state.lastLng.toFixed(6));
       this.updateSeekerLocationClassification();
     });
-    this.seekerLocationReference.start();
   }
 
   private renderStations(): void {

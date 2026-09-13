@@ -17,7 +17,6 @@ import { CardCatalogService } from '../../cards/card-catalog.service';
 import { CardDefinition } from 'src/app/models/card-definition.model';
 import { GAME_CONFIG } from '../../config/game-config';
 import { Station, StationsProcessedFile } from '../../models/station.model';
-import { LocationMonitorService, LocationMonitorState } from '../../services/location-monitor.service';
 
 interface DrawRule {
   categoryKey: string;
@@ -92,7 +91,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly gameFacade = inject(GameFacadeService);
   private readonly cardCatalog = inject(CardCatalogService);
-  private readonly locationMonitor = inject(LocationMonitorService);
   private readonly alertController = inject(AlertController);
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
@@ -100,7 +98,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$;
   readonly pendingQuestion$: Observable<PendingQuestion | null> = this.gameFacade.pendingQuestion$;
   readonly playerRole$: Observable<PlayerRole> = this.gameFacade.playerRole$;
-  readonly locationMonitorState$ = this.locationMonitor.state$;
 
   drawRulesByCategory: DrawRule[] = [];
   cardById = new Map<string, HiderCardData>();
@@ -121,8 +118,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
   endgameQuestionsMessage = '';
   questionErrorMessage = '';
   resolveQuestionErrorMessage = '';
-  outOfAreaActionInFlight = false;
-  outOfAreaMessage = '';
   operationalActionInFlight = false;
   operationalMessage = '';
   foundActionInFlight = false;
@@ -148,7 +143,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
-    this.locationMonitor.start(this.gameId, this.playerRole$, this.blueprint$);
     this.blueprintSubscription = this.blueprint$.subscribe(vm => {
       this.latestGameBlueprint = vm;
       this.syncLootSelections(vm);
@@ -170,7 +164,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
     window.clearInterval(this.timerId);
     this.blueprintSubscription.unsubscribe();
     this.baseStationMap?.remove();
-    this.locationMonitor.stop();
   }
 
   async loadCardsFromCatalog(): Promise<void> {
@@ -278,44 +271,24 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 'Durante ESCAPE podés marcar una estación como objetivo y confirmarla cuando estés dentro de su zona.';
   }
 
-  locationCandidateStations(locationState: LocationMonitorState | null): Station[] {
-    if (!locationState || locationState.lastLat === null || locationState.lastLng === null) {
-      return [];
-    }
-
-    return this.stations
-      .map(station => ({
-        station,
-        distanceM: this.distanceMeters(
-          { lat: locationState.lastLat!, lng: locationState.lastLng! },
-          { lat: station.lat, lng: station.lng },
-        ),
-      }))
-      .filter(item => item.distanceM <= GAME_CONFIG.hidingZoneRadiusM)
-      .sort((a, b) => a.distanceM - b.distanceM)
-      .map(item => item.station);
-  }
-
   pendingBaseStationCandidates(vm: GameBlueprint): Station[] {
     const ids = new Set(vm.currentTurn.baseStationCandidateIds);
     return this.stations.filter(station => ids.has(station.id));
   }
 
-  visibleBaseStationList(vm: GameBlueprint, locationState: LocationMonitorState | null): Station[] {
+  visibleBaseStationList(vm: GameBlueprint): Station[] {
     const source = vm.currentTurn.baseStationSelectionRequired
       ? this.pendingBaseStationCandidates(vm)
-      : this.locationCandidateStations(locationState);
+      : this.stations;
     const normalizedFilter = this.normalizeText(this.stationFilter);
-    if (!normalizedFilter) {
-      return source.slice(0, 8);
-    }
-    return this.stations
-      .filter(station =>
+    const stations = normalizedFilter
+      ? this.stations.filter(station =>
         this.normalizeText(station.name).includes(normalizedFilter)
         || this.normalizeText(station.line).includes(normalizedFilter)
         || this.normalizeText(station.mode).includes(normalizedFilter),
       )
-      .slice(0, 12);
+      : source;
+    return stations.slice(0, normalizedFilter ? 12 : 8);
   }
 
   selectBaseStation(station: Station, vm?: GameBlueprint): void {
@@ -546,26 +519,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.effectErrorMessage = error instanceof Error ? error.message : 'No se pudo confirmar la maldición.';
     } finally {
       this.completingEffectId = null;
-    }
-  }
-
-  async confirmOutOfAreaSafety(role: PlayerRole): Promise<void> {
-    if (!role.isHider) {
-      this.outOfAreaMessage = 'Solo el hider puede confirmar su estado.';
-      return;
-    }
-
-    this.outOfAreaActionInFlight = true;
-    this.outOfAreaMessage = '';
-    try {
-      const result = await this.gameFacade.confirmHiderOutOfAreaSafety(this.gameId);
-      this.outOfAreaMessage = result.status === 'ALERTED'
-        ? 'La alerta ya fue enviada.'
-        : 'Confirmado. Volve al area jugable antes del limite.';
-    } catch (error) {
-      this.outOfAreaMessage = error instanceof Error ? error.message : 'No se pudo confirmar.';
-    } finally {
-      this.outOfAreaActionInFlight = false;
     }
   }
 
@@ -1104,17 +1057,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   stationLabel(station: Station): string {
     return `${station.name} (${station.mode} ${station.line})`;
-  }
-
-  stationDistanceLabel(station: Station, locationState: LocationMonitorState | null): string {
-    if (!locationState || locationState.lastLat === null || locationState.lastLng === null) {
-      return '';
-    }
-    const distanceM = this.distanceMeters(
-      { lat: locationState.lastLat, lng: locationState.lastLng },
-      { lat: station.lat, lng: station.lng },
-    );
-    return `${Math.round(distanceM)} m`;
   }
 
   private toHiderCardData(card: CardDefinition): HiderCardData {

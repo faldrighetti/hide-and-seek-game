@@ -6,6 +6,7 @@ import {
   OperationalState,
   TurnState,
   appendGameEventInTx,
+  assertRateLimitInTx,
   nowTs,
   requireAuthUid,
   requireGameMembership,
@@ -35,6 +36,7 @@ export const pauseGame = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "pause_game", now, 10);
     const operational: OperationalState = {
       mode: "PAUSED",
       reason,
@@ -85,6 +87,7 @@ export const resumeGame = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "resume_game", now, 10);
     const phaseRemainingSeconds = game.operational.phaseRemainingSeconds ?? secondsRemaining(turn.phaseEndsAt, now) ?? 0;
     const pendingQuestionRemainingSeconds = game.operational.pendingQuestionRemainingSeconds;
     const nextTurn: TurnState = {
@@ -140,6 +143,7 @@ export const declareEmergency = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "declare_emergency", now, 10);
     const operational: OperationalState = {
       mode: "EMERGENCY",
       reason,
@@ -189,6 +193,7 @@ export const cancelGame = onCall(async (request) => {
     }
 
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "cancel_game", now, 10);
     const previousTurn = game.currentTurn;
     if (game.currentTurn) {
       game.currentTurn = {
@@ -245,6 +250,7 @@ export const reportTemporaryDisconnect = onCall(async (request) => {
     const seatDoc = seatSnap.docs[0];
     const seatTeamId = String(seatDoc.data()?.teamId ?? "");
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "report_temporary_disconnect", now, 10);
 
     tx.update(seatDoc.ref, {
       online: false,
@@ -284,6 +290,7 @@ export const clearTemporaryDisconnect = onCall(async (request) => {
     const seatDoc = seatSnap.docs[0];
     const seatTeamId = String(seatDoc.data()?.teamId ?? "");
     const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "clear_temporary_disconnect", now, 10);
 
     tx.update(seatDoc.ref, {
       online: true,

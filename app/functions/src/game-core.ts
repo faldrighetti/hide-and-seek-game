@@ -6,11 +6,7 @@ import {
   Transaction,
 } from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
-import {
-  findNearestPlayableStation,
-  findPlayableStationZones,
-  getPlayableStationById,
-} from "./playable-area";
+import {getPlayableStationById} from "./playable-area";
 import {
   GameEventInput,
   appendGameNotificationsForEventInTx,
@@ -23,12 +19,7 @@ export const INTERVAL_PHASE_SECONDS = 300;
 export const ESCAPE_PHASE_SECONDS = 3600;
 export const CHASE_MAX_SECONDS = 18000;
 export const ENDGAME_DWELL_SECONDS = 60;
-export const LOCATION_FRESH_SECONDS = 60;
 export const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
-export const OUT_OF_AREA_CONFIRMATION_SECONDS = 60;
-export const OUT_OF_AREA_MAX_GRACE_SECONDS = 180;
-export const OUT_OF_AREA_SUSTAINED_SECONDS = 30;
-export const MAX_GEOFENCE_ACCURACY_M = 100;
 
 export type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 export type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
@@ -46,10 +37,6 @@ export interface GameSettings {
   zoneRadiusM: number;
   eligibleBufferM: number;
   endgameVerificationCooldownSeconds: number;
-  outOfAreaConfirmationSeconds: number;
-  outOfAreaMaxGraceSeconds: number;
-  outOfAreaSustainedSeconds: number;
-  maxGeofenceAccuracyM: number;
 }
 
 export interface TeamStanding {
@@ -85,16 +72,6 @@ export interface HidingZone {
   stationId?: string;
   center: LatLng;
   radiusM: number;
-}
-
-export interface OutOfAreaState {
-  status: "SUSPECTED" | "ALERTED";
-  playerUid: string;
-  startedAt: Timestamp;
-  confirmationExpiresAt: Timestamp;
-  maxExpiresAt: Timestamp;
-  lastConfirmedAt?: Timestamp | null;
-  alertedAt?: Timestamp | null;
 }
 
 export interface CaptureAttempt {
@@ -151,7 +128,6 @@ export interface TurnState {
   lastEndgameVerificationAt?: Timestamp | null;
   endgameQuestionsUnlocked?: boolean;
   lastEndgameQuestionsConsultAt?: Timestamp | null;
-  outOfArea?: OutOfAreaState | null;
   expirations: number;
   foundVotes: string[];
   captureAttempt?: CaptureAttempt | null;
@@ -185,10 +161,6 @@ export const DEFAULT_SETTINGS: GameSettings = {
   zoneRadiusM: HIDING_ZONE_RADIUS_M,
   eligibleBufferM: 0,
   endgameVerificationCooldownSeconds: ENDGAME_DWELL_SECONDS * 10,
-  outOfAreaConfirmationSeconds: OUT_OF_AREA_CONFIRMATION_SECONDS,
-  outOfAreaMaxGraceSeconds: OUT_OF_AREA_MAX_GRACE_SECONDS,
-  outOfAreaSustainedSeconds: OUT_OF_AREA_SUSTAINED_SECONDS,
-  maxGeofenceAccuracyM: MAX_GEOFENCE_ACCURACY_M,
 };
 
 export const DECK_MAX_SIZE = 6;
@@ -203,6 +175,50 @@ export const QUESTION_DRAW_RULES: Record<string, {draw: number; take: number}> =
   photos: {draw: 1, take: 1},
 };
 
+export async function assertRateLimitInTx(
+  tx: Transaction,
+  gameRef: DocumentReference,
+  uid: string,
+  action: string,
+  now: Timestamp,
+  minIntervalSeconds: number,
+): Promise<void> {
+  const rateLimitRef = gameRef.collection("rateLimits").doc(`${uid}_${action}`);
+  const rateLimitSnap = await tx.get(rateLimitRef);
+  const lastAt = rateLimitSnap.data()?.lastAt as Timestamp | undefined;
+  if (lastAt && now.toMillis() - lastAt.toMillis() < minIntervalSeconds * 1000) {
+    throw new HttpsError("resource-exhausted", "Accion demasiado frecuente. Espera unos segundos y volve a intentar.");
+  }
+
+  tx.set(rateLimitRef, {
+    uid,
+    action,
+    lastAt: now,
+  }, {merge: true});
+}
+
+export async function assertUserRateLimit(
+  firestore: Firestore,
+  uid: string,
+  action: string,
+  minIntervalSeconds: number,
+): Promise<void> {
+  const now = nowTs();
+  const rateLimitRef = firestore.collection("users").doc(uid).collection("rateLimits").doc(action);
+  await firestore.runTransaction(async (tx) => {
+    const rateLimitSnap = await tx.get(rateLimitRef);
+    const lastAt = rateLimitSnap.data()?.lastAt as Timestamp | undefined;
+    if (lastAt && now.toMillis() - lastAt.toMillis() < minIntervalSeconds * 1000) {
+      throw new HttpsError("resource-exhausted", "Accion demasiado frecuente. Espera unos segundos y volve a intentar.");
+    }
+
+    tx.set(rateLimitRef, {
+      uid,
+      action,
+      lastAt: now,
+    }, {merge: true});
+  });
+}
 export const expandCopies = (cardId: string, copies: number): string[] =>
   Array.from({length: copies}, (_, index) => `${cardId}#${index + 1}`);
 
@@ -413,7 +429,7 @@ export const setNextPhase = (turn: TurnState, settings: GameSettings, phase: Pha
     endgameQuestionsUnlocked: phase === "CHASE" ? false : turn.endgameQuestionsUnlocked,
     lastEndgameQuestionsConsultAt: phase === "CHASE" ? null : turn.lastEndgameQuestionsConsultAt,
     captureAttempt: phase === "CHASE" ? null : turn.captureAttempt ?? null,
-    outOfArea: null,
+
   };
 };
 
@@ -474,14 +490,6 @@ export const distanceMeters = (a: LatLng, b: LatLng): number => {
   return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 };
 
-export const readLocationPoint = (data: DocumentData | undefined): LatLng | null => {
-  const lat = data?.lat;
-  const lng = data?.lng;
-  if (typeof lat !== "number" || typeof lng !== "number") return null;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return {lat, lng};
-};
-
 export const buildHidingZoneForStation = (stationId: string, radiusM: number): HidingZone => {
   const station = getPlayableStationById(stationId);
   if (!station) {
@@ -494,9 +502,6 @@ export const buildHidingZoneForStation = (stationId: string, radiusM: number): H
     radiusM,
   };
 };
-
-export const isFreshLocation = (updatedAt: Timestamp | undefined, baseNow: Timestamp): boolean =>
-  !!updatedAt && baseNow.toMillis() - updatedAt.toMillis() <= LOCATION_FRESH_SECONDS * 1000;
 
 export const resolveSeatTeamId = async (
   firestore: Transaction,
@@ -526,177 +531,24 @@ export const requireCurrentHiderInTx = async (
   return turn;
 };
 
-export const getOutOfAreaConfirmationSeconds = (settings: GameSettings): number =>
-  settings.outOfAreaConfirmationSeconds ?? OUT_OF_AREA_CONFIRMATION_SECONDS;
-
-export const getOutOfAreaMaxGraceSeconds = (settings: GameSettings): number =>
-  settings.outOfAreaMaxGraceSeconds ?? OUT_OF_AREA_MAX_GRACE_SECONDS;
-
-export const getOutOfAreaSustainedSeconds = (settings: GameSettings): number =>
-  settings.outOfAreaSustainedSeconds ?? OUT_OF_AREA_SUSTAINED_SECONDS;
-
-export const getMaxGeofenceAccuracyM = (settings: GameSettings): number =>
-  settings.maxGeofenceAccuracyM ?? MAX_GEOFENCE_ACCURACY_M;
-
-export const createOutOfAreaState = (
-  uid: string,
-  settings: GameSettings,
-  baseNow: Timestamp,
-): OutOfAreaState => {
-  const maxExpiresAt = Timestamp.fromMillis(baseNow.toMillis() + getOutOfAreaMaxGraceSeconds(settings) * 1000);
-  return {
-    status: "SUSPECTED",
-    playerUid: uid,
-    startedAt: baseNow,
-    confirmationExpiresAt: Timestamp.fromMillis(
-      baseNow.toMillis() + getOutOfAreaConfirmationSeconds(settings) * 1000,
-    ),
-    maxExpiresAt,
-    lastConfirmedAt: null,
-    alertedAt: null,
-  };
-};
-
-export const alertOutOfAreaIfExpired = (turn: TurnState, txNow: Timestamp): boolean => {
-  const outOfArea = turn.outOfArea;
-  if (!outOfArea || outOfArea.status !== "SUSPECTED") {
-    return false;
-  }
-
-  if (
-    outOfArea.confirmationExpiresAt.toMillis() > txNow.toMillis() &&
-    outOfArea.maxExpiresAt.toMillis() > txNow.toMillis()
-  ) {
-    return false;
-  }
-
-  turn.outOfArea = {
-    ...outOfArea,
-    status: "ALERTED",
-    confirmationExpiresAt: txNow,
-    alertedAt: txNow,
-  };
-  return true;
-};
-
-export const refreshEndgameStateInTx = async (
-  tx: Transaction,
-  gameRef: DocumentReference,
-  game: GameDoc,
-  txNow: Timestamp,
-  locationOverrides: Record<string, DocumentData> = {},
-): Promise<boolean> => {
-  const turn = game.currentTurn;
-  if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE" || !turn.hidingZone) {
-    return false;
-  }
-
-  const seatsSnap = await tx.get(gameRef.collection("seats"));
-  const seekerUids = seatsSnap.docs
-    .filter((seatDoc) => String(seatDoc.data().teamId ?? "") !== turn.hiderTeamId)
-    .map((seatDoc) => String(seatDoc.data().uid ?? seatDoc.id))
-    .filter((uid) => uid.length > 0);
-
-  const nextEndgameActive = seekerUids.length > 0 && (await Promise.all(seekerUids.map(async (seekerUid) => {
-    const location = locationOverrides[seekerUid] ?? (await tx.get(gameRef.collection("locations").doc(seekerUid))).data();
-    const point = readLocationPoint(location);
-    const updatedAt = location?.updatedAt as Timestamp | undefined;
-    const isOnPublicTransport = Boolean(location?.isOnPublicTransport);
-    return (
-      !!point &&
-      !isOnPublicTransport &&
-      isFreshLocation(updatedAt, txNow) &&
-      distanceMeters(point, turn.hidingZone!.center) <= turn.hidingZone!.radiusM
-    );
-  }))).every(Boolean);
-
-  if (Boolean(turn.endgameActive) === nextEndgameActive) {
-    return false;
-  }
-
-  game.currentTurn = {
-    ...turn,
-    endgameActive: nextEndgameActive,
-    endgameAnchorPoint: null,
-    endgameLastChangedAt: txNow,
-    endgameQuestionsUnlocked: nextEndgameActive ? turn.endgameQuestionsUnlocked ?? false : false,
-    foundVotes: nextEndgameActive ? turn.foundVotes : [],
-  };
-  return true;
-};
-
 export const resolveBaseStationAtEscapeEndInTx = async (
   tx: Transaction,
   gameRef: DocumentReference,
   game: GameDoc,
   txNow: Timestamp,
 ): Promise<TurnState | null> => {
+  void tx;
+  void gameRef;
+  void txNow;
   const turn = game.currentTurn;
   if (!turn || turn.phase !== "ESCAPE" || turn.hidingZone) {
     return turn ?? null;
   }
 
-  const hiderSeatsSnap = await tx.get(
-    gameRef.collection("seats").where("teamId", "==", turn.hiderTeamId),
-  );
-  const hiderUids = hiderSeatsSnap.docs
-    .map((seatDoc) => String(seatDoc.data()?.uid ?? seatDoc.id))
-    .filter((uid) => uid.length > 0);
-
-  let latestLocation: DocumentData | undefined;
-  for (const hiderUid of hiderUids) {
-    const location = (await tx.get(gameRef.collection("privateLocations").doc(hiderUid))).data();
-    const updatedAt = location?.updatedAt as Timestamp | undefined;
-    if (!location || !isFreshLocation(updatedAt, txNow) || location.geofenceReliable === false) {
-      continue;
-    }
-    if (!latestLocation || updatedAt!.toMillis() > (latestLocation.updatedAt as Timestamp).toMillis()) {
-      latestLocation = location;
-    }
-  }
-
-  const point = readLocationPoint(latestLocation);
-  if (!point) {
-    return {
-      ...turn,
-      baseStationCandidateIds: [],
-      baseStationSelectionRequired: true,
-    };
-  }
-
-  const radiusM = game.settings.zoneRadiusM;
-  const zoneMatches = findPlayableStationZones(point, radiusM);
-  if (zoneMatches.length === 1) {
-    return {
-      ...turn,
-      hidingZone: buildHidingZoneForStation(zoneMatches[0].station.id, radiusM),
-      baseStationCandidateIds: [],
-      baseStationSelectionRequired: false,
-    };
-  }
-
-  if (zoneMatches.length > 1) {
-    return {
-      ...turn,
-      baseStationCandidateIds: zoneMatches.map((match) => match.station.id),
-      baseStationSelectionRequired: true,
-    };
-  }
-
-  const nearest = findNearestPlayableStation(point);
-  if (!nearest) {
-    return {
-      ...turn,
-      baseStationCandidateIds: [],
-      baseStationSelectionRequired: true,
-    };
-  }
-
   return {
     ...turn,
-    hidingZone: buildHidingZoneForStation(nearest.station.id, radiusM),
-    baseStationCandidateIds: [nearest.station.id],
-    baseStationSelectionRequired: false,
+    baseStationCandidateIds: [],
+    baseStationSelectionRequired: true,
   };
 };
 
@@ -783,9 +635,9 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
-      outOfArea: null,
+
       foundVotes: [],
-      captureAttempt: null,
+    captureAttempt: null,
     };
     game.winnerTeamIds = findWinnerIds(game);
     return game;
@@ -816,11 +668,10 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     lastEndgameVerificationAt: null,
     endgameQuestionsUnlocked: false,
     lastEndgameQuestionsConsultAt: null,
-    outOfArea: null,
+
     expirations: 0,
     foundVotes: [],
-      captureAttempt: null,
+    captureAttempt: null,
   };
   return game;
 };
-
