@@ -414,6 +414,18 @@ export const secondsRemaining = (deadline: Timestamp | null | undefined, baseNow
   return Math.max(0, Math.ceil((deadline.toMillis() - baseNow.toMillis()) / 1000));
 };
 
+const stripUndefinedFields = <T>(value: T): T => {
+  if (value instanceof Timestamp) return value;
+  if (Array.isArray(value)) return value.map((item) => stripUndefinedFields(item)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, nestedValue]) => nestedValue !== undefined)
+        .map(([key, nestedValue]) => [key, stripUndefinedFields(nestedValue)]),
+    ) as T;
+  }
+  return value;
+};
 export const getPhaseDurationSeconds = (settings: GameSettings, phase: Phase): number => {
   if (phase === "INTERMISSION") return settings.intermissionSeconds;
   if (phase === "ESCAPE") return settings.escapeSeconds;
@@ -424,7 +436,7 @@ export const getPhaseDurationSeconds = (settings: GameSettings, phase: Phase): n
 export const setNextPhase = (turn: TurnState, settings: GameSettings, phase: Phase, baseNow: Timestamp): TurnState => {
   const duration = getPhaseDurationSeconds(settings, phase);
   const phaseEndsAt = Timestamp.fromMillis(baseNow.toMillis() + duration * 1000);
-  return {
+  return stripUndefinedFields({
     ...turn,
     phase,
     phaseStartedAt: baseNow,
@@ -438,8 +450,7 @@ export const setNextPhase = (turn: TurnState, settings: GameSettings, phase: Pha
     endgameQuestionsUnlocked: phase === "CHASE" ? false : turn.endgameQuestionsUnlocked,
     lastEndgameQuestionsConsultAt: phase === "CHASE" ? null : turn.lastEndgameQuestionsConsultAt,
     captureAttempt: phase === "CHASE" ? null : turn.captureAttempt ?? null,
-
-  };
+  });
 };
 
 export const findWinnerIds = (game: GameDoc): string[] => {
@@ -682,3 +693,4 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   };
   return game;
 };
+
