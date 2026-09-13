@@ -37,7 +37,7 @@
                 </div>
                 <div>
                   <span>Tiempo fase</span>
-                  <strong>{{ formatTime(secondsUntil(vm.currentTurn.endsAtIso)) }}</strong>
+                  <strong>{{ formatTime(phaseRemainingSeconds(vm)) }}</strong>
                 </div>
                 <div>
                   <span>Hider</span>
@@ -365,7 +365,7 @@
                 <ion-chip color="warning">{{ pendingQuestion.isPhoto ? 'Foto' : pendingQuestion.categoryId }}</ion-chip>
                 <h3>{{ pendingQuestion.prompt }}</h3>
                 <p *ngIf="pendingQuestion.expiresAtIso">
-                  Quedan {{ formatTime(secondsUntil(pendingQuestion.expiresAtIso)) }}.
+                  Quedan {{ formatTime(pendingQuestionRemainingSeconds(vm, pendingQuestion)) }}.
                 </p>
                 <ion-progress-bar [value]="pendingQuestionProgress(vm)" color="warning"></ion-progress-bar>
                 <ion-note *ngIf="pendingQuestion.isPhoto" color="medium">
@@ -584,3 +584,4 @@
     </ng-container>
   </ion-grid>
 </ion-content>
+

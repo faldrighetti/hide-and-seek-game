@@ -912,6 +912,22 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return Math.max(0, Math.ceil((new Date(iso).getTime() - this.now) / 1000));
   }
 
+  phaseRemainingSeconds(vm: GameBlueprint): number {
+    if (vm.operational.mode !== 'NORMAL' && vm.operational.phaseRemainingSeconds !== null) {
+      return Math.max(0, vm.operational.phaseRemainingSeconds);
+    }
+
+    return this.secondsUntil(vm.currentTurn.endsAtIso);
+  }
+
+  pendingQuestionRemainingSeconds(vm: GameBlueprint, pendingQuestion: PendingQuestion | null = null): number {
+    if (vm.operational.mode !== 'NORMAL' && vm.operational.pendingQuestionRemainingSeconds !== null) {
+      return Math.max(0, vm.operational.pendingQuestionRemainingSeconds);
+    }
+
+    return this.secondsUntil(pendingQuestion?.expiresAtIso ?? vm.currentTurn.pendingQuestionEndsAtIso);
+  }
+
   turnActionState(vm: GameBlueprint, role: PlayerRole, pendingQuestion: PendingQuestion | null): TurnActionState {
     if (!role.isParticipant) {
       return {
@@ -1051,12 +1067,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return 1;
     }
 
-    const remaining = this.secondsUntil(vm.currentTurn.endsAtIso);
+    const remaining = this.phaseRemainingSeconds(vm);
     return Math.min(1, Math.max(0, 1 - remaining / total));
   }
 
   pendingQuestionProgress(vm: GameBlueprint): number {
-    const remaining = this.secondsUntil(vm.currentTurn.pendingQuestionEndsAtIso);
+    const remaining = this.pendingQuestionRemainingSeconds(vm);
     const total = vm.currentTurn.pendingQuestionEndsAtIso && remaining > vm.questionPolicy.regularTimeoutSeconds
       ? vm.questionPolicy.photoTimeoutSeconds
       : vm.questionPolicy.regularTimeoutSeconds;
@@ -1339,4 +1355,5 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }
+
 
