@@ -1366,7 +1366,6 @@ export {
 export const processGameTick = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
-  await assertUserRateLimit(db, uid, "process_game_tick", 15);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
   await requireGameMembership(db, gameId, uid);
@@ -1382,6 +1381,11 @@ export const processGameTick = onCall(async (request) => {
     if (isOperationallyStopped(game)) return;
 
     const txNow = nowTs();
+    const phaseDueAtStart = turn.phaseEndsAt.toMillis() <= txNow.toMillis();
+    const questionDueAtStart = Boolean(turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis());
+    if (!phaseDueAtStart && !questionDueAtStart) return;
+
+    await assertRateLimitInTx(tx, gameRef, uid, `process_game_tick_${turn.runNumber}_${turn.phase}`, txNow, 3);
 
     if (turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis()) {
       const expiredQuestionId = turn.pendingQuestionId;
@@ -1572,3 +1576,4 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
 
   await Promise.all(tasks);
 });
+

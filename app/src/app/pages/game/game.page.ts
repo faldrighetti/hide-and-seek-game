@@ -135,7 +135,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
     void this.processDueTickIfNeeded();
   }, 1000);
   private readonly blueprintSubscription: Subscription;
+  private readonly playerRoleSubscription: Subscription;
   private latestGameBlueprint: GameBlueprint | null = null;
+  private latestPlayerRole: PlayerRole | null = null;
   private tickInFlight = false;
   private lastTickKey: string | null = null;
   private lastLootKey: string | null = null;
@@ -154,6 +156,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
         this.renderBaseStationMarkers(vm);
       }, 0);
     });
+    this.playerRoleSubscription = this.playerRole$.subscribe(role => {
+      this.latestPlayerRole = role;
+    });
     void this.loadCardsFromCatalog();
     void this.loadQuestionsCatalog();
     void this.loadBaseStationMapData();
@@ -166,12 +171,14 @@ export class GamePage implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     window.clearInterval(this.timerId);
     this.blueprintSubscription.unsubscribe();
+    this.playerRoleSubscription.unsubscribe();
     this.baseStationMap?.remove();
   }
 
   private async processDueTickIfNeeded(): Promise<void> {
     const vm = this.latestGameBlueprint;
-    if (!vm || this.tickInFlight || vm.operational.mode !== 'NORMAL') {
+    const role = this.latestPlayerRole;
+    if (!vm || !role?.isParticipant || this.tickInFlight || vm.operational.mode !== 'NORMAL') {
       return;
     }
 
@@ -1332,3 +1339,4 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }
+
