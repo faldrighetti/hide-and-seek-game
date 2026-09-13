@@ -66,58 +66,73 @@ export class FirebaseGameClientService {
 
   gameDoc$(gameId: string): Observable<Record<string, unknown> | null> {
     return new Observable(subscriber => {
+      let closed = false;
       let unsubscribe: Unsubscribe | null = null;
 
-      try {
-        this.requireCurrentUser();
-        unsubscribe = onSnapshot(
-          doc(this.firestore, `games/${gameId}`),
-          snapshot => subscriber.next(snapshot.exists() ? snapshot.data() : null),
-          error => subscriber.error(error),
-        );
-      } catch (error) {
-        subscriber.error(error);
-      }
+      this.auth.authStateReady()
+        .then(() => {
+          if (closed) return;
+          this.requireCurrentUser();
+          unsubscribe = onSnapshot(
+            doc(this.firestore, `games/${gameId}`),
+            snapshot => subscriber.next(snapshot.exists() ? snapshot.data() : null),
+            error => subscriber.error(error),
+          );
+        })
+        .catch(error => subscriber.error(error));
 
-      return () => unsubscribe?.();
+      return () => {
+        closed = true;
+        unsubscribe?.();
+      };
     });
   }
 
   seats$(gameId: string): Observable<Array<Record<string, unknown> & { id: string }>> {
     return new Observable(subscriber => {
+      let closed = false;
       let unsubscribe: Unsubscribe | null = null;
 
-      try {
-        this.requireCurrentUser();
-        unsubscribe = onSnapshot(
-          query(collection(this.firestore, `games/${gameId}/seats`)),
-          snapshot => subscriber.next(snapshot.docs.map(seat => ({ id: seat.id, ...seat.data() }))),
-          error => subscriber.error(error),
-        );
-      } catch (error) {
-        subscriber.error(error);
-      }
+      this.auth.authStateReady()
+        .then(() => {
+          if (closed) return;
+          this.requireCurrentUser();
+          unsubscribe = onSnapshot(
+            query(collection(this.firestore, `games/${gameId}/seats`)),
+            snapshot => subscriber.next(snapshot.docs.map(seat => ({ id: seat.id, ...seat.data() }))),
+            error => subscriber.error(error),
+          );
+        })
+        .catch(error => subscriber.error(error));
 
-      return () => unsubscribe?.();
+      return () => {
+        closed = true;
+        unsubscribe?.();
+      };
     });
   }
 
   questionDoc$(gameId: string, questionId: string): Observable<(Record<string, unknown> & { id: string }) | null> {
     return new Observable(subscriber => {
+      let closed = false;
       let unsubscribe: Unsubscribe | null = null;
 
-      try {
-        this.requireCurrentUser();
-        unsubscribe = onSnapshot(
-          doc(this.firestore, `games/${gameId}/questions/${questionId}`),
-          snapshot => subscriber.next(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null),
-          error => subscriber.error(error),
-        );
-      } catch (error) {
-        subscriber.error(error);
-      }
+      this.auth.authStateReady()
+        .then(() => {
+          if (closed) return;
+          this.requireCurrentUser();
+          unsubscribe = onSnapshot(
+            doc(this.firestore, `games/${gameId}/questions/${questionId}`),
+            snapshot => subscriber.next(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null),
+            error => subscriber.error(error),
+          );
+        })
+        .catch(error => subscriber.error(error));
 
-      return () => unsubscribe?.();
+      return () => {
+        closed = true;
+        unsubscribe?.();
+      };
     });
   }
 
