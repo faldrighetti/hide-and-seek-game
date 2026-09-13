@@ -19,6 +19,7 @@ import {
   WinCondition,
 
   appendGameEventInTx,
+  assertGlobalPlayEnabled,
   assertRateLimitInTx,
   assertUserRateLimit,
   assertOperationalPlayAllowed,
@@ -54,6 +55,7 @@ import {
 
 export const createGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   await assertUserRateLimit(db, uid, "create_game", 30);
   const mode = (request.data?.mode ?? "INDIVIDUAL_3") as GameMode;
   const turnsPerTeam = (request.data?.turnsPerTeam ?? 2) as 1 | 2 | 3;
@@ -124,6 +126,8 @@ export const createGame = onCall(async (request) => {
 
 export const joinGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "join_game", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const displayNameRaw = String(request.data?.displayName ?? "").trim();
   if (!gameId || !displayNameRaw) {
@@ -190,6 +194,8 @@ export const joinGame = onCall(async (request) => {
 
 export const setTeams = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "set_teams", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const assignments = request.data?.assignments as Record<string, string>;
   if (!gameId || !assignments || typeof assignments !== "object") {
@@ -222,6 +228,8 @@ export const setTeams = onCall(async (request) => {
 
 export const randomizeTeams = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "randomize_teams", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   if (!gameId) {
     throw new HttpsError("invalid-argument", "gameId es obligatorio.");
@@ -253,6 +261,8 @@ export const randomizeTeams = onCall(async (request) => {
 
 export const lockTeams = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "lock_teams", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const lock = Boolean(request.data?.lock);
   await requireHost(db, gameId, uid);
@@ -266,6 +276,8 @@ export const lockTeams = onCall(async (request) => {
 
 export const startGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "start_game", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   await requireHost(db, gameId, uid);
 
@@ -330,6 +342,8 @@ export const startGame = onCall(async (request) => {
 
 export const confirmBaseStation = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "confirm_base_station", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const stationId = String(request.data?.stationId ?? "").trim();
 
@@ -403,6 +417,8 @@ export const confirmBaseStation = onCall(async (request) => {
 
 export const verifyEndgame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "verify_endgame", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
   await requireGameMembership(db, gameId, uid);
@@ -458,6 +474,8 @@ export const verifyEndgame = onCall(async (request) => {
 
 export const consultEndgameQuestions = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "consult_endgame_questions", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
   await requireGameMembership(db, gameId, uid);
@@ -518,6 +536,7 @@ export const consultEndgameQuestions = onCall(async (request) => {
 
 export const sendQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const prompt = String(request.data?.prompt ?? "").trim();
   const categoryId = String(request.data?.categoryId ?? "").trim();
@@ -633,6 +652,7 @@ export const sendQuestion = onCall(async (request) => {
 
 export const resolveQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const resolution = String(request.data?.resolution ?? "ANSWER").trim().toUpperCase();
   const validResolutions = new Set(["ANSWER", "VETO", "RANDOMIZE"]);
@@ -720,6 +740,7 @@ export const resolveQuestion = onCall(async (request) => {
 
 export const selectLoot = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const selectedCardIds: string[] = Array.isArray(request.data?.selectedCardIds) ?
     request.data.selectedCardIds.map((cardId: unknown) => String(cardId)) :
@@ -813,6 +834,7 @@ export const selectLoot = onCall(async (request) => {
 
 export const playCurse = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const cardId = String(request.data?.cardId ?? request.data?.curseId ?? "").trim();
   const curseId = cardId.split("#")[0];
@@ -901,6 +923,7 @@ export const playCurse = onCall(async (request) => {
 
 export const completeCurseEffect = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const effectId = String(request.data?.effectId ?? "").trim();
 
@@ -966,6 +989,7 @@ export const completeCurseEffect = onCall(async (request) => {
 
 export const startCaptureAttempt = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
   await requireGameMembership(db, gameId, uid);
@@ -1033,6 +1057,7 @@ export const startCaptureAttempt = onCall(async (request) => {
 
 export const resolveCaptureAttempt = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const confirmed = Boolean(request.data?.confirmed);
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
@@ -1099,6 +1124,7 @@ export const resolveCaptureAttempt = onCall(async (request) => {
 
 export const confirmCaptureBySeeker = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
   await requireGameMembership(db, gameId, uid);
@@ -1171,6 +1197,8 @@ export const confirmCaptureBySeeker = onCall(async (request) => {
 
 export const castFoundVote = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "cast_found_vote", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const voterTeamId = String(request.data?.teamId ?? "").trim().toUpperCase();
   if (!gameId || !voterTeamId) {
@@ -1215,6 +1243,8 @@ export const castFoundVote = onCall(async (request) => {
 
 export const endTurn = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "end_turn", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   await requireHost(db, gameId, uid);
 
@@ -1253,6 +1283,8 @@ export const endTurn = onCall(async (request) => {
 
 export const nextTurn = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "next_turn", 10);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   await requireHost(db, gameId, uid);
 
@@ -1331,7 +1363,7 @@ export {
   finishGame,
 } from "./query-callables";
 
-export const scheduledTick = onSchedule({schedule: "every 1 minutes", maxInstances: 1}, async () => {
+export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstances: 1}, async () => {
   const now = nowTs();
   const gamesSnap = await db.collection("games")
     .where("status", "==", "LIVE")

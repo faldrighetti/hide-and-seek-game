@@ -6,6 +6,7 @@ import {
   OperationalState,
   TurnState,
   appendGameEventInTx,
+  assertGlobalPlayEnabled,
   assertRateLimitInTx,
   nowTs,
   requireAuthUid,
@@ -70,6 +71,7 @@ export const pauseGame = onCall(async (request) => {
 
 export const resumeGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   await requireHost(db, gameId, uid);
 

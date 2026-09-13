@@ -175,6 +175,14 @@ export const QUESTION_DRAW_RULES: Record<string, {draw: number; take: number}> =
   photos: {draw: 1, take: 1},
 };
 
+export async function assertGlobalPlayEnabled(firestore: Firestore): Promise<void> {
+  const snap = await firestore.collection("runtime").doc("operations").get();
+  const data = snap.data() ?? {};
+  if (data.playDisabled === true) {
+    throw new HttpsError("failed-precondition", "OPERATIONAL_PLAY_DISABLED");
+  }
+}
+
 export async function assertRateLimitInTx(
   tx: Transaction,
   gameRef: DocumentReference,
@@ -219,6 +227,7 @@ export async function assertUserRateLimit(
     }, {merge: true});
   });
 }
+
 export const expandCopies = (cardId: string, copies: number): string[] =>
   Array.from({length: copies}, (_, index) => `${cardId}#${index + 1}`);
 
@@ -525,7 +534,7 @@ export const requireCurrentHiderInTx = async (
 
   const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
   if (seatTeamId !== turn.hiderTeamId) {
-    throw new HttpsError("permission-denied", "Solo el hider puede confirmar una salida de área.");
+    throw new HttpsError("permission-denied", "Solo el hider puede ejecutar esta acción.");
   }
 
   return turn;
@@ -635,9 +644,8 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       lastEndgameVerificationAt: null,
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
-
       foundVotes: [],
-    captureAttempt: null,
+      captureAttempt: null,
     };
     game.winnerTeamIds = findWinnerIds(game);
     return game;
@@ -668,7 +676,6 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     lastEndgameVerificationAt: null,
     endgameQuestionsUnlocked: false,
     lastEndgameQuestionsConsultAt: null,
-
     expirations: 0,
     foundVotes: [],
     captureAttempt: null,
