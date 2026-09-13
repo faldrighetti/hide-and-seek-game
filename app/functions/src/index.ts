@@ -1363,6 +1363,107 @@ export {
   finishGame,
 } from "./query-callables";
 
+export const processGameTick = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "process_game_tick", 15);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  let changed = false;
+  await db.runTransaction(async (tx) => {
+    const fresh = await tx.get(gameRef);
+    if (!fresh.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = fresh.data() as GameDoc;
+    let turn = game.currentTurn;
+    if (!turn || game.status !== "LIVE") return;
+    if (isOperationallyStopped(game)) return;
+
+    const txNow = nowTs();
+
+    if (turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis()) {
+      const expiredQuestionId = turn.pendingQuestionId;
+      const qRef = gameRef.collection("questions").doc(turn.pendingQuestionId);
+      tx.set(qRef, {
+        status: "EXPIRED",
+        expiredAt: txNow,
+      }, {merge: true});
+      appendGameEventInTx(tx, gameRef, game, {
+        type: "QUESTION_EXPIRED",
+        createdAt: txNow,
+        actorUid: null,
+        actorTeamId: null,
+        payload: {
+          questionId: expiredQuestionId,
+        },
+      });
+      turn.pendingQuestionId = null;
+      turn.pendingQuestionEndsAt = null;
+      turn.expirations += 1;
+      changed = true;
+    }
+
+    if (turn.phaseEndsAt.toMillis() <= txNow.toMillis()) {
+      if (turn.phase === "INTERMISSION") {
+        game.currentTurn = setNextPhase(turn, game.settings, "ESCAPE", txNow);
+        appendGameEventInTx(tx, gameRef, game, {
+          type: "PHASE_ADVANCED",
+          createdAt: txNow,
+          actorUid: null,
+          actorTeamId: null,
+          payload: {
+            fromPhase: "INTERMISSION",
+            toPhase: "ESCAPE",
+          },
+        });
+      } else if (turn.phase === "ESCAPE") {
+        const resolvedTurn = await resolveBaseStationAtEscapeEndInTx(tx, gameRef, game, txNow);
+        game.currentTurn = setNextPhase(resolvedTurn ?? turn, game.settings, "CHASE", txNow);
+        appendGameEventInTx(tx, gameRef, game, {
+          type: "PHASE_ADVANCED",
+          createdAt: txNow,
+          actorUid: null,
+          actorTeamId: null,
+          payload: {
+            fromPhase: "ESCAPE",
+            toPhase: "CHASE",
+            baseStationSelectionRequired: game.currentTurn.baseStationSelectionRequired ?? false,
+            baseStationCandidateIds: game.currentTurn.baseStationCandidateIds ?? [],
+            stationId: game.currentTurn.hidingZone?.stationId ?? null,
+          },
+        });
+      } else if (turn.phase === "CHASE") {
+        endTurnInTx(game, txNow);
+        appendGameEventInTx(tx, gameRef, {...game, currentTurn: turn}, {
+          type: "TURN_ENDED_BY_TIMEOUT",
+          createdAt: txNow,
+          actorUid: null,
+          actorTeamId: null,
+          payload: {
+            gameStatus: game.status,
+            nextPhase: game.currentTurn?.phase ?? null,
+          },
+        });
+      }
+      changed = true;
+    }
+
+    if (!changed) return;
+
+    tx.update(gameRef, {
+      currentTurn: game.currentTurn,
+      standings: game.standings,
+      status: game.status,
+      finishedAt: game.finishedAt ?? null,
+      winnerTeamIds: game.winnerTeamIds ?? null,
+      updatedAt: txNow,
+    });
+  });
+
+  return {ok: true, changed};
+});
 export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstances: 1}, async () => {
   const now = nowTs();
   const gamesSnap = await db.collection("games")

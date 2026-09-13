@@ -285,6 +285,12 @@ export class GameFacadeService {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('startGame', { gameId });
   }
 
+  processGameTick(gameId: string): Promise<{ ok: boolean; changed: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean; changed: boolean }>(
+      'processGameTick',
+      { gameId },
+    );
+  }
   sendQuestion(
     gameId: string,
     categoryId: string,

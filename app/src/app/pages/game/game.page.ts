@@ -132,9 +132,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   private readonly timerId = window.setInterval(() => {
     this.now = Date.now();
+    void this.processDueTickIfNeeded();
   }, 1000);
   private readonly blueprintSubscription: Subscription;
   private latestGameBlueprint: GameBlueprint | null = null;
+  private tickInFlight = false;
+  private lastTickKey: string | null = null;
   private lastLootKey: string | null = null;
   private baseStationMap?: L.Map;
   private baseStationMarkers = new Map<string, L.CircleMarker>();
@@ -166,6 +169,33 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.baseStationMap?.remove();
   }
 
+  private async processDueTickIfNeeded(): Promise<void> {
+    const vm = this.latestGameBlueprint;
+    if (!vm || this.tickInFlight || vm.operational.mode !== 'NORMAL') {
+      return;
+    }
+
+    const phaseDue = this.secondsUntil(vm.currentTurn.endsAtIso) <= 0;
+    const questionDue = Boolean(vm.currentTurn.pendingQuestionEndsAtIso && this.secondsUntil(vm.currentTurn.pendingQuestionEndsAtIso) <= 0);
+    if (!phaseDue && !questionDue) {
+      return;
+    }
+
+    const tickKey = `${vm.currentTurn.runNumber}:${vm.currentTurn.phase}:${vm.currentTurn.endsAtIso}:${vm.currentTurn.pendingQuestionId ?? ''}:${vm.currentTurn.pendingQuestionEndsAtIso ?? ''}`;
+    if (this.lastTickKey === tickKey) {
+      return;
+    }
+
+    this.tickInFlight = true;
+    this.lastTickKey = tickKey;
+    try {
+      await this.gameFacade.processGameTick(this.gameId);
+    } catch (error) {
+      console.warn('[game] No se pudo procesar el vencimiento de turno', error);
+    } finally {
+      this.tickInFlight = false;
+    }
+  }
   async loadCardsFromCatalog(): Promise<void> {
     const catalog = await this.cardCatalog.loadHiderDeck();
     for (const issue of catalog.issues) {
