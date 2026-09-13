@@ -281,8 +281,11 @@ export const modeMaxSeats = (mode: GameMode): number => {
 export const validateLobbyTeams = (mode: GameMode, seats: DocumentData[]): void => {
   const teamIds = modeTeamIds(mode);
   const validTeams = new Set(teamIds);
-  if (seats.length < teamIds.length) {
-    throw new HttpsError("failed-precondition", "Faltan jugadores para cubrir todos los equipos.");
+  const expectedSeatCount = modeMaxSeats(mode);
+  const maxSeatsPerTeam = mode.startsWith("INDIVIDUAL_") ? 1 : 2;
+
+  if (seats.length !== expectedSeatCount) {
+    throw new HttpsError("failed-precondition", `La partida requiere ${expectedSeatCount} jugadores.`);
   }
 
   const countsByTeam = new Map(teamIds.map((teamId) => [teamId, 0]));
@@ -297,6 +300,11 @@ export const validateLobbyTeams = (mode: GameMode, seats: DocumentData[]): void 
   const emptyTeamIds = teamIds.filter((teamId) => (countsByTeam.get(teamId) ?? 0) === 0);
   if (emptyTeamIds.length > 0) {
     throw new HttpsError("failed-precondition", `Hay equipos sin jugadores: ${emptyTeamIds.join(", ")}.`);
+  }
+
+  const overloadedTeamIds = teamIds.filter((teamId) => (countsByTeam.get(teamId) ?? 0) > maxSeatsPerTeam);
+  if (overloadedTeamIds.length > 0) {
+    throw new HttpsError("failed-precondition", `Hay equipos con demasiados jugadores: ${overloadedTeamIds.join(", ")}.`);
   }
 };
 
@@ -702,5 +710,6 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   };
   return game;
 };
+
 
 
