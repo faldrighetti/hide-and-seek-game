@@ -5,12 +5,12 @@
 export const environment = {
   production: false,
   firebase: {
-    apiKey: "AIzaSyDqeWbZKvrdg5ePZObV_Nj3G35CXttzYm8",
-    authDomain: "hide-and-seek-2026-8f4cf.firebaseapp.com",
-    projectId: "hide-and-seek-2026-8f4cf",
-    appId: "1:798298808506:web:8ac89a069afade47632283",
-    storageBucket: "hide-and-seek-2026-8f4cf.firebasestorage.app",
-    messagingSenderId: "798298808506",
+    apiKey: "AIzaSyA1S1eVQds_HlSXUOLJqHtxEqzWWIzFRYc",
+    authDomain: "hide-and-seek-2026.firebaseapp.com",
+    projectId: "hide-and-seek-2026",
+    appId: "1:63026952241:web:bd9b4c7c451e63e4877d10",
+    storageBucket: "hide-and-seek-2026.firebasestorage.app",
+    messagingSenderId: "63026952241",
   },
   firebaseEmulators: {
     enabled: false,
