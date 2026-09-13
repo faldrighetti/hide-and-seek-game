@@ -1,4 +1,4 @@
-import {Filter, Timestamp} from "firebase-admin/firestore";
+import {Timestamp} from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "./firebase";
@@ -1367,13 +1367,17 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
   const now = nowTs();
   const gamesSnap = await db.collection("games")
     .where("status", "==", "LIVE")
-    .where(Filter.or(
-      Filter.where("currentTurn.phaseEndsAt", "<=", now),
-      Filter.where("currentTurn.pendingQuestionEndsAt", "<=", now),
-    ))
     .get();
 
-  const tasks = gamesSnap.docs.map(async (docSnap) => {
+  const dueDocs = gamesSnap.docs.filter((docSnap) => {
+    const turn = (docSnap.data() as GameDoc).currentTurn;
+    if (!turn) return false;
+    const phaseDue = turn.phaseEndsAt.toMillis() <= now.toMillis();
+    const questionDue = Boolean(turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= now.toMillis());
+    return phaseDue || questionDue;
+  });
+
+  const tasks = dueDocs.map(async (docSnap) => {
     await db.runTransaction(async (tx) => {
       const fresh = await tx.get(docSnap.ref);
       if (!fresh.exists) return;
