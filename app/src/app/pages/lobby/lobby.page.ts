@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Subject, combineLatest, Observable } from 'rxjs';
+import { filter, map, takeUntil } from 'rxjs/operators';
 import { GameFacadeService } from '../../services/game-facade';
 import { GameBlueprint, LobbyState, PlayerRole, Seat } from '../../models/core-model';
 
@@ -27,10 +27,11 @@ interface LobbyViewModel {
   styleUrls: ['./lobby.page.scss'],
   standalone: false,
 })
-export class LobbyPage {
+export class LobbyPage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly gameFacade = inject(GameFacadeService);
+  private readonly destroy$ = new Subject<void>();
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
   starting = false;
@@ -65,6 +66,15 @@ export class LobbyPage {
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
+    this.lobby$.pipe(
+      filter((lobby): lobby is LobbyState => lobby?.status === 'LIVE'),
+      takeUntil(this.destroy$),
+    ).subscribe(() => this.router.navigate(['/game', this.gameId]));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   async assignSeatToTeam(seatId: string, teamId: string, isHost: boolean): Promise<void> {

@@ -53,14 +53,14 @@
             </article>
           </div>
 
-          <div class="actions">
-            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost || vm.lobby.teamsLocked || randomizing" (click)="randomizeTeams(vm.role.isHost)">
+          <div class="actions" *ngIf="vm.role.isHost">
+            <ion-button expand="block" fill="outline" [disabled]="vm.lobby.teamsLocked || randomizing" (click)="randomizeTeams(vm.role.isHost)">
               {{ randomizing ? 'Asignando...' : 'Asignar al azar' }}
             </ion-button>
-            <ion-button expand="block" fill="outline" [disabled]="!vm.role.isHost || locking" (click)="toggleLock(vm.role.isHost)">
+            <ion-button expand="block" fill="outline" [disabled]="locking" (click)="toggleLock(vm.role.isHost)">
               {{ locking ? 'Guardando...' : (vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)') }}
             </ion-button>
-            <ion-button expand="block" [disabled]="!vm.role.isHost || !vm.canStart || starting" (click)="startGame(vm.role.isHost)">
+            <ion-button expand="block" [disabled]="!vm.canStart || starting" (click)="startGame(vm.role.isHost)">
               {{ starting ? 'Iniciando...' : 'Iniciar juego' }}
             </ion-button>
             <ion-note *ngIf="vm.startBlockedReason" color="medium">{{ vm.startBlockedReason }}</ion-note>

@@ -184,6 +184,7 @@ export class GameFacadeService {
     this.loadGame(response.gameId);
     return {
       gameId: response.gameId,
+      status: 'LOBBY',
       joinLink: response.joinUrl || `${window.location.origin}/join/${response.gameId}`,
       seats: [],
       teamsLocked: false,
@@ -435,6 +436,7 @@ export class GameFacadeService {
   ): LobbyState {
     return {
       gameId,
+      status: (game['status'] as LobbyState['status'] | undefined) ?? 'LOBBY',
       joinLink: `${window.location.origin}/join/${gameId}`,
       seats: seats.map(seat => ({
         id: seat.id,

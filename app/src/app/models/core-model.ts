@@ -149,8 +149,11 @@ export interface PlayerRole {
   isParticipant: boolean;
 }
 
+export type GameStatus = 'LOBBY' | 'LIVE' | 'FINISHED';
+
 export interface LobbyState {
   gameId: string;
+  status: GameStatus;
   joinLink: string;
   seats: Seat[];
   teamsLocked: boolean;
