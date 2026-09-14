@@ -247,9 +247,10 @@ export const reportTemporaryDisconnect = onCall(async (request) => {
     const snap = await tx.get(gameRef);
     if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = snap.data() as GameDoc;
-    const seatSnap = await tx.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
-    if (seatSnap.empty) throw new HttpsError("permission-denied", "No tenes seat en esta partida.");
-    const seatDoc = seatSnap.docs[0];
+    const seatById = await tx.get(gameRef.collection("seats").doc(uid));
+    const seatQuery = seatById.exists ? null : await tx.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
+    const seatDoc = seatById.exists ? seatById : seatQuery?.docs[0];
+    if (!seatDoc?.exists) throw new HttpsError("permission-denied", "No tenes seat en esta partida.");
     const seatTeamId = String(seatDoc.data()?.teamId ?? "");
     const now = nowTs();
     await assertRateLimitInTx(tx, gameRef, uid, "report_temporary_disconnect", now, 10);
@@ -287,9 +288,10 @@ export const clearTemporaryDisconnect = onCall(async (request) => {
     const snap = await tx.get(gameRef);
     if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = snap.data() as GameDoc;
-    const seatSnap = await tx.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
-    if (seatSnap.empty) throw new HttpsError("permission-denied", "No tenes seat en esta partida.");
-    const seatDoc = seatSnap.docs[0];
+    const seatById = await tx.get(gameRef.collection("seats").doc(uid));
+    const seatQuery = seatById.exists ? null : await tx.get(gameRef.collection("seats").where("uid", "==", uid).limit(1));
+    const seatDoc = seatById.exists ? seatById : seatQuery?.docs[0];
+    if (!seatDoc?.exists) throw new HttpsError("permission-denied", "No tenes seat en esta partida.");
     const seatTeamId = String(seatDoc.data()?.teamId ?? "");
     const now = nowTs();
     await assertRateLimitInTx(tx, gameRef, uid, "clear_temporary_disconnect", now, 10);
@@ -313,5 +315,6 @@ export const clearTemporaryDisconnect = onCall(async (request) => {
 
   return {ok: true};
 });
+
 
 
