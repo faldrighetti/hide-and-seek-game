@@ -1,8 +1,10 @@
+import {Timestamp} from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {db} from "./firebase";
 import {sanitizeNotificationCategoryPreferences} from "./notifications";
 import {
   GameDoc,
+  FINISHED_GAME_RETENTION_SECONDS,
   assertUserRateLimit,
   findWinnerIds,
   nowTs,
@@ -169,6 +171,7 @@ export const finishGame = onCall(async (request) => {
     const game = snap.data() as GameDoc;
     game.status = "FINISHED";
     game.finishedAt = nowTs();
+    game.expiresAt = Timestamp.fromMillis(game.finishedAt.toMillis() + FINISHED_GAME_RETENTION_SECONDS * 1000);
     game.winnerTeamIds = findWinnerIds(game);
     if (game.currentTurn) {
       game.currentTurn.phase = "ENDED";
@@ -179,6 +182,7 @@ export const finishGame = onCall(async (request) => {
     tx.update(gameRef, {
       status: game.status,
       finishedAt: game.finishedAt,
+      expiresAt: game.expiresAt,
       winnerTeamIds: game.winnerTeamIds,
       currentTurn: game.currentTurn ?? null,
       updatedAt: nowTs(),

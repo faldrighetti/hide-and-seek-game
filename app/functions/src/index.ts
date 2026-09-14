@@ -1461,6 +1461,7 @@ export const processGameTick = onCall(async (request) => {
       standings: game.standings,
       status: game.status,
       finishedAt: game.finishedAt ?? null,
+      expiresAt: game.expiresAt ?? null,
       winnerTeamIds: game.winnerTeamIds ?? null,
       updatedAt: txNow,
     });
@@ -1568,6 +1569,7 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
         standings: game.standings,
         status: game.status,
         finishedAt: game.finishedAt ?? null,
+        expiresAt: game.expiresAt ?? null,
         winnerTeamIds: game.winnerTeamIds ?? null,
         updatedAt: txNow,
       });
@@ -1577,3 +1579,13 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
   await Promise.all(tasks);
 });
 
+export const cleanupFinishedGames = onSchedule({schedule: "every 24 hours", maxInstances: 1}, async () => {
+  const now = nowTs();
+  const expiredGames = await db.collection("games")
+    .where("expiresAt", "<=", now)
+    .limit(20)
+    .get();
+
+  const finishedDocs = expiredGames.docs.filter((docSnap) => (docSnap.data() as GameDoc).status === "FINISHED");
+  await Promise.all(finishedDocs.map((docSnap) => db.recursiveDelete(docSnap.ref)));
+});

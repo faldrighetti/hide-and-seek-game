@@ -3,6 +3,7 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {db} from "./firebase";
 import {
   GameDoc,
+  FINISHED_GAME_RETENTION_SECONDS,
   OperationalState,
   TurnState,
   appendGameEventInTx,
@@ -197,6 +198,7 @@ export const cancelGame = onCall(async (request) => {
     }
 
     const now = nowTs();
+    const expiresAt = Timestamp.fromMillis(now.toMillis() + FINISHED_GAME_RETENTION_SECONDS * 1000);
     await assertRateLimitInTx(tx, gameRef, uid, "cancel_game", now, 10);
     const previousTurn = game.currentTurn;
     if (game.currentTurn) {
@@ -211,6 +213,7 @@ export const cancelGame = onCall(async (request) => {
     tx.update(gameRef, {
       status: "FINISHED",
       finishedAt: now,
+      expiresAt,
       currentTurn: game.currentTurn ?? null,
       operational: {
         mode: "NORMAL",

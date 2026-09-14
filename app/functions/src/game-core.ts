@@ -20,6 +20,7 @@ export const ESCAPE_PHASE_SECONDS = 480;
 export const CHASE_MAX_SECONDS = 18000;
 export const ENDGAME_DWELL_SECONDS = 60;
 export const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
+export const FINISHED_GAME_RETENTION_SECONDS = 24 * 60 * 60;
 
 export type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
 export type WinCondition = "TOTAL_TIME" | "BEST_SINGLE_RUN";
@@ -143,6 +144,7 @@ export interface GameDoc {
   updatedAt: Timestamp;
   startedAt?: Timestamp;
   finishedAt?: Timestamp;
+  expiresAt?: Timestamp;
   settings: GameSettings;
   operational?: OperationalState | null;
   teamOrder: string[];
@@ -653,6 +655,7 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   if (finishNow) {
     game.status = "FINISHED";
     game.finishedAt = txNow;
+    game.expiresAt = Timestamp.fromMillis(txNow.toMillis() + FINISHED_GAME_RETENTION_SECONDS * 1000);
     game.currentTurn = {
       ...turn,
       phase: "ENDED",
