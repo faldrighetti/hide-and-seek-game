@@ -587,15 +587,15 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   async cancelGame(role: PlayerRole): Promise<void> {
     if (!role.isHost) {
-      this.operationalMessage = 'Solo el host puede abandonar la partida.';
+      this.operationalMessage = 'Solo el host puede finalizar la partida.';
       return;
     }
-    const reason = window.prompt('Motivo de abandono')?.trim() || null;
-    const confirmed = window.confirm('¿Abandonar y cerrar la partida? Esta acción no continúa el turno.');
+    const reason = window.prompt('Motivo de finalización')?.trim() || null;
+    const confirmed = window.confirm('¿Finalizar y cerrar la partida? Esta acción no continúa el turno.');
     if (!confirmed) {
       return;
     }
-    await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida abandonada.');
+    await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida finalizada.');
   }
 
   private async runOperationalAction(action: () => Promise<{ ok: boolean }>, successMessage: string): Promise<void> {
@@ -1335,6 +1335,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }
+
 
 
 

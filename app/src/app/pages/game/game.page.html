@@ -93,7 +93,7 @@
                 [disabled]="operationalActionInFlight"
                 (click)="cancelGame(role)"
               >
-                Abandonar
+                Finalizar partida
               </ion-button>
             </div>
             <ion-note *ngIf="operationalMessage" color="medium">{{ operationalMessage }}</ion-note>
@@ -556,6 +556,7 @@
     </ng-container>
   </ion-grid>
 </ion-content>
+
 
 
 
