@@ -598,26 +598,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
     await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida abandonada.');
   }
 
-  async reportTemporaryDisconnect(role: PlayerRole): Promise<void> {
-    if (!role.isParticipant) {
-      this.operationalMessage = 'Solo jugadores de la partida pueden reportar desconexión.';
-      return;
-    }
-    const reason = window.prompt('Motivo de desconexión temporal')?.trim() || null;
-    await this.runOperationalAction(
-      () => this.gameFacade.reportTemporaryDisconnect(this.gameId, reason),
-      'Desconexión temporal registrada.',
-    );
-  }
-
-  async clearTemporaryDisconnect(role: PlayerRole): Promise<void> {
-    if (!role.isParticipant) {
-      this.operationalMessage = 'Solo jugadores de la partida pueden reconectarse.';
-      return;
-    }
-    await this.runOperationalAction(() => this.gameFacade.clearTemporaryDisconnect(this.gameId), 'Reconexión registrada.');
-  }
-
   private async runOperationalAction(action: () => Promise<{ ok: boolean }>, successMessage: string): Promise<void> {
     this.operationalActionInFlight = true;
     this.operationalMessage = '';
@@ -1355,6 +1335,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }
+
 
 
 

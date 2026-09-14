@@ -95,24 +95,6 @@
               >
                 Abandonar
               </ion-button>
-              <ion-button
-                *ngIf="role.isParticipant"
-                size="small"
-                fill="outline"
-                [disabled]="operationalActionInFlight"
-                (click)="reportTemporaryDisconnect(role)"
-              >
-                Desconexión
-              </ion-button>
-              <ion-button
-                *ngIf="role.isParticipant"
-                size="small"
-                fill="outline"
-                [disabled]="operationalActionInFlight"
-                (click)="clearTemporaryDisconnect(role)"
-              >
-                Reconectado
-              </ion-button>
             </div>
             <ion-note *ngIf="operationalMessage" color="medium">{{ operationalMessage }}</ion-note>
           </ion-card-content>
@@ -574,6 +556,7 @@
     </ng-container>
   </ion-grid>
 </ion-content>
+
 
 
 
