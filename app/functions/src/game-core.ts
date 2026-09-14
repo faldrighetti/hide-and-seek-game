@@ -195,7 +195,7 @@ export async function assertRateLimitInTx(
   const rateLimitSnap = await tx.get(rateLimitRef);
   const lastAt = rateLimitSnap.data()?.lastAt as Timestamp | undefined;
   if (lastAt && now.toMillis() - lastAt.toMillis() < minIntervalSeconds * 1000) {
-    throw new HttpsError("resource-exhausted", "Accion demasiado frecuente. Espera unos segundos y volve a intentar.");
+    throw new HttpsError("resource-exhausted", "Acción demasiado frecuente. Esperá unos segundos y volvé a intentar.");
   }
 
   tx.set(rateLimitRef, {
@@ -217,7 +217,7 @@ export async function assertUserRateLimit(
     const rateLimitSnap = await tx.get(rateLimitRef);
     const lastAt = rateLimitSnap.data()?.lastAt as Timestamp | undefined;
     if (lastAt && now.toMillis() - lastAt.toMillis() < minIntervalSeconds * 1000) {
-      throw new HttpsError("resource-exhausted", "Accion demasiado frecuente. Espera unos segundos y volve a intentar.");
+      throw new HttpsError("resource-exhausted", "Acción demasiado frecuente. Esperá unos segundos y volvé a intentar.");
     }
 
     tx.set(rateLimitRef, {

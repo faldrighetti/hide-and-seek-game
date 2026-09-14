@@ -109,7 +109,7 @@
         </div>
 
         <ion-note *ngIf="selectedHubSummaries.length === 0 && selectedStationIds.size > 0">
-          La accion afectara solamente las estaciones seleccionadas que no pertenezcan a hubs.
+          La acción afectará solamente las estaciones seleccionadas que no pertenezcan a hubs.
         </ion-note>
         <ion-note *ngFor="let summary of selectedHubSummaries">
           {{ summary }}

@@ -187,7 +187,7 @@ Implementado:
 - Seleccion manual multiple.
 - Eliminacion y restauracion.
 - Descarte manual por circulo con centro desde click en mapa o coordenadas, radio en metros, modo eliminar dentro/fuera y motivo.
-- Historial agrupado como "Estaciones eliminadas", por accion, con cantidad, lista expandible, propagacion de hub y activacion/desactivacion.
+- Historial agrupado como "Estaciones eliminadas", por acción, con cantidad, lista expandible, propagacion de hub y activacion/desactivacion.
 - Historial con undo/redo.
 - Recalculo desde historial.
 - Persistencia en `localStorage`.

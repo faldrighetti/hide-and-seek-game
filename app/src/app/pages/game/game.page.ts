@@ -1029,7 +1029,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     return {
-      title: 'Sin accion pendiente',
+      title: 'Sin acción pendiente',
       detail: 'Espera la proxima pregunta de los seekers.',
       color: 'medium',
     };
