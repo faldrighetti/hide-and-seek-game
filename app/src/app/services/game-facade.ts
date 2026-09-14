@@ -185,6 +185,7 @@ export class GameFacadeService {
     return {
       gameId: response.gameId,
       status: 'LOBBY',
+      hostUid: currentUser.uid,
       joinLink: response.joinUrl || `${window.location.origin}/join/${response.gameId}`,
       seats: [],
       teamsLocked: false,
@@ -443,6 +444,7 @@ export class GameFacadeService {
     return {
       gameId,
       status: (game['status'] as LobbyState['status'] | undefined) ?? 'LOBBY',
+      hostUid: typeof game['hostUid'] === 'string' ? game['hostUid'] : null,
       joinLink: `${window.location.origin}/join/${gameId}`,
       seats: seats.map(seat => ({
         id: seat.id,
@@ -680,10 +682,13 @@ export class GameFacadeService {
       uid,
       seat,
       teamId,
-      isHost: Boolean(seat?.host),
+      isHost: Boolean(uid && lobby?.hostUid === uid),
       isHider,
       isSeeker: isParticipant && !isHider,
       isParticipant,
     };
   }
 }
+
+
+

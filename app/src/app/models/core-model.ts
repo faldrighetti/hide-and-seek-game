@@ -153,6 +153,7 @@ export type GameStatus = 'LOBBY' | 'LIVE' | 'FINISHED';
 
 export interface LobbyState {
   gameId: string;
+  hostUid: string | null;
   status: GameStatus;
   joinLink: string;
   seats: Seat[];
@@ -237,3 +238,4 @@ export const DEFAULT_SETTINGS: GameSettings = {
   endgameVerificationCooldownSeconds: GAME_CONFIG.endgameVerificationCooldownMinutes * 60,
   deckMaxSize: 6,
 };
+
