@@ -114,7 +114,7 @@
               Abrí el motor de mapa para esta partida. Precarga la pregunta pendiente,
               usa referencias manuales y guarda el historial local asociado al questionId.
             </p>
-            <ion-button expand="block" fill="outline" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId }">
+            <ion-button expand="block" fill="outline" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId, role: 'seeker' }">
               Abrir mapa de partida
             </ion-button>
           </ion-card-content>

@@ -90,6 +90,7 @@ interface ReferenceLineAsset {
 })
 export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   mode: MapGeneratorMode = 'HIDER';
+  lockedMode: MapGeneratorMode | null = null;
   stations: Station[] = [];
   allProcessedStations: Station[] = [];
   evaluations: StationEvaluation[] = [];
@@ -159,6 +160,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.seekerLocationSubscription?.unsubscribe();
     this.pendingQuestionSubscription?.unsubscribe();
     this.map?.remove();
+  }
+
+  get isModeLocked(): boolean {
+    return this.lockedMode !== null;
   }
 
   get visibleRecords(): ConstraintRecord[] {
@@ -277,6 +282,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   }
 
   setMode(mode: MapGeneratorMode): void {
+    if (this.lockedMode && mode !== this.lockedMode) {
+      return;
+    }
     this.mode = mode;
     this.selectedStationIds.clear();
     setTimeout(() => this.map?.invalidateSize(), 0);
@@ -936,12 +944,24 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   private syncGameContextFromRoute(): void {
     const gameId = (this.route.snapshot.queryParamMap.get('gameId') ?? '').trim().toUpperCase();
+    const routeRole = (this.route.snapshot.queryParamMap.get('role') ?? '').trim().toLowerCase();
+    const routeMode: MapGeneratorMode | null = routeRole === 'hider'
+      ? 'HIDER'
+      : routeRole === 'seeker'
+        ? 'SEEKER'
+        : null;
+
+    this.lockedMode = routeMode ?? (gameId ? 'SEEKER' : null);
+    if (this.lockedMode) {
+      this.setMode(this.lockedMode);
+    }
+
     if (!gameId || this.activeGameId === gameId) {
       return;
     }
 
     this.activeGameId = gameId;
-    this.setMode('SEEKER');
+
     this.gameFacade.loadGame(gameId);
     this.pendingQuestionSubscription?.unsubscribe();
     this.pendingQuestionSubscription = this.gameFacade.pendingQuestion$.subscribe(question => {

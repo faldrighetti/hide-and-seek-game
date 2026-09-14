@@ -2,7 +2,7 @@ export const GAME_CONFIG = {
   minDisplacementM: 2500,
   hidingZoneRadiusM: 600,
   intervalPhaseSeconds: 300,
-  escapePhaseSeconds: 3600,
+  escapePhaseSeconds: 480,
   chaseMaxSeconds: 18000,
   endgameDwellSeconds: 60,
   captainFailoverSeconds: 60,

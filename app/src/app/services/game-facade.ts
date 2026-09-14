@@ -231,14 +231,6 @@ export class GameFacadeService {
     this.lobbySubject.next(entry.lobby);
   }
 
-  toggleTeamsLock(gameId: string): Promise<{ ok: boolean; teamsLocked: boolean }> {
-    const current = this.lobbySubject.value;
-    return this.firebaseClient.callFunction<{ gameId: string; lock: boolean }, { ok: boolean; teamsLocked: boolean }>(
-      'lockTeams',
-      { gameId, lock: !current?.teamsLocked },
-    );
-  }
-
   randomizeTeams(gameId: string): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('randomizeTeams', { gameId });
   }
@@ -689,6 +681,3 @@ export class GameFacadeService {
     };
   }
 }
-
-
-

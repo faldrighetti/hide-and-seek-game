@@ -10,7 +10,7 @@
 <ion-content [fullscreen]="true">
   <div class="map-layout">
     <aside class="control-panel">
-      <ion-segment [value]="mode" (ionChange)="setMode($any($event.detail.value))">
+      <ion-segment *ngIf="!isModeLocked" [value]="mode" (ionChange)="setMode($any($event.detail.value))">
         <ion-segment-button value="HIDER">
           <ion-label>Hider</ion-label>
         </ion-segment-button>

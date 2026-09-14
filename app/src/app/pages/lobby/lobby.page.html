@@ -57,9 +57,6 @@
             <ion-button expand="block" fill="outline" [disabled]="vm.lobby.teamsLocked || randomizing" (click)="randomizeTeams(vm.role.isHost)">
               {{ randomizing ? 'Asignando...' : 'Asignar al azar' }}
             </ion-button>
-            <ion-button expand="block" fill="outline" [disabled]="locking" (click)="toggleLock(vm.role.isHost)">
-              {{ locking ? 'Guardando...' : (vm.lobby.teamsLocked ? 'Desbloquear equipos' : 'Bloquear equipos (host)') }}
-            </ion-button>
             <ion-button expand="block" [disabled]="!vm.canStart || starting" (click)="startGame(vm.role.isHost)">
               {{ starting ? 'Iniciando...' : 'Iniciar juego' }}
             </ion-button>
