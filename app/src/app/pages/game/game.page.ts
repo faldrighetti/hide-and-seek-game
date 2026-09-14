@@ -577,8 +577,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   async declareEmergency(role: PlayerRole): Promise<void> {
-    if (!role.isHost) {
-      this.operationalMessage = 'Solo el host puede declarar emergencia.';
+    if (!role.isParticipant) {
+      this.operationalMessage = 'Solo jugadores de la partida pueden declarar emergencia.';
       return;
     }
     const reason = window.prompt('Motivo de emergencia')?.trim() || null;
@@ -1355,5 +1355,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }
+
 
 
