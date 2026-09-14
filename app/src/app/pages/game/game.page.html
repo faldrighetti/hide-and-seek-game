@@ -69,7 +69,7 @@
 
             <div class="operational-actions">
               <ion-button
-                *ngIf="role.isHost && vm.operational.mode === 'NORMAL'"
+                *ngIf="role.isParticipant && vm.operational.mode === 'NORMAL'"
                 size="small"
                 fill="outline"
                 [disabled]="operationalActionInFlight"
@@ -87,23 +87,13 @@
                 Reanudar
               </ion-button>
               <ion-button
-                *ngIf="role.isParticipant"
-                size="small"
-                color="danger"
-                fill="outline"
-                [disabled]="operationalActionInFlight || vm.operational.mode === 'EMERGENCY'"
-                (click)="declareEmergency(role)"
-              >
-                Emergencia
-              </ion-button>
-              <ion-button
                 *ngIf="role.isHost"
                 size="small"
                 color="danger"
                 [disabled]="operationalActionInFlight"
                 (click)="cancelGame(role)"
               >
-                Cancelar
+                Abandonar
               </ion-button>
               <ion-button
                 *ngIf="role.isParticipant"
@@ -584,5 +574,6 @@
     </ng-container>
   </ion-grid>
 </ion-content>
+
 
 

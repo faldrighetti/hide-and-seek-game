@@ -560,8 +560,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   async pauseGame(role: PlayerRole): Promise<void> {
-    if (!role.isHost) {
-      this.operationalMessage = 'Solo el host puede pausar.';
+    if (!role.isParticipant) {
+      this.operationalMessage = 'Solo jugadores de la partida pueden pausar.';
       return;
     }
     const reason = window.prompt('Motivo de pausa')?.trim() || null;
@@ -587,15 +587,15 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   async cancelGame(role: PlayerRole): Promise<void> {
     if (!role.isHost) {
-      this.operationalMessage = 'Solo el host puede cancelar la partida.';
+      this.operationalMessage = 'Solo el host puede abandonar la partida.';
       return;
     }
-    const reason = window.prompt('Motivo de cancelación')?.trim() || null;
-    const confirmed = window.confirm('¿Cancelar y cerrar la partida? Esta acción no continúa el turno.');
+    const reason = window.prompt('Motivo de abandono')?.trim() || null;
+    const confirmed = window.confirm('¿Abandonar y cerrar la partida? Esta acción no continúa el turno.');
     if (!confirmed) {
       return;
     }
-    await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida cancelada.');
+    await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida abandonada.');
   }
 
   async reportTemporaryDisconnect(role: PlayerRole): Promise<void> {
@@ -1355,6 +1355,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 }
+
 
 
 

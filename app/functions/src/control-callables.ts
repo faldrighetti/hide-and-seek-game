@@ -19,7 +19,8 @@ export const pauseGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const reason = String(request.data?.reason ?? "").trim() || null;
-  await requireHost(db, gameId, uid);
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
 
   const gameRef = db.collection("games").doc(gameId);
   await db.runTransaction(async (tx) => {
@@ -316,6 +317,7 @@ export const clearTemporaryDisconnect = onCall(async (request) => {
 
   return {ok: true};
 });
+
 
 
 
