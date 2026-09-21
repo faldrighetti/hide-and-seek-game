@@ -57,6 +57,13 @@ export function evaluateStationsFromHistory(
       }
     }
 
+    if (record.data.type === 'MANUAL_DIRECTION') {
+      const data = record.data;
+      eliminateMatchingStations(stations, statusByKey, eliminatedByKey, record.id, station =>
+        isStationZoneFullyInDirection(station, data.origin, data.direction),
+      );
+    }
+
     if (record.data.type === 'RADAR') {
       const data = record.data;
       eliminateMatchingStations(stations, statusByKey, eliminatedByKey, record.id, station =>
@@ -116,3 +123,35 @@ function eliminateMatchingStations(
     }
   }
 }
+function isStationZoneFullyInDirection(
+  station: Station,
+  origin: { lat: number; lng: number },
+  direction: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST',
+): boolean {
+  const projected = projectMetersFromOrigin({ lat: station.lat, lng: station.lng }, origin);
+  const radiusM = GAME_CONFIG.hidingZoneRadiusM;
+  if (direction === 'NORTH') {
+    return projected.y - radiusM > 0;
+  }
+  if (direction === 'SOUTH') {
+    return projected.y + radiusM < 0;
+  }
+  if (direction === 'EAST') {
+    return projected.x - radiusM > 0;
+  }
+  return projected.x + radiusM < 0;
+}
+
+function projectMetersFromOrigin(
+  coordinate: { lat: number; lng: number },
+  origin: { lat: number; lng: number },
+): { x: number; y: number } {
+  const earthRadiusM = 6371008.8;
+  const radiansPerDegree = Math.PI / 180;
+  const originLatRad = origin.lat * radiansPerDegree;
+  return {
+    x: (coordinate.lng - origin.lng) * radiansPerDegree * earthRadiusM * Math.cos(originLatRad),
+    y: (coordinate.lat - origin.lat) * radiansPerDegree * earthRadiusM,
+  };
+}
+

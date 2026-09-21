@@ -10,6 +10,7 @@ import {
   ConstraintRecord,
   HidingZone,
   ManualCircleConstraint,
+  ManualDirectionConstraint,
   MapGeneratorMode,
   MatchingConstraint,
   MeasuringConstraint,
@@ -46,6 +47,11 @@ interface MapNavigationBoundsAsset {
   northEast: { lat: number; lng: number };
   bufferM: number;
   sources: string[];
+}
+
+interface CabaGeographyAsset {
+  barrios?: Array<{ nombre?: string }>;
+  comunas?: Array<{ id?: number; nombre?: string }>;
 }
 
 interface QuestionCatalogAsset {
@@ -94,6 +100,16 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   stations: Station[] = [];
   allProcessedStations: Station[] = [];
   evaluations: StationEvaluation[] = [];
+  evaluationByStationId = new Map<string, StationEvaluation>();
+  candidateViews: CandidateStationView[] = [];
+  hiderStationGroups: StationLineGroup[] = [];
+  seekerStationGroups: StationLineGroup<CandidateStationView>[] = [];
+  selectedImpactStations: Station[] = [];
+  selectedHubSummaries: string[] = [];
+  eliminationHistoryGroups: EliminationHistoryGroup[] = [];
+  possibleCount = 0;
+  eliminatedCount = 0;
+  unknownCount = 0;
   selectedStation: Station | null = null;
   selectedStationIds = new Set<string>();
   selectedHidingZone: HidingZone | null = null;
@@ -106,6 +122,12 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   circleMode: ManualCircleConstraint['mode'] = 'ELIMINATE_INSIDE';
   circleReason = '';
   circleValidationError = '';
+  directionOriginLat: number | null = null;
+  directionOriginLng: number | null = null;
+  directionReason = '';
+  directionValidationError = '';
+  barrioOptions: string[] = [];
+  comunaOptions: Array<{ id: number; label: string }> = [];
   answeredQuestionOptions: QuestionCatalogOption[] = [];
   selectedQuestionOptionId = '';
   questionOriginLat: number | null = null;
@@ -166,25 +188,32 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     return this.lockedMode !== null;
   }
 
+  get backHref(): string {
+    const gameId = this.activeGameId || (this.route.snapshot.queryParamMap.get('gameId') ?? '').trim().toUpperCase();
+    return gameId ? '/game/' + gameId : '/';
+  }
+
   get visibleRecords(): ConstraintRecord[] {
     return this.seekerState.records.slice(0, this.seekerState.cursor);
   }
 
-  get eliminationHistoryGroups(): EliminationHistoryGroup[] {
+  private buildEliminationHistoryGroups(): EliminationHistoryGroup[] {
     const groups: EliminationHistoryGroup[] = [];
-    for (let index = 0; index < this.visibleRecords.length; index += 1) {
-      const record = this.visibleRecords[index];
+    const visibleRecords = this.visibleRecords;
+    for (let index = 0; index < visibleRecords.length; index += 1) {
+      const record = visibleRecords[index];
       if (!this.isEliminationRecord(record)) {
         continue;
       }
-      const previousRecords = this.visibleRecords.slice(0, index).filter(item => item.enabled);
+      const previousRecords = visibleRecords.slice(0, index).filter(item => item.enabled);
       const recordsWithCurrent = record.enabled ? [...previousRecords, record] : previousRecords;
       const before = this.stationEvaluator.evaluate(this.stations, previousRecords);
       const after = this.stationEvaluator.evaluate(this.stations, recordsWithCurrent);
       const beforeByStationId = new Map(before.map(evaluation => [evaluation.stationId, evaluation.status]));
+      const afterByStationId = new Map(after.map(evaluation => [evaluation.stationId, evaluation.status]));
       const eliminatedStations = this.stations.filter(station =>
         beforeByStationId.get(station.id) !== 'ELIMINATED'
-        && after.find(evaluation => evaluation.stationId === station.id)?.status === 'ELIMINATED',
+        && afterByStationId.get(station.id) === 'ELIMINATED',
       );
 
       groups.push({
@@ -197,30 +226,11 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     return groups;
   }
-
   get totalCount(): number {
     return this.stations.length;
   }
 
-  get possibleCount(): number {
-    return this.evaluations.filter(evaluation => evaluation.status === 'POSSIBLE').length;
-  }
 
-  get eliminatedCount(): number {
-    return this.evaluations.filter(evaluation => evaluation.status === 'ELIMINATED').length;
-  }
-
-  get unknownCount(): number {
-    return this.evaluations.filter(evaluation => evaluation.status === 'UNKNOWN').length;
-  }
-
-  get candidateViews(): StationCandidateView[] {
-    return this.stations.map(station => ({
-      station,
-      status: this.getEvaluation(station.id)?.status ?? 'POSSIBLE',
-      selected: this.selectedStationIds.has(station.id),
-    }));
-  }
 
   get canUndo(): boolean {
     return this.seekerState.cursor > 0;
@@ -230,24 +240,20 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     return this.seekerState.cursor < this.seekerState.records.length;
   }
 
-  get hiderStationGroups(): StationLineGroup[] {
-    return groupStationsByLine(this.stations, this.stationFilter);
+  get canEliminateSelected(): boolean {
+    return this.getSelectedStationsByStatus('POSSIBLE').length > 0;
   }
 
-  get seekerStationGroups(): StationLineGroup<CandidateStationView>[] {
-    return groupStationsByLine(this.candidateViews.map(view => ({
-      ...view.station,
-      status: view.status,
-      selected: view.selected,
-    })), this.stationFilter);
+  get canRestoreSelected(): boolean {
+    return this.getSelectedStationsByStatus('ELIMINATED').length > 0;
   }
 
-  get selectedImpactStations(): Station[] {
-    const selectedKeys = this.getSelectedStationKeys();
-    return this.stations.filter(station => selectedKeys.includes(getStationComparisonKey(station)));
+  get canRestoreAll(): boolean {
+    return this.eliminatedCount > 0;
   }
 
-  get selectedHubSummaries(): string[] {
+  private buildSelectedHubSummaries(): string[] {
+
     const selected = this.stations.filter(station => this.selectedStationIds.has(station.id) && station.hub_id);
     return selected.map(station => {
       const affected = this.stations
@@ -305,14 +311,54 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       this.selectedStationIds.add(station.id);
     }
     this.renderStations();
+    this.renderRestrictionOverlays();
+  }
+
+  toggleSeekerStationGroup(group: StationLineGroup<CandidateStationView>): void {
+    const allSelected = group.stations.every(station => this.selectedStationIds.has(station.id));
+    for (const station of group.stations) {
+      if (allSelected) {
+        this.selectedStationIds.delete(station.id);
+      } else {
+        this.selectedStationIds.add(station.id);
+      }
+    }
+    this.renderStations();
+    this.renderRestrictionOverlays();
+  }
+
+  stationGroupSelectionIcon(group: StationLineGroup<CandidateStationView>): string {
+    const selectedCount = group.stations.filter(station => this.selectedStationIds.has(station.id)).length;
+    if (selectedCount === 0) {
+      return 'square-outline';
+    }
+    if (selectedCount === group.stations.length) {
+      return 'checkbox-outline';
+    }
+    return 'remove-circle-outline';
+  }
+
+  stationGroupSelectionLabel(group: StationLineGroup<CandidateStationView>): string {
+    const selectedCount = group.stations.filter(station => this.selectedStationIds.has(station.id)).length;
+    if (selectedCount === group.stations.length) {
+      return `Destildar ${group.label}`;
+    }
+    return `Tildar ${group.label}`;
   }
 
   eliminateSelected(): void {
-    this.appendManualRecord('MANUAL_ELIMINATION', 'Seleccion manual');
+    this.appendManualRecord('MANUAL_ELIMINATION', 'Seleccion manual', this.getSelectedStationKeysByStatus('POSSIBLE'));
   }
 
   restoreSelected(): void {
-    this.appendManualRecord('MANUAL_RESTORE', 'Restauracion manual');
+    this.appendManualRecord('MANUAL_RESTORE', 'Restauracion manual', this.getSelectedStationKeysByStatus('ELIMINATED'));
+  }
+
+  restoreAllEliminations(): void {
+    const stationKeys = this.stations
+      .filter(station => this.getEvaluation(station.id)?.status === 'ELIMINATED')
+      .map(station => getStationComparisonKey(station));
+    this.appendManualRecord('MANUAL_RESTORE', 'Restauracion total', stationKeys);
   }
 
   undo(): void {
@@ -360,6 +406,40 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
     this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
     this.circleReason = '';
+    this.recalculateEvaluations();
+  }
+
+  saveManualDirection(direction: ManualDirectionConstraint['direction']): void {
+    this.directionValidationError = '';
+    this.ensureDirectionOrigin();
+    if (!this.isValidLatLng(this.directionOriginLat, this.directionOriginLng)) {
+      this.directionValidationError = 'Ingresá coordenadas válidas.';
+      return;
+    }
+
+    const id = 'manual-direction-' + direction.toLowerCase() + '-' + Date.now();
+    const data: ManualDirectionConstraint = {
+      id,
+      type: 'MANUAL_DIRECTION',
+      origin: {
+        lat: Number(this.directionOriginLat),
+        lng: Number(this.directionOriginLng),
+      },
+      direction,
+      reason: this.directionReason.trim() || undefined,
+      enabled: true,
+    };
+
+    const record: ConstraintRecord = {
+      id,
+      category: 'manual',
+      createdAt: new Date().toISOString(),
+      enabled: true,
+      data,
+    };
+
+    this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
+    this.directionReason = '';
     this.recalculateEvaluations();
   }
 
@@ -428,6 +508,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         barriosResponse,
         stationsResponse,
         questionsResponse,
+        geographyResponse,
         generalPazResponse,
         riachueloResponse,
       ] = await Promise.all([
@@ -435,6 +516,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         fetch('assets/barrios_caba.simplified.json', { cache: 'force-cache' }),
         fetch('assets/stations.processed.json', { cache: 'no-store' }),
         fetch('assets/questions/Preguntas_CABA.json', { cache: 'force-cache' }),
+        fetch('assets/Geografia_CABA.json', { cache: 'force-cache' }),
         fetch('assets/general_paz.geojson', { cache: 'force-cache' }),
         fetch('assets/riachuelo.geojson', { cache: 'force-cache' }),
       ]);
@@ -448,6 +530,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       this.barrios = barrios;
       this.updateSeekerLocationClassification();
       const stationsFile = (await stationsResponse.json()) as StationsProcessedFile;
+      if (geographyResponse.ok) {
+        this.configureMatchingOptions((await geographyResponse.json()) as CabaGeographyAsset);
+      }
       if (questionsResponse.ok) {
         this.answeredQuestionOptions = this.buildQuestionOptions((await questionsResponse.json()) as QuestionCatalogAsset);
         this.questionCatalogLoaded = true;
@@ -587,6 +672,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         fillOpacity: selected ? 0.95 : 0.7,
       });
     }
+    this.refreshSelectionDerivedState();
   }
 
   private renderSelectedZone(): void {
@@ -637,7 +723,23 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         }).addTo(this.restrictionsLayer);
       }
     }
+    this.renderSelectedSeekerZones();
     this.bringLayerGroupToFront(this.stationsLayer);
+  }
+
+  private renderSelectedSeekerZones(): void {
+    const selectedStations = this.stations.filter(station => this.selectedStationIds.has(station.id));
+    for (const station of selectedStations) {
+      const zone = createHidingZone(station);
+      L.circle([zone.center.lat, zone.center.lng], {
+        radius: zone.radiusM,
+        color: '#0b6e69',
+        fillColor: '#2dd4bf',
+        fillOpacity: 0.12,
+        weight: 2,
+        interactive: false,
+      }).addTo(this.restrictionsLayer);
+    }
   }
 
   private getOrCreateStationMarker(station: Station): L.CircleMarker {
@@ -668,9 +770,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     });
   }
 
-  private appendManualRecord(type: 'MANUAL_ELIMINATION' | 'MANUAL_RESTORE', reason: string): void {
-    const stationKeys = this.getSelectedStationKeys();
-    if (stationKeys.length === 0) {
+  private appendManualRecord(type: 'MANUAL_ELIMINATION' | 'MANUAL_RESTORE', reason: string, stationKeys = this.getSelectedStationKeys()): void {
+    const uniqueStationKeys = [...new Set(stationKeys)].sort();
+    if (uniqueStationKeys.length === 0) {
       return;
     }
 
@@ -681,7 +783,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       enabled: true,
       data: {
         type,
-        stationKeys,
+        stationKeys: uniqueStationKeys,
         reason: this.circleReason.trim() || reason,
       },
     };
@@ -695,6 +797,17 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     return this.getSelectedStationKeysForScope('HUB');
   }
 
+  private getSelectedStationKeysByStatus(status: StationEvaluation['status']): string[] {
+    return this.getSelectedStationsByStatus(status).map(station => getStationComparisonKey(station));
+  }
+
+  private getSelectedStationsByStatus(status: StationEvaluation['status']): Station[] {
+    return this.stations.filter(station =>
+      this.selectedStationIds.has(station.id)
+      && (this.getEvaluation(station.id)?.status ?? 'POSSIBLE') === status,
+    );
+  }
+
   private getSelectedStationKeysForScope(scope: 'HUB' | 'STATION'): string[] {
     const selected = this.stations.filter(station => this.selectedStationIds.has(station.id));
     const keys = selected.map(station => (scope === 'HUB' ? getStationComparisonKey(station) : station.id));
@@ -703,12 +816,35 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   private recalculateEvaluations(): void {
     this.evaluations = this.stationEvaluator.evaluate(this.stations, this.visibleRecords);
+    this.evaluationByStationId = new Map(this.evaluations.map(evaluation => [evaluation.stationId, evaluation]));
+    this.possibleCount = this.evaluations.filter(evaluation => evaluation.status === 'POSSIBLE').length;
+    this.eliminatedCount = this.evaluations.filter(evaluation => evaluation.status === 'ELIMINATED').length;
+    this.unknownCount = this.evaluations.filter(evaluation => evaluation.status === 'UNKNOWN').length;
+    this.candidateViews = this.stations.map(station => ({
+      ...station,
+      status: this.getEvaluation(station.id)?.status ?? 'POSSIBLE',
+      selected: this.selectedStationIds.has(station.id),
+    }));
+    this.seekerStationGroups = groupStationsByLine(this.candidateViews);
     this.renderStations();
     this.renderRestrictionOverlays();
   }
 
+  private refreshSelectionDerivedState(): void {
+    this.selectedImpactStations = this.stations.filter(station => {
+      const stationKey = getStationComparisonKey(station);
+      return this.getSelectedStationKeys().includes(stationKey);
+    });
+    this.selectedHubSummaries = this.buildSelectedHubSummaries();
+    this.candidateViews = this.candidateViews.map(station => ({
+      ...station,
+      selected: this.selectedStationIds.has(station.id),
+    }));
+    this.seekerStationGroups = groupStationsByLine(this.candidateViews);
+  }
+
   private getEvaluation(stationId: string): StationEvaluation | undefined {
-    return this.evaluations.find(evaluation => evaluation.stationId === stationId);
+    return this.evaluationByStationId.get(stationId);
   }
 
   private getStationColor(status: StationEvaluation['status']): string {
@@ -731,7 +867,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   }
 
   private isEliminationRecord(record: ConstraintRecord): boolean {
-    return record.data.type === 'MANUAL_ELIMINATION' || record.data.type === 'MANUAL_CIRCLE';
+    return record.data.type === 'MANUAL_ELIMINATION' || record.data.type === 'MANUAL_CIRCLE' || record.data.type === 'MANUAL_DIRECTION';
   }
 
   private getRecordTitle(record: ConstraintRecord): string {
@@ -741,14 +877,23 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     if (record.data.type === 'MANUAL_ELIMINATION') {
       return 'Selección manual';
     }
+    if (record.data.type === 'MANUAL_DIRECTION') {
+      const labels: Record<ManualDirectionConstraint['direction'], string> = {
+        NORTH: 'Norte',
+        SOUTH: 'Sur',
+        EAST: 'Este',
+        WEST: 'Oeste',
+      };
+      return 'Eliminar al ' + labels[record.data.direction];
+    }
     if (record.data.type === 'RADAR') {
       return `Radar de ${record.data.radiusM} m`;
     }
     if (record.data.type === 'THERMOMETER') {
-      return 'Termometro';
+      return 'Termómetro';
     }
     if (record.data.type === 'MEASURING') {
-      return `Comparacion ${record.data.target}`;
+      return `Comparación ${record.data.target}`;
     }
     if (record.data.type === 'MATCHING') {
       return `Matching ${record.data.field}`;
@@ -762,6 +907,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     if (record.data.type === 'MANUAL_CIRCLE') {
       return record.data.mode === 'ELIMINATE_INSIDE' ? 'Eliminar dentro' : 'Eliminar fuera';
+    }
+    if (record.data.type === 'MANUAL_DIRECTION') {
+      return 'Desde ' + record.data.origin.lat.toFixed(5) + ', ' + record.data.origin.lng.toFixed(5);
     }
     if (record.data.type === 'RADAR') {
       return record.data.answer === 'INSIDE' ? 'Respuesta si' : 'Respuesta no';
@@ -784,6 +932,36 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     const stationKeys = new Set(record.data.stationKeys);
     return eliminatedStations.filter(station => Boolean(station.hub_id) && stationKeys.has(station.hub_id ?? '') && !stationKeys.has(station.id));
+  }
+
+  private syncDirectionOriginFromSingleSelection(): void {
+    if (this.selectedStationIds.size !== 1) {
+      return;
+    }
+
+    const [stationId] = Array.from(this.selectedStationIds);
+    const station = this.stations.find(candidate => candidate.id === stationId);
+    if (!station) {
+      return;
+    }
+
+    this.directionOriginLat = station.lat;
+    this.directionOriginLng = station.lng;
+  }
+
+  private ensureDirectionOrigin(): void {
+    if (this.isValidLatLng(this.directionOriginLat, this.directionOriginLng)) {
+      return;
+    }
+    if (this.isValidLatLng(this.seekerLocationState?.lastLat ?? null, this.seekerLocationState?.lastLng ?? null)) {
+      this.directionOriginLat = this.seekerLocationState?.lastLat ?? null;
+      this.directionOriginLng = this.seekerLocationState?.lastLng ?? null;
+      return;
+    }
+    if (this.isValidLatLng(this.circleCenterLat, this.circleCenterLng)) {
+      this.directionOriginLat = this.circleCenterLat;
+      this.directionOriginLng = this.circleCenterLng;
+    }
   }
 
   get selectedQuestionOption(): QuestionCatalogOption | undefined {
@@ -833,7 +1011,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       options.push({
         id: `thermometer:${item.label ?? item.distanceM ?? 'custom'}`,
         category: 'thermometer',
-        label: `Termometro - ${item.label ?? 'custom'}`,
+        label: `Termómetro - ${item.label ?? 'custom'}`,
         distanceM: item.distanceM,
         automation: 'AUTOMATIC',
       });
@@ -844,7 +1022,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         options.push({
           id: `measuring:${label}`,
           category: 'measuring',
-          label: `Comparacion - ${label}`,
+          label: `Comparación - ${label}`,
           automation: 'AUTOMATIC',
         });
       }
@@ -862,24 +1040,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         label: 'Matching - Comuna',
         automation: 'AUTOMATIC',
       },
-      {
-        id: 'matching:base-station',
-        category: 'matching',
-        label: 'Matching - Estacion base',
-        automation: 'AUTOMATIC',
-      },
     );
-    for (const item of catalog.questions?.matching?.items ?? []) {
-      const label = item.label ?? 'field';
-      if (item.resolutionMode === 'AUTOMATIC' && this.isSupportedMatchingLabel(label)) {
-        options.push({
-          id: `matching:${label}`,
-          category: 'matching',
-          label: `Matching - ${label}`,
-          automation: 'AUTOMATIC',
-        });
-      }
-    }
     return options;
   }
 
@@ -987,7 +1148,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     if (category === 'measuring') {
       const normalizedPrompt = question.prompt.toLocaleLowerCase('es-AR');
-      return sameCategory.find(option => normalizedPrompt.includes(option.label.toLocaleLowerCase('es-AR').replace('comparacion - ', '')))
+      return sameCategory.find(option => normalizedPrompt.includes(option.label.toLocaleLowerCase('es-AR').replace('comparación - ', '')))
         ?? sameCategory[0];
     }
     if (category === 'matching') {
@@ -1016,15 +1177,26 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     if (normalized.includes('comuna')) {
       return 'COMUNA';
     }
-    if (normalized.includes('estacion base') || normalized.includes('estaci')) {
-      return 'BASE_STATION';
-    }
     return 'BARRIO';
   }
 
   private isSupportedMatchingLabel(label: string): boolean {
     const normalized = label.toLocaleLowerCase('es-AR');
-    return normalized.includes('barrio') || normalized.includes('comuna') || normalized.includes('estacion base');
+    return normalized.includes('barrio') || normalized.includes('comuna');
+  }
+
+  private configureMatchingOptions(geography: CabaGeographyAsset): void {
+    this.barrioOptions = (geography.barrios ?? [])
+      .map(barrio => barrio.nombre?.trim() ?? '')
+      .filter((name): name is string => Boolean(name))
+      .sort((first, second) => first.localeCompare(second, 'es-AR'));
+    this.comunaOptions = (geography.comunas ?? [])
+      .map(comuna => ({
+        id: Number(comuna.id),
+        label: comuna.nombre?.trim() || `Comuna ${comuna.id}`,
+      }))
+      .filter(comuna => Number.isFinite(comuna.id))
+      .sort((first, second) => first.id - second.id);
   }
 
   private updateSeekerLocationClassification(): void {
@@ -1056,3 +1228,5 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       .map(([lng, lat]) => ({ lat, lng }));
   }
 }
+
+

@@ -14,6 +14,42 @@
 <ion-content [fullscreen]="true" class="ion-padding">
   <ion-grid *ngIf="blueprint$ | async as vm">
     <ng-container *ngIf="playerRole$ | async as role">
+    <ion-row *ngIf="vm.status === 'FINISHED'">
+      <ion-col size="12">
+        <ng-container *ngIf="{ lobby: lobby$ | async } as lobbyContext">
+        <section class="game-finished-screen">
+          <div class="game-finished-hero">
+            <ion-chip color="success">Partida finalizada</ion-chip>
+            <h1>{{ winnerTitle(vm, lobbyContext.lobby) }}</h1>
+            <ion-button routerLink="/" color="primary">Ir a inicio</ion-button>
+          </div>
+
+          <ion-list class="final-score-list" lines="full">
+            <ion-item *ngFor="let team of sortedStandings(vm.standings)">
+              <ion-label>
+                <div class="final-score-row">
+                  <div>
+                    <h2>{{ teamDisplayName(team, lobbyContext.lobby) }}</h2>
+                    <p>{{ standingResultLabel(vm, team) }}</p>
+                  </div>
+                  <ion-chip [color]="vm.winnerTeamIds.includes(team.id) ? 'success' : 'medium'">
+                    {{ formatTime(team.totalTimeSeconds) }}
+                  </ion-chip>
+                </div>
+                <div class="final-score-details">
+                  <span>Mejor turno: {{ formatTime(team.bestSingleRunSeconds) }}</span>
+                  &nbsp;
+                  <span>Turnos: {{ team.runsCompleted }}</span>
+                </div>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </section>
+        </ng-container>
+      </ion-col>
+    </ion-row>
+
+    <ng-container *ngIf="vm.status !== 'FINISHED'">
     <ion-row>
       <ion-col size="12">
         <ng-container *ngIf="{ pendingQuestion: pendingQuestion$ | async } as questionContext">
@@ -37,15 +73,19 @@
                 </div>
                 <div>
                   <span>Tiempo fase</span>
+                  <strong>{{ formatTime(phaseElapsedSeconds(vm)) }}</strong>
+                </div>
+                <div>
+                  <span>Tiempo restante</span>
                   <strong>{{ formatTime(phaseRemainingSeconds(vm)) }}</strong>
                 </div>
                 <div>
-                  <span>Hider</span>
-                  <strong>Team {{ vm.currentTurn.hiderTeamId }}</strong>
+                  <span>Rol</span>
+                  <strong>{{ roleLabel(role) }}</strong>
                 </div>
                 <div>
-                  <span>Tu equipo</span>
-                  <strong>{{ role.teamId || '-' }}</strong>
+                  <span>Estación base elegida</span>
+                  <strong>{{ baseStationSummary(vm) }}</strong>
                 </div>
               </div>
               <ion-progress-bar [value]="phaseProgress(vm)"></ion-progress-bar>
@@ -181,8 +221,48 @@
       </ion-col>
     </ion-row>
 
+    <ion-row *ngIf="role.isHider && vm.currentTurn.hidingZone?.stationId">
+      <ion-col size="12">
+        <ion-card class="confirmed-base-card">
+          <ion-card-header>
+            <ion-card-title>Zona de estación base</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p>{{ baseStationSummary(vm) }}</p>
+            <div id="confirmed-base-station-map" class="base-station-map confirmed-base-station-map"></div>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+
+    <ion-row *ngIf="vm.currentTurn.moveState?.status === 'ACTIVE'">
+      <ion-col size="12">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>SALÍ DE AHÍ activo</ion-card-title>
+            <ion-card-subtitle>Movimiento del hider</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <p *ngIf="role.isHider">
+              Tenés {{ formatTime(moveRemainingSeconds(vm)) }} para elegir una nueva estación base.
+            </p>
+            <p *ngIf="role.isSeeker">
+              El hider está usando SALÍ DE AHÍ. No te muevas hasta que termine la ventana.
+            </p>
+            <ion-note *ngIf="role.isHider && vm.currentTurn.moveState?.targetStationId" color="success">
+              Nueva estación elegida. Entrará en vigor cuando termine la ventana.
+            </ion-note>
+            <ion-note *ngIf="role.isHider && !vm.currentTurn.moveState?.targetStationId" color="warning">
+              Si no elegís una estación, se mantiene la base anterior como fallback.
+            </ion-note>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
     <ion-row>
       <ion-col size="12" *ngIf="role.isHider">
+
         <ng-container *ngIf="vm.currentTurn.lootOffer as lootOffer">
           <ion-card class="loot-guide">
             <ion-card-header>
@@ -232,18 +312,86 @@
               [disabled]="!canConfirmLoot(vm)"
               (click)="confirmLootSelection(role)"
             >
-              {{ selectingLoot ? 'Guardando...' : selectedLootCardIds.length ? 'Guardar seleccion' : 'Descartar loot' }}
+              {{ lootConfirmLabel() }}
             </ion-button>
             <ion-note *ngIf="lootErrorMessage" color="danger">{{ lootErrorMessage }}</ion-note>
           </div>
         </ng-container>
 
+
+        <ion-card *ngIf="movePowerupCards(vm.currentTurn.hiderHandIds).length">
+          <ion-card-header>
+            <ion-card-title>SALÍ DE AHÍ</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="full">
+              <ion-item *ngFor="let card of movePowerupCards(vm.currentTurn.hiderHandIds)">
+                <ion-label class="ion-text-wrap">
+                  <h3>{{ card.title }}</h3>
+                  <p>Cambiá tu estación base con una ventana secreta de 20 minutos.</p>
+                </ion-label>
+                <ion-button
+                  slot="end"
+                  size="small"
+                  [disabled]="vm.currentTurn.lootOffer !== null || vm.currentTurn.pendingQuestion || vm.currentTurn.endgameActive || vm.currentTurn.moveState?.status === 'ACTIVE' || playingMovePowerupCardId !== null"
+                  (click)="playMovePowerup(card, role, vm)"
+                >
+                  {{ playingMovePowerupCardId === card.id ? 'Jugando...' : 'Jugar' }}
+                </ion-button>
+              </ion-item>
+            </ion-list>
+            <ion-note *ngIf="powerupErrorMessage" color="danger">{{ powerupErrorMessage }}</ion-note>
+          </ion-card-content>
+        </ion-card>
+        <ion-card *ngIf="discardDrawPowerupCards(vm.currentTurn.hiderHandIds).length">
+          <ion-card-header>
+            <ion-card-title>Cartas de poder</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="full">
+              <ion-item *ngFor="let card of discardDrawPowerupCards(vm.currentTurn.hiderHandIds)">
+                <ion-label>
+                  <h3>{{ card.title }}</h3>
+                  <p>{{ card.description || 'Descartá cartas de tu mano y robá nuevas.' }}</p>
+                </ion-label>
+                <ion-button
+                  slot="end"
+                  size="small"
+                  [disabled]="vm.currentTurn.lootOffer !== null || playingDiscardDrawPowerup"
+                  (click)="startDiscardDrawPowerup(card.id, vm)"
+                >
+                  Jugar
+                </ion-button>
+              </ion-item>
+            </ion-list>
+            <ng-container *ngIf="activeDiscardDrawPowerupId">
+              <ion-note color="primary">
+                Elegí {{ activeDiscardDrawRequiredCount() }} carta{{ activeDiscardDrawRequiredCount() === 1 ? '' : 's' }} de tu mano para descartar.
+              </ion-note>
+              <div class="actions">
+                <ion-button
+                  size="small"
+                  color="success"
+                  [disabled]="!canConfirmDiscardDrawPowerup(role)"
+                  (click)="confirmDiscardDrawPowerup(role)"
+                >
+                  {{ playingDiscardDrawPowerup ? 'Robando...' : 'Confirmar' }}
+                </ion-button>
+                <ion-button size="small" fill="outline" color="medium" (click)="cancelDiscardDrawPowerup()">
+                  Cancelar
+                </ion-button>
+              </div>
+            </ng-container>
+            <ion-note *ngIf="powerupErrorMessage" color="danger">{{ powerupErrorMessage }}</ion-note>
+          </ion-card-content>
+        </ion-card>
+
         <app-hider-hand
-          [title]="vm.currentTurn.lootOffer ? 'Mano (tocá para descartar)' : 'Mano'"
+          [title]="handTitle(vm)"
           [cards]="cardsForIds(vm.currentTurn.hiderHandIds)"
-          [selectable]="vm.currentTurn.lootOffer !== null"
-          [selectedCardIds]="discardFromHandIds"
-          [disabled]="selectingLoot"
+          [selectable]="handSelectable(vm)"
+          [selectedCardIds]="selectedHandCardIds()"
+          [disabled]="selectingLoot || playingDiscardDrawPowerup"
           (cardToggle)="toggleHandDiscard($event)"
         ></app-hider-hand>
 
@@ -343,6 +491,17 @@
                 <ion-note *ngIf="pendingQuestion.isPhoto" color="medium">
                   La foto se envia por fuera de la app; aca solo registren el estado de la respuesta.
                 </ion-note>
+                <ion-item *ngIf="role.isHider" lines="full">
+                  <ion-textarea
+                    label="Respuesta"
+                    labelPlacement="stacked"
+                    autoGrow="true"
+                    placeholder="Escribí Sí, No, más cerca, más lejos o la respuesta que corresponda."
+                    [value]="pendingAnswerText"
+                    [disabled]="resolvingQuestion !== null"
+                    (ionInput)="onPendingAnswerInput($event)"
+                  ></ion-textarea>
+                </ion-item>
                 <div class="actions">
                   <ion-button
                     *ngIf="role.isHider"
@@ -398,6 +557,8 @@
                 || hasQuestionBlockingEffect(vm.currentTurn.activeEffects)
                 || vm.currentTurn.lootOffer !== null
                 || vm.currentTurn.baseStationSelectionRequired
+                || isQuestionCategoryOnCooldown(selectedSeekerQuestion.category, vm)
+                || isQuestionAlreadyAsked(selectedSeekerQuestion.category, selectedSeekerQuestion.question, vm)
               "
               (click)="sendSelectedQuestion(role)"
             >
@@ -424,6 +585,20 @@
               <ion-note *ngIf="endgameQuestionsMessage" color="medium">{{ endgameQuestionsMessage }}</ion-note>
             </div>
             <ion-note *ngIf="questionErrorMessage" color="danger">{{ questionErrorMessage }}</ion-note>
+            <ion-card *ngIf="vm.currentTurn.lastQuestionResult" class="question-result-card">
+              <ion-card-header>
+                <ion-card-title>{{ questionResultTitle(vm) }}</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <p>{{ questionResultBody(vm) }}</p>
+                <ng-container *ngIf="vm.currentTurn.lastQuestionResult.resolution === 'RANDOMIZE'">
+                  <ng-container *ngIf="pendingQuestion$ | async as randomizedQuestion">
+                    <ion-note color="primary">Q2</ion-note>
+                    <p>{{ randomizedQuestionText(randomizedQuestion) }}</p>
+                  </ng-container>
+                </ng-container>
+              </ion-card-content>
+            </ion-card>
             <ion-accordion-group class="question-menu">
               <ion-accordion
                 *ngFor="let category of visibleQuestionCategories(vm); trackBy: trackByQuestionCategory"
@@ -433,19 +608,32 @@
                   <ion-label>
                     <h3>{{ category.name }}</h3>
                     <p>{{ category.time || 'Sin tiempo' }} · {{ category.cost || 'Sin robo' }}</p>
+                    <p *ngIf="isQuestionCategoryOnCooldown(category, vm)">
+                      {{ categoryCooldownLabel(category, vm) }}
+                    </p>
                   </ion-label>
-                  <ion-badge slot="end" color="medium">{{ category.items.length }}</ion-badge>
+                  <ion-badge
+                    slot="end"
+                    [color]="isQuestionCategoryOnCooldown(category, vm) ? 'warning' : 'medium'"
+                  >
+                    {{ availableQuestionCount(category, vm) }}
+                  </ion-badge>
                 </ion-item>
                 <div slot="content" class="question-category-content">
                   <ion-list lines="full">
                     <ion-item
                       button
                       detail
+                      [disabled]="isQuestionCategoryOnCooldown(category, vm) || isQuestionAlreadyAsked(category, question, vm)"
+                      [class.asked-question]="isQuestionAlreadyAsked(category, question, vm)"
                       *ngFor="let question of category.items; let index = index; trackBy: trackByQuestionItem"
                       (click)="selectSeekerQuestion(category, question)"
                     >
                       <ion-label class="ion-text-wrap">
                         <h3>{{ questionTitle(question) }}</h3>
+                        <p *ngIf="isQuestionAlreadyAsked(category, question, vm)" class="asked-question-note">
+                          Ya preguntada en este turno
+                        </p>
                         <p>{{ questionText(category, question) }}</p>
                         <p *ngIf="question.requisito">Requisito: {{ question.requisito }}</p>
                         <p *ngIf="question.answerGroups?.length">{{ answerGroupsText(question) }}</p>
@@ -475,6 +663,34 @@
               Endgame {{ vm.currentTurn.endgameActive ? 'activo' : 'inactivo' }}
             </ion-chip>
             <p>{{ captureStatusLabel(vm) }}</p>
+
+            <ng-container *ngIf="vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER'">
+              <ion-note color="warning">
+                Consulta de endgame pendiente del hider.
+              </ion-note>
+              <ng-container *ngIf="role.isHider">
+                <ion-button
+                  expand="block"
+                  size="small"
+                  color="success"
+                  [disabled]="endgameConsultationInFlight"
+                  (click)="resolveEndgameConsultation(true, role)"
+                >
+                  Confirmar endgame
+                </ion-button>
+                <ion-button
+                  expand="block"
+                  size="small"
+                  color="medium"
+                  fill="outline"
+                  [disabled]="endgameConsultationInFlight"
+                  (click)="resolveEndgameConsultation(false, role)"
+                >
+                  Negar
+                </ion-button>
+                <ion-note *ngIf="endgameConsultationErrorMessage" color="danger">{{ endgameConsultationErrorMessage }}</ion-note>
+              </ng-container>
+            </ng-container>
 
             <ng-container *ngIf="role.isSeeker && vm.currentTurn.captureAttempt?.status !== 'PENDING_HIDER'">
               <ion-button
@@ -553,6 +769,7 @@
         </ion-card>
       </ion-col>
     </ion-row>
+    </ng-container>
     </ng-container>
   </ion-grid>
 </ion-content>

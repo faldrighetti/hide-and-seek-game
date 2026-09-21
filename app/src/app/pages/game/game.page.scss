@@ -37,14 +37,14 @@ app-hider-hand {
 
 .turn-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
   margin-bottom: 0.875rem;
 }
 
 .turn-metrics div {
   min-width: 0;
-  padding: 0.75rem;
+  padding: 0.625rem;
   border: 1px solid rgba(38, 50, 56, 0.12);
   border-radius: 8px;
   background: #fff;
@@ -54,19 +54,51 @@ app-hider-hand {
   display: block;
   margin-bottom: 0.25rem;
   color: var(--ion-color-medium-shade);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   line-height: 1.2;
 }
 
 .turn-metrics strong {
   display: block;
   overflow-wrap: anywhere;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.2;
 }
 
 .loot-guide {
   margin-bottom: 1rem;
+}
+
+.game-finished-screen {
+  display: grid;
+  gap: 1rem;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.game-finished-hero {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.game-finished-hero h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.game-finished-hero p {
+  margin: 0;
+  color: var(--ion-color-medium-shade);
+}
+
+.final-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .operational-actions {
@@ -94,6 +126,12 @@ app-hider-hand {
   border: 1px solid rgba(38, 50, 56, 0.18);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.confirmed-base-station-map {
+  height: 420px;
+  max-width: 720px;
+  pointer-events: none;
 }
 
 .base-station-selection {
@@ -175,6 +213,17 @@ app-hider-hand {
 .question-menu {
   display: block;
   margin-top: 0.75rem;
+}
+
+.asked-question {
+  --color: var(--ion-color-danger);
+  --color-disabled: var(--ion-color-danger);
+  --opacity: 1;
+}
+
+.asked-question-note {
+  color: var(--ion-color-danger);
+  font-weight: 600;
 }
 
 .endgame-question-actions {

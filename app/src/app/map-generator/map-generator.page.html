@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/"></ion-back-button>
+      <ion-back-button [defaultHref]="backHref"></ion-back-button>
     </ion-buttons>
     <ion-title>Map generator</ion-title>
   </ion-toolbar>
@@ -119,10 +119,11 @@
         </ion-note>
 
         <div class="actions-row">
-          <ion-button size="small" color="danger" (click)="eliminateSelected()">Eliminar</ion-button>
-          <ion-button size="small" fill="outline" (click)="restoreSelected()">Restaurar</ion-button>
-          <ion-button size="small" fill="clear" [disabled]="!canUndo" (click)="undo()">Undo</ion-button>
-          <ion-button size="small" fill="clear" [disabled]="!canRedo" (click)="redo()">Redo</ion-button>
+          <ion-button *ngIf="canEliminateSelected" size="small" color="danger" (click)="eliminateSelected()">Eliminar</ion-button>
+          <ion-button *ngIf="canRestoreSelected" size="small" fill="outline" (click)="restoreSelected()">Recuperar</ion-button>
+          <ion-button *ngIf="canRestoreAll" size="small" fill="outline" (click)="restoreAllEliminations()">Restaurar</ion-button>
+          <ion-button size="small" fill="clear" [disabled]="!canUndo" (click)="undo()">Deshacer</ion-button>
+          <ion-button size="small" fill="clear" [disabled]="!canRedo" (click)="redo()">Rehacer</ion-button>
         </div>
 
         <div class="manual-circle">
@@ -165,6 +166,28 @@
           ></ion-input>
           <ion-note color="danger" *ngIf="circleValidationError">{{ circleValidationError }}</ion-note>
           <ion-button size="small" fill="outline" (click)="saveManualCircle()">Guardar círculo</ion-button>
+        </div>
+
+        <div class="manual-direction">
+          <h2>Eliminar por dirección</h2>
+          <ion-note>Si hay una sola estación seleccionada, se usa como origen. Si no, se autocompleta con la referencia seeker o el centro manual.</ion-note>
+          <div class="coordinate-grid">
+            <ion-input label="Lat origen" labelPlacement="stacked" type="number" [(ngModel)]="directionOriginLat"></ion-input>
+            <ion-input label="Lng origen" labelPlacement="stacked" type="number" [(ngModel)]="directionOriginLng"></ion-input>
+          </div>
+          <ion-input
+            label="Motivo"
+            labelPlacement="stacked"
+            [(ngModel)]="directionReason"
+            placeholder="Ej. Queda al norte de mi ubicación"
+          ></ion-input>
+          <div class="direction-actions">
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('NORTH')">Eliminar Norte</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('SOUTH')">Eliminar Sur</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('EAST')">Eliminar Este</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('WEST')">Eliminar Oeste</ion-button>
+          </div>
+          <ion-note color="danger" *ngIf="directionValidationError">{{ directionValidationError }}</ion-note>
         </div>
 
         <div class="answered-question">
@@ -247,9 +270,25 @@
               >
                 <ion-select-option value="BARRIO">Barrio</ion-select-option>
                 <ion-select-option value="COMUNA">Comuna</ion-select-option>
-                <ion-select-option value="BASE_STATION">Estación base</ion-select-option>
               </ion-select>
-              <ion-input label="Valor seeker" labelPlacement="stacked" [(ngModel)]="matchingValue"></ion-input>
+              <ion-select
+                *ngIf="matchingField === 'BARRIO'"
+                label="Valor seeker"
+                labelPlacement="stacked"
+                interface="popover"
+                [(ngModel)]="matchingValue"
+              >
+                <ion-select-option *ngFor="let barrio of barrioOptions" [value]="barrio">{{ barrio }}</ion-select-option>
+              </ion-select>
+              <ion-select
+                *ngIf="matchingField === 'COMUNA'"
+                label="Valor seeker"
+                labelPlacement="stacked"
+                interface="popover"
+                [(ngModel)]="matchingValue"
+              >
+                <ion-select-option *ngFor="let comuna of comunaOptions" [value]="comuna.id.toString()">{{ comuna.label }}</ion-select-option>
+              </ion-select>
             </div>
             <ion-segment *ngIf="option.category === 'matching'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
               <ion-segment-button value="MATCH">
@@ -269,6 +308,17 @@
           <ion-accordion *ngFor="let group of seekerStationGroups; trackBy: trackByGroupId" [value]="group.id">
             <ion-item slot="header">
               <ion-label>{{ group.label }}</ion-label>
+              <ion-button
+                slot="end"
+                fill="clear"
+                size="small"
+                class="line-select-button"
+                [title]="stationGroupSelectionLabel(group)"
+                [attr.aria-label]="stationGroupSelectionLabel(group)"
+                (click)="toggleSeekerStationGroup(group); $event.stopPropagation()"
+              >
+                <ion-icon [name]="stationGroupSelectionIcon(group)"></ion-icon>
+              </ion-button>
               <ion-note slot="end">{{ group.stations.length }}</ion-note>
             </ion-item>
             <ion-list slot="content" lines="full">
@@ -324,3 +374,5 @@
     </main>
   </div>
 </ion-content>
+
+

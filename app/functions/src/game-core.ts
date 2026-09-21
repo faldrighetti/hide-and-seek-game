@@ -20,6 +20,7 @@ export const ESCAPE_PHASE_SECONDS = 480;
 export const CHASE_MAX_SECONDS = 18000;
 export const ENDGAME_DWELL_SECONDS = 60;
 export const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
+export const MOVE_DURATION_SECONDS = 20 * 60;
 export const FINISHED_GAME_RETENTION_SECONDS = 24 * 60 * 60;
 
 export type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
@@ -105,6 +106,26 @@ export interface OperationalState {
   cancellationReason?: string | null;
 }
 
+export interface MoveState {
+  status: "ACTIVE" | "COMPLETED";
+  cardId: string;
+  startedAt: Timestamp;
+  endsAt: Timestamp;
+  previousStationId: string;
+  targetStationId?: string | null;
+  completedAt?: Timestamp | null;
+  remainingPhaseSeconds: number;
+}
+
+export interface EndgameConsultation {
+  status: "PENDING_HIDER" | "CONFIRMED" | "REJECTED";
+  requestedByUid: string;
+  requestedByTeamId: string;
+  requestedAt: Timestamp;
+  resolvedByUid?: string | null;
+  resolvedAt?: Timestamp | null;
+}
+
 export interface TurnState {
   runNumber: number;
   hiderTeamId: string;
@@ -129,9 +150,19 @@ export interface TurnState {
   lastEndgameVerificationAt?: Timestamp | null;
   endgameQuestionsUnlocked?: boolean;
   lastEndgameQuestionsConsultAt?: Timestamp | null;
+  endgameConsultation?: EndgameConsultation | null;
   expirations: number;
+  lastQuestionResult?: {
+    questionId: string;
+    categoryId: string;
+    prompt: string;
+    resolution: "ANSWER" | "VETO" | "RANDOMIZE" | "TIMEOUT";
+    answerText: string | null;
+    resolvedAt: Timestamp | null;
+  } | null;
   foundVotes: string[];
   captureAttempt?: CaptureAttempt | null;
+  moveState?: MoveState | null;
 }
 
 export interface GameDoc {
@@ -713,6 +744,7 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   };
   return game;
 };
+
 
 
 

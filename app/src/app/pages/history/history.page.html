@@ -27,8 +27,8 @@
     <ion-item *ngFor="let event of events">
       <ion-label class="ion-text-wrap">
         <h2>{{ event.type }}</h2>
-        <p>{{ formatDate(event.createdAt) }} · Run {{ event.runNumber || '-' }} · {{ event.phase || '-' }}</p>
-        <p *ngIf="event.actorTeamId">Actor: Team {{ event.actorTeamId }}</p>
+        <p>{{ formatDate(event.createdAt) }} · Turno {{ event.runNumber || '-' }} · {{ event.phase || '-' }}</p>
+        <p *ngIf="event.actorTeamId">Actor: Equipo {{ event.actorTeamId }}</p>
         <p *ngIf="payloadText(event.payload)" class="payload">{{ payloadText(event.payload) }}</p>
       </ion-label>
     </ion-item>

@@ -11,6 +11,7 @@ import {
   PendingQuestion,
   PlayerRole,
   QuestionResolution,
+  TeamStanding,
 } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
@@ -54,6 +55,7 @@ interface QuestionCategory {
   time: string | null;
   prompt?: string;
   placeholder?: string;
+  placeholders?: string[];
   endgameOnly?: boolean;
   items: QuestionItem[];
 }
@@ -65,6 +67,7 @@ interface QuestionsCatalog {
     time: string | null;
     prompt?: string;
     placeholder?: string;
+    placeholders?: string[];
     endgameOnly?: boolean;
     items?: QuestionItem[];
   }>;
@@ -107,17 +110,25 @@ export class GamePage implements AfterViewInit, OnDestroy {
   sendingQuestion = false;
   resolvingQuestion: QuestionResolution | null = null;
   selectingLoot = false;
+  playingDiscardDrawPowerup = false;
+  playingMovePowerupCardId: string | null = null;
   playingCurseCardId: string | null = null;
   completingEffectId: string | null = null;
   consultingEndgameQuestions = false;
   selectedLootCardIds: string[] = [];
   discardFromHandIds: string[] = [];
+  activeDiscardDrawPowerupId: string | null = null;
+  discardDrawSelectedCardIds: string[] = [];
   lootErrorMessage = '';
+  powerupErrorMessage = '';
   curseErrorMessage = '';
   effectErrorMessage = '';
   endgameQuestionsMessage = '';
+  endgameConsultationInFlight = false;
+  endgameConsultationErrorMessage = '';
   questionErrorMessage = '';
   resolveQuestionErrorMessage = '';
+  pendingAnswerText = '';
   operationalActionInFlight = false;
   operationalMessage = '';
   foundActionInFlight = false;
@@ -141,19 +152,25 @@ export class GamePage implements AfterViewInit, OnDestroy {
   private tickInFlight = false;
   private lastTickKey: string | null = null;
   private lastLootKey: string | null = null;
+  private lastTurnIdentityKey: string | null = null;
   private baseStationMap?: L.Map;
   private baseStationMarkers = new Map<string, L.CircleMarker>();
   private baseStationZoneLayer = L.layerGroup();
   private baseStationBounds: L.LatLngBoundsExpression | null = null;
+  private confirmedBaseStationMap?: L.Map;
+  private confirmedBaseStationLayer = L.layerGroup();
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
     this.blueprintSubscription = this.blueprint$.subscribe(vm => {
       this.latestGameBlueprint = vm;
+      this.syncTurnLocalState(vm);
       this.syncLootSelections(vm);
       setTimeout(() => {
         this.ensureBaseStationMap();
         this.renderBaseStationMarkers(vm);
+        this.ensureConfirmedBaseStationMap();
+        this.renderConfirmedBaseStationMap(vm);
       }, 0);
     });
     this.playerRoleSubscription = this.playerRole$.subscribe(role => {
@@ -173,22 +190,24 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.blueprintSubscription.unsubscribe();
     this.playerRoleSubscription.unsubscribe();
     this.baseStationMap?.remove();
+    this.confirmedBaseStationMap?.remove();
   }
 
   private async processDueTickIfNeeded(): Promise<void> {
     const vm = this.latestGameBlueprint;
     const role = this.latestPlayerRole;
-    if (!vm || !role?.isParticipant || this.tickInFlight || vm.operational.mode !== 'NORMAL') {
+    if (!vm || vm.status !== 'LIVE' || !role?.isParticipant || this.tickInFlight || vm.operational.mode !== 'NORMAL') {
       return;
     }
 
     const phaseDue = this.secondsUntil(vm.currentTurn.endsAtIso) <= 0;
     const questionDue = Boolean(vm.currentTurn.pendingQuestionEndsAtIso && this.secondsUntil(vm.currentTurn.pendingQuestionEndsAtIso) <= 0);
-    if (!phaseDue && !questionDue) {
+    const moveDue = Boolean(vm.currentTurn.moveState?.status === 'ACTIVE' && vm.currentTurn.moveState.endsAtIso && this.secondsUntil(vm.currentTurn.moveState.endsAtIso) <= 0);
+    if (!phaseDue && !questionDue && !moveDue) {
       return;
     }
 
-    const tickKey = `${vm.currentTurn.runNumber}:${vm.currentTurn.phase}:${vm.currentTurn.endsAtIso}:${vm.currentTurn.pendingQuestionId ?? ''}:${vm.currentTurn.pendingQuestionEndsAtIso ?? ''}`;
+    const tickKey = `${vm.currentTurn.runNumber}:${vm.currentTurn.phase}:${vm.currentTurn.endsAtIso}:${vm.currentTurn.pendingQuestionId ?? ''}:${vm.currentTurn.pendingQuestionEndsAtIso ?? ''}:${vm.currentTurn.moveState?.endsAtIso ?? ''}`;
     if (this.lastTickKey === tickKey) {
       return;
     }
@@ -238,6 +257,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
         time: category.time,
         prompt: category.prompt,
         placeholder: category.placeholder,
+        placeholders: category.placeholders,
         endgameOnly: category.endgameOnly,
         items: category.items ?? [],
       };
@@ -372,6 +392,16 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   selectSeekerQuestion(category: QuestionCategory, question: QuestionItem): void {
+    const vm = this.latestBlueprint();
+    if (vm && this.isQuestionAlreadyAsked(category, question, vm)) {
+      this.questionErrorMessage = 'Esa pregunta ya fue hecha en este turno.';
+      return;
+    }
+    if (vm && this.isQuestionCategoryOnCooldown(category, vm)) {
+      this.questionErrorMessage = this.categoryCooldownLabel(category, vm);
+      return;
+    }
+
     this.selectedSeekerQuestion = { category, question };
     this.questionErrorMessage = '';
   }
@@ -414,6 +444,16 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     const { category, question } = this.selectedSeekerQuestion;
+    const vm = this.latestBlueprint();
+    if (vm && this.isQuestionAlreadyAsked(category, question, vm)) {
+      this.questionErrorMessage = 'Esa pregunta ya fue hecha en este turno.';
+      return;
+    }
+    if (vm && this.isQuestionCategoryOnCooldown(category, vm)) {
+      this.questionErrorMessage = this.categoryCooldownLabel(category, vm);
+      return;
+    }
+
     const customDistanceM = await this.customRadarDistanceM(category, question);
     if (customDistanceM === null && this.isCustomRadarQuestion(category, question)) {
       return;
@@ -432,10 +472,11 @@ export class GamePage implements AfterViewInit, OnDestroy {
       await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos', {
         distanceM,
         customDistanceM: customDistanceM ?? undefined,
+        randomizePool: this.randomizePoolForQuestion(category, question, customDistanceM ?? undefined),
       });
       this.selectedSeekerQuestion = null;
     } catch (error) {
-      this.questionErrorMessage = error instanceof Error ? error.message : 'No se pudo enviar la pregunta.';
+      this.questionErrorMessage = this.friendlyFunctionError(error, 'No se pudo enviar la pregunta.');
     } finally {
       this.sendingQuestion = false;
     }
@@ -447,12 +488,22 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
+    const answerText = this.pendingAnswerText.trim();
+    if (resolution === 'ANSWER' && !answerText) {
+      this.resolveQuestionErrorMessage = 'Escribí la respuesta antes de enviarla.';
+      return;
+    }
+    if ((resolution === 'VETO' || resolution === 'RANDOMIZE') && !(await this.confirmPowerResolution(resolution))) {
+      return;
+    }
+
     this.resolvingQuestion = resolution;
     this.resolveQuestionErrorMessage = '';
     try {
-      await this.gameFacade.resolveQuestion(this.gameId, resolution);
+      await this.gameFacade.resolveQuestion(this.gameId, resolution, answerText || undefined);
+      this.pendingAnswerText = '';
     } catch (error) {
-      this.resolveQuestionErrorMessage = error instanceof Error ? error.message : 'No se pudo resolver la pregunta.';
+      this.resolveQuestionErrorMessage = this.friendlyFunctionError(error, 'No se pudo resolver la pregunta.');
     } finally {
       this.resolvingQuestion = null;
     }
@@ -462,6 +513,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.lootErrorMessage = '';
     if (this.selectedLootCardIds.includes(cardId)) {
       this.selectedLootCardIds = this.selectedLootCardIds.filter(selectedId => selectedId !== cardId);
+      if (this.selectedLootCardIds.length === 0) {
+        this.discardFromHandIds = [];
+      }
       return;
     }
 
@@ -492,6 +546,19 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
   }
 
+  lootConfirmLabel(): string {
+    if (this.selectingLoot) {
+      return 'Guardando...';
+    }
+    if (this.selectedLootCardIds.length > 0) {
+      return 'Guardar seleccion';
+    }
+    if (this.discardFromHandIds.length > 0) {
+      return 'Confirmar descartes';
+    }
+    return 'Descartar loot';
+  }
+
   canConfirmLoot(vm: GameBlueprint): boolean {
     return (
       !this.selectingLoot
@@ -507,16 +574,121 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     const projectedSize = this.projectedHandSize(vm.currentTurn.hiderHandIds.length);
+    if (this.selectedLootCardIds.length === 0) {
+      return 'Primero elegí cartas del loot. La mano se habilita después, solo si necesitás descartar para hacer lugar.';
+    }
+
     if (projectedSize > vm.deckPolicy.maxSize) {
       const excess = projectedSize - vm.deckPolicy.maxSize;
       return `Descarta ${excess} carta${excess === 1 ? '' : 's'} mas de tu mano para respetar el maximo de ${vm.deckPolicy.maxSize}.`;
     }
 
-    if (this.selectedLootCardIds.length === 0) {
-      return 'Podes no tomar cartas y mandar todo el loot al descarte.';
+    return 'Listo para guardar esta seleccion.';
+  }
+
+
+  movePowerupCards(handIds: string[]): HiderCardData[] {
+    return this.cardsForIds(handIds).filter(card => this.baseCardId(card.id) === 'powerup_move');
+  }
+
+  moveRemainingSeconds(vm: GameBlueprint): number {
+    const endsAtIso = vm.currentTurn.moveState?.endsAtIso;
+    return endsAtIso ? this.secondsUntil(endsAtIso) : 0;
+  }
+
+  async playMovePowerup(card: HiderCardData, role: PlayerRole, vm: GameBlueprint): Promise<void> {
+    this.powerupErrorMessage = '';
+    if (!role.isHider) {
+      this.powerupErrorMessage = 'Solo el hider puede jugar esta carta.';
+      return;
+    }
+    if (vm.currentTurn.lootOffer) {
+      this.powerupErrorMessage = 'Primero resolvé el loot pendiente.';
+      return;
+    }
+    if (vm.currentTurn.pendingQuestion) {
+      this.powerupErrorMessage = 'No podés jugar SALÍ DE AHÍ con una pregunta pendiente.';
+      return;
+    }
+    if (vm.currentTurn.endgameActive) {
+      this.powerupErrorMessage = 'No podés jugar SALÍ DE AHÍ durante endgame.';
+      return;
     }
 
-    return 'Listo para guardar esta seleccion.';
+    const confirmed = await this.confirmMovePowerup();
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.playingMovePowerupCardId = card.id;
+    try {
+      await this.gameFacade.playMovePowerup(this.gameId, card.id);
+    } catch (error) {
+      this.powerupErrorMessage = this.friendlyFunctionError(error, 'No se pudo jugar SALÍ DE AHÍ.');
+    } finally {
+      this.playingMovePowerupCardId = null;
+    }
+  }
+  discardDrawPowerupCards(handIds: string[]): HiderCardData[] {
+    return this.cardsForIds(handIds).filter(card => {
+      const baseId = this.baseCardId(card.id);
+      return baseId === 'powerup_discard1_draw2' || baseId === 'powerup_discard2_draw3';
+    });
+  }
+
+  startDiscardDrawPowerup(cardId: string, vm: GameBlueprint): void {
+    this.powerupErrorMessage = '';
+    if (vm.currentTurn.lootOffer) {
+      this.powerupErrorMessage = 'Primero resolvé el loot pendiente.';
+      return;
+    }
+
+    this.activeDiscardDrawPowerupId = cardId;
+    this.discardDrawSelectedCardIds = [];
+  }
+
+  cancelDiscardDrawPowerup(): void {
+    this.activeDiscardDrawPowerupId = null;
+    this.discardDrawSelectedCardIds = [];
+    this.powerupErrorMessage = '';
+  }
+
+  canConfirmDiscardDrawPowerup(role: PlayerRole): boolean {
+    const required = this.activeDiscardDrawRequiredCount();
+    return role.isHider
+      && !this.playingDiscardDrawPowerup
+      && Boolean(this.activeDiscardDrawPowerupId)
+      && required > 0
+      && this.discardDrawSelectedCardIds.length === required;
+  }
+
+  async confirmDiscardDrawPowerup(role: PlayerRole): Promise<void> {
+    if (!role.isHider || !this.activeDiscardDrawPowerupId) {
+      this.powerupErrorMessage = 'Solo el hider puede jugar esta carta.';
+      return;
+    }
+
+    const required = this.activeDiscardDrawRequiredCount();
+    if (this.discardDrawSelectedCardIds.length !== required) {
+      this.powerupErrorMessage = `Elegí exactamente ${required} carta${required === 1 ? '' : 's'} para descartar.`;
+      return;
+    }
+
+    this.playingDiscardDrawPowerup = true;
+    this.powerupErrorMessage = '';
+    try {
+      await this.gameFacade.playDiscardDrawPowerup(
+        this.gameId,
+        this.activeDiscardDrawPowerupId,
+        this.discardDrawSelectedCardIds,
+      );
+      this.cancelDiscardDrawPowerup();
+    } catch (error) {
+      this.powerupErrorMessage = this.friendlyFunctionError(error, 'No se pudo jugar la carta.');
+    } finally {
+      this.playingDiscardDrawPowerup = false;
+    }
   }
 
   async playCurse(card: HiderCardData, role: PlayerRole): Promise<void> {
@@ -704,13 +876,49 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   toggleHandDiscard(cardId: string): void {
+    if (this.activeDiscardDrawPowerupId) {
+      this.toggleDiscardDrawSelection(cardId);
+      return;
+    }
+
     this.lootErrorMessage = '';
+    const vm = this.latestBlueprint();
+    if (vm?.currentTurn.lootOffer && this.selectedLootCardIds.length === 0) {
+      this.lootErrorMessage = 'Primero elegí una carta del loot; después podés descartar de tu mano si hace falta.';
+      return;
+    }
+    if (this.baseCardId(cardId).startsWith('powerup_')) {
+      this.lootErrorMessage = 'Las cartas de poder se juegan desde su accion, no como descarte de loot.';
+      return;
+    }
     if (this.discardFromHandIds.includes(cardId)) {
       this.discardFromHandIds = this.discardFromHandIds.filter(selectedId => selectedId !== cardId);
       return;
     }
 
     this.discardFromHandIds = [...this.discardFromHandIds, cardId];
+  }
+
+  handTitle(vm: GameBlueprint): string {
+    if (this.activeDiscardDrawPowerupId) {
+      const required = this.activeDiscardDrawRequiredCount();
+      return `Mano (elegí ${required} para descartar)`;
+    }
+    if (vm.currentTurn.lootOffer) {
+      return this.selectedLootCardIds.length > 0 ? 'Mano (tocá para descartar)' : 'Mano (elegí loot primero)';
+    }
+    return 'Mano';
+  }
+
+  handSelectable(vm: GameBlueprint): boolean {
+    if (this.activeDiscardDrawPowerupId !== null) {
+      return true;
+    }
+    return vm.currentTurn.lootOffer !== null && this.selectedLootCardIds.length > 0;
+  }
+
+  selectedHandCardIds(): string[] {
+    return this.activeDiscardDrawPowerupId ? this.discardDrawSelectedCardIds : this.discardFromHandIds;
   }
 
   projectedHandSize(currentHandSize: number): number {
@@ -739,6 +947,37 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return question.label ?? question.asunto ?? 'Pregunta';
   }
 
+  isQuestionCategoryOnCooldown(category: QuestionCategory, vm: GameBlueprint): boolean {
+    return this.categoryCooldownRemainingSeconds(category, vm) > 0;
+  }
+
+  isQuestionAlreadyAsked(category: QuestionCategory, question: QuestionItem, vm: GameBlueprint): boolean {
+    const prompt = this.questionPromptText(category, question).trim();
+    return prompt.length > 0 && vm.currentTurn.askedQuestionPrompts.includes(prompt);
+  }
+
+  availableQuestionCount(category: QuestionCategory, vm: GameBlueprint): number {
+    return category.items.filter(question => !this.isQuestionAlreadyAsked(category, question, vm)).length;
+  }
+
+  categoryCooldownLabel(category: QuestionCategory, vm: GameBlueprint): string {
+    const remainingSeconds = this.categoryCooldownRemainingSeconds(category, vm);
+    if (remainingSeconds <= 0) {
+      return '';
+    }
+
+    const cooldownIso = vm.currentTurn.categoryCooldowns[category.key];
+    const availableAt = cooldownIso
+      ? new Date(cooldownIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
+    return `No disponible por ${this.formatTime(remainingSeconds)}${availableAt ? `. Disponible a las ${availableAt}` : ''}.`;
+  }
+
+  private categoryCooldownRemainingSeconds(category: QuestionCategory, vm: GameBlueprint): number {
+    const cooldownIso = vm.currentTurn.categoryCooldowns[category.key];
+    return this.secondsUntil(cooldownIso ?? null);
+  }
+
   questionText(category: QuestionCategory, question: QuestionItem, customDistanceM?: number): string {
     if (question.prompt) {
       return question.prompt;
@@ -760,7 +999,56 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return category.prompt.replace(category.placeholder, question.asunto);
     }
 
+    if (category.prompt && category.placeholders?.length) {
+      return category.placeholders.reduce((text, placeholder) => {
+        if (placeholder === '[Lugares]' && question.places) {
+          return text.replace(placeholder, question.places);
+        }
+        if (placeholder === '[Distancia]' && question.distance) {
+          return text.replace(placeholder, question.distance);
+        }
+        return text;
+      }, category.prompt);
+    }
+
     return question.asunto ?? '';
+  }
+
+  questionResultTitle(vm: GameBlueprint): string {
+    const result = vm.currentTurn.lastQuestionResult;
+    if (!result) {
+      return '';
+    }
+
+    const labels: Record<string, string> = {
+      ANSWER: 'Respuesta recibida',
+      VETO: 'Pregunta vetada',
+      RANDOMIZE: 'Pregunta randomizada',
+      TIMEOUT: 'Pregunta vencida',
+    };
+    return labels[result.resolution] ?? 'Pregunta resuelta';
+  }
+
+  questionResultBody(vm: GameBlueprint): string {
+    const result = vm.currentTurn.lastQuestionResult;
+    if (!result) {
+      return '';
+    }
+
+    if (result.resolution === 'ANSWER') {
+      return result.answerText || 'El hider registró la respuesta.';
+    }
+    if (result.resolution === 'VETO') {
+      return 'El hider usó Veto. La pregunta queda resuelta sin respuesta.';
+    }
+    if (result.resolution === 'TIMEOUT') {
+      return 'El hider no respondió a tiempo. La pregunta queda resuelta y los seekers reciben 30 minutos de bonus.';
+    }
+    return 'El hider usó Randomizar. La pregunta original queda resuelta.';
+  }
+
+  randomizedQuestionText(pendingQuestion: PendingQuestion | null): string {
+    return pendingQuestion?.prompt ?? '';
   }
 
   questionPromptText(category: QuestionCategory, question: QuestionItem, customDistanceM?: number): string {
@@ -805,6 +1093,23 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return labels[phase];
   }
 
+
+  async resolveEndgameConsultation(confirmed: boolean, role: PlayerRole): Promise<void> {
+    if (!role.isHider) {
+      this.endgameConsultationErrorMessage = 'Solo el hider puede responder la consulta de endgame.';
+      return;
+    }
+
+    this.endgameConsultationInFlight = true;
+    this.endgameConsultationErrorMessage = '';
+    try {
+      await this.gameFacade.resolveEndgameConsultation(this.gameId, confirmed);
+    } catch (error) {
+      this.endgameConsultationErrorMessage = this.friendlyFunctionError(error, 'No se pudo responder la consulta de endgame.');
+    } finally {
+      this.endgameConsultationInFlight = false;
+    }
+  }
   async startCaptureAttempt(role: PlayerRole): Promise<void> {
     if (!role.isSeeker || !role.teamId) {
       this.foundErrorMessage = 'Solo los seekers pueden iniciar captura.';
@@ -862,7 +1167,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return 'Sin intento activo';
     }
     if (attempt.status === 'PENDING_HIDER') {
-      return `Pendiente del hider. Iniciado por Team ${attempt.createdByTeamId}.`;
+      return `Pendiente del hider. Iniciado por Equipo ${attempt.createdByTeamId}.`;
     }
     if (attempt.status === 'REJECTED') {
       return 'Rechazado por el hider. Seekers pueden ratificar.';
@@ -885,6 +1190,61 @@ export class GamePage implements AfterViewInit, OnDestroy {
       .padStart(2, '0')}`;
   }
 
+  sortedStandings(standings: TeamStanding[]): TeamStanding[] {
+    return [...standings].sort((a, b) => {
+      const totalDiff = b.totalTimeSeconds - a.totalTimeSeconds;
+      if (totalDiff !== 0) {
+        return totalDiff;
+      }
+      return b.bestSingleRunSeconds - a.bestSingleRunSeconds;
+    });
+  }
+
+  winnerStandings(vm: GameBlueprint): TeamStanding[] {
+    const winnerIds = new Set(vm.winnerTeamIds);
+    const winners = vm.standings.filter(team => winnerIds.has(team.id));
+    if (winners.length > 0) {
+      return this.sortedStandings(winners);
+    }
+
+    return this.sortedStandings(vm.standings).slice(0, 1);
+  }
+
+  teamDisplayName(team: TeamStanding, lobby: LobbyState | null): string {
+    const teamName = team.name.startsWith('Team ') ? team.name.replace(/^Team /, 'Equipo ') : team.name;
+    const members = lobby?.seats
+      .filter(seat => seat.teamId === team.id)
+      .map(seat => seat.displayName.trim())
+      .filter(Boolean) ?? [];
+
+    return members.length > 0 ? `${teamName} - ${this.joinNames(members)}` : teamName;
+  }
+
+  winnerTitle(vm: GameBlueprint, lobby: LobbyState | null): string {
+    const winners = this.winnerStandings(vm);
+    if (winners.length === 0) {
+      return 'Partida finalizada';
+    }
+
+    if (winners.length === 1) {
+      return `Ganador: ${this.teamDisplayName(winners[0], lobby)}`;
+    }
+
+    return `Ganadores: ${winners.map(team => this.teamDisplayName(team, lobby)).join(', ')}`;
+  }
+
+  private joinNames(names: string[]): string {
+    if (names.length <= 1) {
+      return names[0] ?? '';
+    }
+
+    return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+  }
+
+  standingResultLabel(vm: GameBlueprint, team: TeamStanding): string {
+    return vm.winnerTeamIds.includes(team.id) ? 'Ganador' : 'Finalizado';
+  }
+
   secondsUntil(iso: string | null): number {
     if (!iso) {
       return 0;
@@ -893,6 +1253,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   phaseRemainingSeconds(vm: GameBlueprint): number {
+    if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
+      return 0;
+    }
+
     if (vm.operational.mode !== 'NORMAL' && vm.operational.phaseRemainingSeconds !== null) {
       return Math.max(0, vm.operational.phaseRemainingSeconds);
     }
@@ -900,7 +1264,52 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return this.secondsUntil(vm.currentTurn.endsAtIso);
   }
 
+  phaseElapsedSeconds(vm: GameBlueprint): number {
+    if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
+      return 0;
+    }
+
+    if (!vm.currentTurn.startedAtIso) {
+      const totalByPhase: Record<GameBlueprint['currentTurn']['phase'], number> = {
+        INTERMISSION: vm.settings.intermissionSeconds,
+        ESCAPE: vm.settings.escapeSeconds,
+        CHASE: vm.settings.chaseMaxSeconds,
+        ENDED: 0,
+      };
+      return Math.max(0, totalByPhase[vm.currentTurn.phase] - this.phaseRemainingSeconds(vm));
+    }
+
+    return Math.max(0, Math.floor((this.now - new Date(vm.currentTurn.startedAtIso).getTime()) / 1000));
+  }
+
+  roleLabel(role: PlayerRole): string {
+    if (role.isHider) {
+      return 'Hider';
+    }
+    if (role.isSeeker) {
+      return 'Seeker';
+    }
+    if (role.isHost) {
+      return 'Host';
+    }
+    return 'Sin seat';
+  }
+
+  baseStationSummary(vm: GameBlueprint): string {
+    const stationId = vm.currentTurn.hidingZone?.stationId;
+    if (!stationId) {
+      return vm.currentTurn.baseStationSelectionRequired ? 'Pendiente' : '-';
+    }
+
+    const station = this.stationById(stationId);
+    return station ? this.baseStationLabel(station) : stationId;
+  }
+
   pendingQuestionRemainingSeconds(vm: GameBlueprint, pendingQuestion: PendingQuestion | null = null): number {
+    if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
+      return 0;
+    }
+
     if (vm.operational.mode !== 'NORMAL' && vm.operational.pendingQuestionRemainingSeconds !== null) {
       return Math.max(0, vm.operational.pendingQuestionRemainingSeconds);
     }
@@ -909,6 +1318,14 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   turnActionState(vm: GameBlueprint, role: PlayerRole, pendingQuestion: PendingQuestion | null): TurnActionState {
+    if (vm.status === 'FINISHED') {
+      return {
+        title: 'Partida finalizada',
+        detail: 'Revisen el resultado final.',
+        color: 'success',
+      };
+    }
+
     if (!role.isParticipant) {
       return {
         title: 'Sin asiento en esta partida',
@@ -962,6 +1379,20 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     const captureAttempt = vm.currentTurn.captureAttempt;
+    if (vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER') {
+      return role.isHider
+        ? {
+          title: 'Consulta de endgame',
+          detail: 'Confirmá si los seekers ya están en endgame.',
+          color: 'warning',
+        }
+        : {
+          title: 'Esperando endgame',
+          detail: 'El hider tiene que confirmar o negar la consulta.',
+          color: 'warning',
+        };
+    }
+
     if (captureAttempt?.status === 'PENDING_HIDER') {
       return role.isHider
         ? {
@@ -1036,6 +1467,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   phaseProgress(vm: GameBlueprint): number {
+    if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
+      return 1;
+    }
+
     const totalByPhase: Record<GameBlueprint['currentTurn']['phase'], number> = {
       INTERMISSION: vm.settings.intermissionSeconds,
       ESCAPE: vm.settings.escapeSeconds,
@@ -1052,6 +1487,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   pendingQuestionProgress(vm: GameBlueprint): number {
+    if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
+      return 1;
+    }
+
     const remaining = this.pendingQuestionRemainingSeconds(vm);
     const total = vm.currentTurn.pendingQuestionEndsAtIso && remaining > vm.questionPolicy.regularTimeoutSeconds
       ? vm.questionPolicy.photoTimeoutSeconds
@@ -1088,8 +1527,18 @@ export class GamePage implements AfterViewInit, OnDestroy {
       : 'Necesitas una carta Randomizar en mano.';
   }
 
+  onPendingAnswerInput(event: Event): void {
+    this.pendingAnswerText = (event as CustomEvent<{ value?: string }>).detail?.value ?? '';
+    this.resolveQuestionErrorMessage = '';
+  }
+
   stationLabel(station: Station): string {
     return `${station.name} (${station.mode} ${station.line})`;
+  }
+
+  baseStationLabel(station: Station): string {
+    const lineLabel = station.mode === 'SUBTE' ? `Línea ${station.line}` : `${station.mode} ${station.line}`;
+    return `${station.name}, ${lineLabel}`;
   }
 
   private toHiderCardData(card: CardDefinition): HiderCardData {
@@ -1136,6 +1585,38 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return cardId.split('#')[0];
   }
 
+  activeDiscardDrawRequiredCount(): number {
+    const baseId = this.activeDiscardDrawPowerupId ? this.baseCardId(this.activeDiscardDrawPowerupId) : '';
+    if (baseId === 'powerup_discard1_draw2') {
+      return 1;
+    }
+    if (baseId === 'powerup_discard2_draw3') {
+      return 2;
+    }
+    return 0;
+  }
+
+  private toggleDiscardDrawSelection(cardId: string): void {
+    this.powerupErrorMessage = '';
+    if (cardId === this.activeDiscardDrawPowerupId) {
+      this.powerupErrorMessage = 'Esa carta se descarta automaticamente al jugarla. Elegí otras cartas.';
+      return;
+    }
+
+    if (this.discardDrawSelectedCardIds.includes(cardId)) {
+      this.discardDrawSelectedCardIds = this.discardDrawSelectedCardIds.filter(selectedId => selectedId !== cardId);
+      return;
+    }
+
+    const required = this.activeDiscardDrawRequiredCount();
+    if (this.discardDrawSelectedCardIds.length >= required) {
+      this.powerupErrorMessage = `Podés elegir exactamente ${required} carta${required === 1 ? '' : 's'}.`;
+      return;
+    }
+
+    this.discardDrawSelectedCardIds = [...this.discardDrawSelectedCardIds, cardId];
+  }
+
   private syncLootSelections(vm: GameBlueprint): void {
     const lootOffer = vm.currentTurn.lootOffer;
     const lootKey = lootOffer
@@ -1150,14 +1631,45 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
+    const hand = new Set(vm.currentTurn.hiderHandIds);
+    if (this.activeDiscardDrawPowerupId && !hand.has(this.activeDiscardDrawPowerupId)) {
+      this.activeDiscardDrawPowerupId = null;
+      this.discardDrawSelectedCardIds = [];
+      this.powerupErrorMessage = '';
+    } else {
+      this.discardDrawSelectedCardIds = this.discardDrawSelectedCardIds.filter(cardId => hand.has(cardId));
+    }
+
     if (!lootOffer) {
       return;
     }
 
     const drawn = new Set(lootOffer.drawnCardIds);
-    const hand = new Set(vm.currentTurn.hiderHandIds);
     this.selectedLootCardIds = this.selectedLootCardIds.filter(cardId => drawn.has(cardId));
     this.discardFromHandIds = this.discardFromHandIds.filter(cardId => hand.has(cardId));
+  }
+
+  private syncTurnLocalState(vm: GameBlueprint): void {
+    const turnKey = `${vm.currentTurn.runNumber}:${vm.currentTurn.hiderTeamId}`;
+    if (this.lastTurnIdentityKey !== turnKey) {
+      this.selectedBaseStation = null;
+      this.stationFilter = '';
+      this.baseStationMessage = '';
+      this.baseStationZoneLayer.clearLayers();
+      this.confirmedBaseStationLayer.clearLayers();
+      this.lastTurnIdentityKey = turnKey;
+    }
+
+    const confirmedStationId = vm.currentTurn.hidingZone?.stationId;
+    if (confirmedStationId) {
+      this.selectedBaseStation = this.stationById(confirmedStationId) ?? this.selectedBaseStation;
+      return;
+    }
+
+    if (!vm.currentTurn.baseStationSelectionRequired) {
+      this.selectedBaseStation = null;
+      this.baseStationZoneLayer.clearLayers();
+    }
   }
 
   private latestBlueprint(): GameBlueprint | undefined {
@@ -1174,6 +1686,19 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     return typeof question.distanceM === 'number' ? question.distanceM : undefined;
+  }
+
+  private randomizePoolForQuestion(
+    category: QuestionCategory,
+    selectedQuestion: QuestionItem,
+    customDistanceM?: number,
+  ): string[] {
+    const selectedPrompt = this.questionPromptText(category, selectedQuestion, customDistanceM);
+    return category.items
+      .map(question => this.questionPromptText(category, question))
+      .map(prompt => prompt.trim())
+      .filter(prompt => prompt.length > 0 && prompt !== selectedPrompt)
+      .slice(0, 100);
   }
 
   private async customRadarDistanceM(
@@ -1228,6 +1753,61 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return result.role === 'confirm' ? distanceM : null;
   }
 
+  private async confirmPowerResolution(resolution: Extract<QuestionResolution, 'VETO' | 'RANDOMIZE'>): Promise<boolean> {
+    const copy: Record<Extract<QuestionResolution, 'VETO' | 'RANDOMIZE'>, { header: string; message: string; confirm: string }> = {
+      VETO: {
+        header: 'Confirmar veto',
+        message: 'Vetar consume una carta Veto y resuelve la pregunta sin respuesta. ¿Querés continuar?',
+        confirm: 'Vetar',
+      },
+      RANDOMIZE: {
+        header: 'Confirmar randomizar',
+        message: 'Randomizar consume una carta Randomizar y reemplaza esta pregunta por una Q2. ¿Querés continuar?',
+        confirm: 'Randomizar',
+      },
+    };
+    const selected = copy[resolution];
+    const alert = await this.alertController.create({
+      header: selected.header,
+      message: selected.message,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
+        {
+          text: selected.confirm,
+          role: 'confirm',
+        },
+      ],
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm';
+  }
+
+
+  private async confirmMovePowerup(): Promise<boolean> {
+    const alert = await this.alertController.create({
+      header: 'Jugar SALÍ DE AHÍ',
+      message: 'Vas a consumir la carta y abrir una ventana de 20 minutos para cambiar tu estación base. Los seekers no reciben la nueva base hasta que termine la ventana.',
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
+        {
+          text: 'Jugar',
+          role: 'confirm',
+        },
+      ],
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm';
+  }
   private ensureBaseStationMap(): void {
     if (this.baseStationMap || !this.baseStationBounds || !document.getElementById('base-station-map')) {
       return;
@@ -1314,6 +1894,73 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }).addTo(this.baseStationZoneLayer);
   }
 
+  private ensureConfirmedBaseStationMap(): void {
+    if (
+      this.confirmedBaseStationMap
+      || !this.baseStationBounds
+      || !document.getElementById('confirmed-base-station-map')
+    ) {
+      return;
+    }
+
+    this.confirmedBaseStationMap = L.map('confirmed-base-station-map', {
+      preferCanvas: true,
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      touchZoom: false,
+      keyboard: false,
+      minZoom: 11,
+      maxZoom: 18,
+      maxBounds: this.baseStationBounds,
+      maxBoundsViscosity: 1,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 11,
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.confirmedBaseStationMap);
+    this.confirmedBaseStationLayer.addTo(this.confirmedBaseStationMap);
+  }
+
+  private renderConfirmedBaseStationMap(vm?: GameBlueprint): void {
+    if (!this.confirmedBaseStationMap) {
+      return;
+    }
+
+    this.confirmedBaseStationLayer.clearLayers();
+    const stationId = vm?.currentTurn.hidingZone?.stationId;
+    const station = stationId ? this.stationById(stationId) : undefined;
+    if (!station) {
+      return;
+    }
+
+    L.circle([station.lat, station.lng], {
+      radius: GAME_CONFIG.hidingZoneRadiusM,
+      color: '#0b6e69',
+      fillColor: '#2dd4bf',
+      fillOpacity: 0.18,
+      weight: 2,
+      interactive: false,
+    }).addTo(this.confirmedBaseStationLayer);
+
+    L.circleMarker([station.lat, station.lng], {
+      radius: 7,
+      color: '#1f7a4d',
+      fillColor: '#2f855a',
+      fillOpacity: 0.95,
+      weight: 3,
+      interactive: false,
+    }).addTo(this.confirmedBaseStationLayer);
+
+    const bounds = L.latLng(station.lat, station.lng).toBounds(GAME_CONFIG.hidingZoneRadiusM * 1.35);
+    this.confirmedBaseStationMap.fitBounds(bounds, { padding: [12, 12], animate: false });
+    setTimeout(() => this.confirmedBaseStationMap?.invalidateSize(), 0);
+  }
+
   private stationById(stationId: string): Station | undefined {
     return this.stations.find(station => station.id === stationId);
   }
@@ -1334,10 +1981,22 @@ export class GamePage implements AfterViewInit, OnDestroy {
       Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
     return 2 * earthRadiusM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
+
+  private friendlyFunctionError(error: unknown, fallback: string): string {
+    const message = error instanceof Error ? error.message : '';
+    const knownMessages: Record<string, string> = {
+      CATEGORY_COOLDOWN_ACTIVE: 'Esa categoría está en cooldown. Elegí otra categoría por ahora.',
+      BASE_STATION_REQUIRED: 'Falta confirmar la estación base del hider.',
+      ENDGAME_QUESTIONS_LOCKED: 'Las preguntas de endgame todavía no están desbloqueadas.',
+      CURSE_QUESTIONS_BLOCKED: 'Hay una maldición activa que bloquea preguntas.',
+    };
+
+    for (const [code, friendly] of Object.entries(knownMessages)) {
+      if (message.includes(code)) {
+        return friendly;
+      }
+    }
+
+    return message || fallback;
+  }
 }
-
-
-
-
-
-

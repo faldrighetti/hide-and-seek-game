@@ -20,11 +20,9 @@ import { FirebaseGameClientService } from './firebase-game-client.service';
 
 const createSeedStandings = (mode: GameMode): TeamStanding[] => {
   const teamIds = mode === 'INDIVIDUAL_1v1' || mode === 'TEAMS_2v2' ? ['A', 'B'] : ['A', 'B', 'C'];
-  const isIndividual = mode === 'INDIVIDUAL_1v1' || mode === 'INDIVIDUAL_3';
-
   return teamIds.map(teamId => ({
     id: teamId,
-    name: `${isIndividual ? 'Player' : 'Team'} ${teamId}`,
+    name: `Equipo ${teamId}`,
     totalTimeSeconds: 0,
     bestSingleRunSeconds: 0,
     runsCompleted: 0,
@@ -41,6 +39,8 @@ const buildBlueprint = (
 
   return {
     gameName: 'Jet Lag Hide & Seek AMBA',
+    status: 'LOBBY',
+    winnerTeamIds: [],
     mode,
     settings,
     operational: {
@@ -56,6 +56,7 @@ const buildBlueprint = (
       runNumber: 1,
       hiderTeamId: 'A',
       phase: 'INTERMISSION',
+      startedAtIso: new Date().toISOString(),
       endsAtIso: new Date(Date.now() + settings.intermissionSeconds * 1000).toISOString(),
       pendingQuestionId: null,
       pendingQuestionEndsAtIso: null,
@@ -64,6 +65,8 @@ const buildBlueprint = (
       drawPileCount: 0,
       discardPileCount: 0,
       lootOffer: null,
+      categoryCooldowns: {},
+      askedQuestionPrompts: [],
       hidingZone: null,
       baseStationCandidateIds: [],
       baseStationSelectionRequired: false,
@@ -71,10 +74,13 @@ const buildBlueprint = (
       expirations: 0,
       foundVotes: [],
       foundConfirmed: false,
-    captureAttempt: null,
+      captureAttempt: null,
+      endgameConsultation: null,
       endgameEligible: false,
       endgameActive: false,
       endgameQuestionsUnlocked: false,
+      lastQuestionResult: null,
+      moveState: null,
     },
     standings: createSeedStandings(mode),
     questionPolicy: {
@@ -131,6 +137,7 @@ interface ListGameNotificationsResponse {
 interface SendQuestionOptions {
   distanceM?: number;
   customDistanceM?: number;
+  randomizePool?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -178,7 +185,7 @@ export class GameFacadeService {
       turnsPerTeam,
       winCondition,
       ukMode,
-      displayName: hostDisplayName.trim() || currentUser.displayName || currentUser.email || 'Host',
+      displayName: hostDisplayName.trim() || this.firstNameFromGoogleUser(currentUser) || 'Host',
     });
 
     this.loadGame(response.gameId);
@@ -196,7 +203,7 @@ export class GameFacadeService {
     const currentUser = this.firebaseClient.requireCurrentUser();
     await this.firebaseClient.callFunction<{ gameId: string; displayName: string }, { ok: boolean }>('joinGame', {
       gameId,
-      displayName: displayName.trim() || currentUser.displayName || currentUser.email || 'Jugador',
+      displayName: displayName.trim() || this.firstNameFromGoogleUser(currentUser) || 'Jugador',
     });
     this.loadGame(gameId);
   }
@@ -299,6 +306,7 @@ export class GameFacadeService {
         isPhoto: boolean;
         distanceM?: number;
         customDistanceM?: number;
+        randomizePool?: string[];
       },
       { ok: boolean }
     >('sendQuestion', { gameId, categoryId, prompt, isPhoto, ...options });
@@ -311,20 +319,30 @@ export class GameFacadeService {
     );
   }
 
-  consultEndgameQuestions(gameId: string): Promise<{ ok: boolean; unlocked: boolean; cooldownActive?: boolean }> {
+  consultEndgameQuestions(gameId: string): Promise<{ ok: boolean; unlocked: boolean; cooldownActive?: boolean; pendingConfirmation?: boolean }> {
     return this.firebaseClient.callFunction<
       { gameId: string },
-      { ok: boolean; unlocked: boolean; cooldownActive?: boolean }
+      { ok: boolean; unlocked: boolean; cooldownActive?: boolean; pendingConfirmation?: boolean }
     >(
       'consultEndgameQuestions',
       { gameId },
     );
   }
 
-  resolveQuestion(gameId: string, resolution: QuestionResolution): Promise<{ ok: boolean }> {
-    return this.firebaseClient.callFunction<{ gameId: string; resolution: QuestionResolution }, { ok: boolean }>(
+
+  resolveEndgameConsultation(gameId: string, confirmed: boolean): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; confirmed: boolean }, { ok: boolean }>(
+      'resolveEndgameConsultation',
+      { gameId, confirmed },
+    );
+  }
+  resolveQuestion(gameId: string, resolution: QuestionResolution, answerText?: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; resolution: QuestionResolution; answerText?: string },
+      { ok: boolean }
+    >(
       'resolveQuestion',
-      { gameId, resolution },
+      { gameId, resolution, answerText },
     );
   }
 
@@ -337,6 +355,20 @@ export class GameFacadeService {
       { gameId: string; selectedCardIds: string[]; discardFromHandIds: string[] },
       { ok: boolean }
     >('selectLoot', { gameId, selectedCardIds, discardFromHandIds });
+  }
+
+  playMovePowerup(gameId: string, cardId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; cardId: string }, { ok: boolean }>(
+      'playMovePowerup',
+      { gameId, cardId },
+    );
+  }
+
+  playDiscardDrawPowerup(gameId: string, cardId: string, discardCardIds: string[]): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; cardId: string; discardCardIds: string[] },
+      { ok: boolean }
+    >('playDiscardDrawPowerup', { gameId, cardId, discardCardIds });
   }
 
   playCurse(
@@ -458,7 +490,7 @@ export class GameFacadeService {
     }>;
     const standings = Object.entries(standingsRecord).map(([id, standing]) => ({
       id,
-      name: `Team ${id}`,
+      name: `Equipo ${id}`,
       totalTimeSeconds: standing.totalTimeSeconds ?? 0,
       bestSingleRunSeconds: standing.bestSingleRunSeconds ?? 0,
       runsCompleted: standing.runsCompleted ?? 0,
@@ -470,6 +502,8 @@ export class GameFacadeService {
     return {
       ...fallback,
       gameName: String(game['gameName'] ?? fallback.gameName),
+      status: (game['status'] as GameBlueprint['status'] | undefined) ?? fallback.status,
+      winnerTeamIds: this.stringArray(game['winnerTeamIds']),
       mode,
       settings,
       operational: this.mapOperationalState(game['operational']),
@@ -479,6 +513,7 @@ export class GameFacadeService {
         runNumber: Number(currentTurn?.['runNumber'] ?? fallback.currentTurn.runNumber),
         hiderTeamId: String(currentTurn?.['hiderTeamId'] ?? fallback.currentTurn.hiderTeamId),
         phase: (currentTurn?.['phase'] as GameBlueprint['currentTurn']['phase'] | undefined) ?? fallback.currentTurn.phase,
+        startedAtIso: this.timestampToIso(currentTurn?.['phaseStartedAt']),
         endsAtIso: this.timestampToIso(currentTurn?.['phaseEndsAt']) ?? fallback.currentTurn.endsAtIso,
         pendingQuestionId: this.getPendingQuestionId(game),
         pendingQuestionEndsAtIso: this.timestampToIso(currentTurn?.['pendingQuestionEndsAt']),
@@ -487,6 +522,8 @@ export class GameFacadeService {
         drawPileCount: this.stringArray(currentTurn?.['drawPile']).length,
         discardPileCount: this.stringArray(currentTurn?.['discardPile']).length,
         lootOffer: this.mapLootOffer(currentTurn?.['lootOffer']),
+        categoryCooldowns: this.mapCategoryCooldowns(currentTurn?.['categoryCooldowns']),
+        askedQuestionPrompts: this.stringArray(currentTurn?.['askedQuestionPrompts']),
         hidingZone: this.mapHidingZone(currentTurn?.['hidingZone']),
         baseStationCandidateIds: this.stringArray(currentTurn?.['baseStationCandidateIds']),
         baseStationSelectionRequired: Boolean(currentTurn?.['baseStationSelectionRequired']),
@@ -494,9 +531,87 @@ export class GameFacadeService {
         expirations: Number(currentTurn?.['expirations'] ?? 0),
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
         captureAttempt: this.mapCaptureAttempt(currentTurn?.['captureAttempt']),
+        endgameConsultation: this.mapEndgameConsultation(currentTurn?.['endgameConsultation']),
         endgameActive: Boolean(currentTurn?.['endgameActive']),
         endgameQuestionsUnlocked: Boolean(currentTurn?.['endgameQuestionsUnlocked']),
+        lastQuestionResult: this.mapLastQuestionResult(currentTurn?.['lastQuestionResult']),
+        moveState: this.mapMoveState(currentTurn?.['moveState']),
       },
+    };
+  }
+
+  private mapCategoryCooldowns(value: unknown): Record<string, string | null> {
+    if (!value || typeof value !== 'object') {
+      return {};
+    }
+
+    const cooldowns: Record<string, string | null> = {};
+    for (const [categoryId, timestamp] of Object.entries(value as Record<string, unknown>)) {
+      cooldowns[categoryId] = this.timestampToIso(timestamp);
+    }
+    return cooldowns;
+  }
+
+  private mapMoveState(value: unknown): GameBlueprint['currentTurn']['moveState'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const move = value as Record<string, unknown>;
+    const status = move['status'];
+    if (status !== 'ACTIVE' && status !== 'COMPLETED') {
+      return null;
+    }
+
+    return {
+      status,
+      cardId: String(move['cardId'] ?? ''),
+      startedAtIso: this.timestampToIso(move['startedAt']),
+      endsAtIso: this.timestampToIso(move['endsAt']),
+      previousStationId: String(move['previousStationId'] ?? ''),
+      targetStationId: typeof move['targetStationId'] === 'string' ? move['targetStationId'] : null,
+      completedAtIso: this.timestampToIso(move['completedAt']),
+      remainingPhaseSeconds: Number(move['remainingPhaseSeconds'] ?? 0),
+    };
+  }
+  private mapEndgameConsultation(value: unknown): GameBlueprint['currentTurn']['endgameConsultation'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const consultation = value as Record<string, unknown>;
+    const status = consultation['status'];
+    if (status !== 'PENDING_HIDER' && status !== 'CONFIRMED' && status !== 'REJECTED') {
+      return null;
+    }
+
+    return {
+      status,
+      requestedByUid: String(consultation['requestedByUid'] ?? ''),
+      requestedByTeamId: String(consultation['requestedByTeamId'] ?? ''),
+      requestedAtIso: this.timestampToIso(consultation['requestedAt']),
+      resolvedByUid: typeof consultation['resolvedByUid'] === 'string' ? consultation['resolvedByUid'] : null,
+      resolvedAtIso: this.timestampToIso(consultation['resolvedAt']),
+    };
+  }
+  private mapLastQuestionResult(value: unknown): GameBlueprint['currentTurn']['lastQuestionResult'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const result = value as Record<string, unknown>;
+    const resolution = result['resolution'];
+    if (resolution !== 'ANSWER' && resolution !== 'VETO' && resolution !== 'RANDOMIZE' && resolution !== 'TIMEOUT') {
+      return null;
+    }
+
+    return {
+      questionId: String(result['questionId'] ?? ''),
+      categoryId: String(result['categoryId'] ?? ''),
+      prompt: String(result['prompt'] ?? ''),
+      resolution,
+      answerText: typeof result['answerText'] === 'string' ? result['answerText'] : null,
+      resolvedAtIso: this.timestampToIso(result['resolvedAt']),
     };
   }
 
@@ -577,6 +692,7 @@ export class GameFacadeService {
       isPhoto: Boolean(question['isPhoto']),
       distanceM: typeof question['distanceM'] === 'number' ? question['distanceM'] : null,
       customDistanceM: typeof question['customDistanceM'] === 'number' ? question['customDistanceM'] : null,
+      answerText: typeof question['answerText'] === 'string' ? question['answerText'] : null,
       status: (question['status'] as PendingQuestion['status'] | undefined) ?? 'PENDING',
       createdAtIso: this.timestampToIso(question['createdAt']),
       expiresAtIso: this.timestampToIso(question['expiresAt']),
@@ -662,6 +778,15 @@ export class GameFacadeService {
 
   private stringArray(value: unknown): string[] {
     return Array.isArray(value) ? value.map(item => String(item)) : [];
+  }
+
+  private firstNameFromGoogleUser(user: { displayName: string | null; email: string | null }): string {
+    const displayName = user.displayName?.trim();
+    if (displayName) {
+      return displayName.split(/\s+/)[0];
+    }
+
+    return user.email?.split('@')[0] ?? '';
   }
 
   private buildPlayerRole(uid: string | null, lobby: LobbyState | null, blueprint: GameBlueprint): PlayerRole {

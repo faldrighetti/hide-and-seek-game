@@ -43,4 +43,13 @@ export class HomePage {
       this.authLoading = false;
     }
   }
+
+  public firstName(user: User): string {
+    const displayName = user.displayName?.trim();
+    if (displayName) {
+      return displayName.split(/\s+/)[0];
+    }
+
+    return user.email?.split('@')[0] ?? 'Jugador';
+  }
 }

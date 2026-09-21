@@ -30,6 +30,7 @@ export interface TurnStatus {
   runNumber: number;
   hiderTeamId: string;
   phase: Phase;
+  startedAtIso: string | null;
   endsAtIso: string;
   pendingQuestionId: string | null;
   pendingQuestionEndsAtIso: string | null;
@@ -38,6 +39,8 @@ export interface TurnStatus {
   drawPileCount: number;
   discardPileCount: number;
   lootOffer: LootOffer | null;
+  categoryCooldowns: Record<string, string | null>;
+  askedQuestionPrompts: string[];
   hidingZone: HidingZone | null;
   baseStationCandidateIds: string[];
   baseStationSelectionRequired: boolean;
@@ -46,9 +49,32 @@ export interface TurnStatus {
   foundVotes: string[];
   foundConfirmed: boolean;
   captureAttempt: CaptureAttempt | null;
+  endgameConsultation: EndgameConsultation | null;
   endgameEligible: boolean;
   endgameActive: boolean;
   endgameQuestionsUnlocked: boolean;
+  lastQuestionResult: LastQuestionResult | null;
+  moveState: MoveState | null;
+}
+
+export interface MoveState {
+  status: 'ACTIVE' | 'COMPLETED';
+  cardId: string;
+  startedAtIso: string | null;
+  endsAtIso: string | null;
+  previousStationId: string;
+  targetStationId: string | null;
+  completedAtIso: string | null;
+  remainingPhaseSeconds: number;
+}
+
+export interface EndgameConsultation {
+  status: 'PENDING_HIDER' | 'CONFIRMED' | 'REJECTED';
+  requestedByUid: string;
+  requestedByTeamId: string;
+  requestedAtIso: string | null;
+  resolvedByUid: string | null;
+  resolvedAtIso: string | null;
 }
 
 export interface CaptureAttempt {
@@ -74,6 +100,16 @@ export interface HidingZone {
 
 
 export type QuestionResolution = 'ANSWER' | 'VETO' | 'RANDOMIZE';
+export type LastQuestionResolution = QuestionResolution | 'TIMEOUT';
+
+export interface LastQuestionResult {
+  questionId: string;
+  categoryId: string;
+  prompt: string;
+  resolution: LastQuestionResolution;
+  answerText: string | null;
+  resolvedAtIso: string | null;
+}
 
 export interface PendingQuestion {
   id: string;
@@ -82,6 +118,7 @@ export interface PendingQuestion {
   isPhoto: boolean;
   distanceM: number | null;
   customDistanceM: number | null;
+  answerText: string | null;
   status: 'PENDING' | 'RESOLVED' | 'EXPIRED';
   createdAtIso: string | null;
   expiresAtIso: string | null;
@@ -172,6 +209,8 @@ export interface OperationalState {
 
 export interface GameBlueprint {
   gameName: string;
+  status: GameStatus;
+  winnerTeamIds: string[];
   mode: GameMode;
   settings: GameSettings;
   operational: OperationalState;

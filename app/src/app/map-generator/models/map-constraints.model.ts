@@ -45,6 +45,18 @@ export interface ManualCircleConstraint {
   enabled: boolean;
 }
 
+export interface ManualDirectionConstraint {
+  id: string;
+  type: 'MANUAL_DIRECTION';
+  origin: {
+    lat: number;
+    lng: number;
+  };
+  direction: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST';
+  reason?: string;
+  enabled: boolean;
+}
+
 export interface RadarConstraint {
   id: string;
   type: 'RADAR';
@@ -92,7 +104,7 @@ export interface MeasuringConstraint {
 
 export interface MatchingConstraint {
   type: 'MATCHING';
-  field: 'BARRIO' | 'COMUNA' | 'BASE_STATION';
+  field: 'BARRIO' | 'COMUNA';
   seekerValue: string | number;
   answer: 'MATCH' | 'NO_MATCH';
 }
@@ -105,6 +117,7 @@ export type MapConstraint =
   | ManualEliminationConstraint
   | ManualRestoreConstraint
   | ManualCircleConstraint
+  | ManualDirectionConstraint
   | RadarConstraint
   | ThermometerConstraint
   | MeasuringConstraint
@@ -130,3 +143,4 @@ export interface StationCandidateView {
   status: StationEvaluationStatus;
   selected: boolean;
 }
+

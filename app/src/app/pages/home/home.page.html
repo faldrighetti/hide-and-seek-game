@@ -17,7 +17,7 @@
             <img [src]="user.photoURL" alt="" />
           </ion-avatar>
           <ion-label>
-            <h2>{{ user.displayName || 'Jugador' }}</h2>
+            <h2>{{ firstName(user) }}</h2>
             <p>{{ user.email }}</p>
           </ion-label>
           <ion-button size="small" fill="clear" [disabled]="authLoading" (click)="signOut()">Salir</ion-button>

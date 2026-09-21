@@ -1,4 +1,8 @@
-import {Timestamp} from "firebase-admin/firestore";
+import {
+  DocumentReference,
+  Timestamp,
+  Transaction,
+} from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "./firebase";
@@ -11,6 +15,7 @@ import {
   GameDoc,
   GameMode,
   GameSettings,
+  MOVE_DURATION_SECONDS,
 
   QUESTION_DRAW_RULES,
   SEAT_OFFLINE_SECONDS,
@@ -362,8 +367,9 @@ export const confirmBaseStation = onCall(async (request) => {
     if (game.status !== "LIVE" || !turn) {
       throw new HttpsError("failed-precondition", "La partida no esta en juego activo.");
     }
-    if (turn.phase !== "ESCAPE" && !(turn.phase === "CHASE" && turn.baseStationSelectionRequired)) {
-      throw new HttpsError("failed-precondition", "La estacion base solo se confirma durante ESCAPE o si quedo pendiente.");
+    const activeMove = turn.moveState?.status === "ACTIVE" ? turn.moveState : null;
+    if (turn.phase !== "ESCAPE" && !(turn.phase === "CHASE" && turn.baseStationSelectionRequired) && !activeMove) {
+      throw new HttpsError("failed-precondition", "La estacion base solo se confirma durante ESCAPE, Move o si quedo pendiente.");
     }
 
     const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
@@ -374,7 +380,7 @@ export const confirmBaseStation = onCall(async (request) => {
     const radiusM = game.settings.zoneRadiusM;
     const hidingZone = buildHidingZoneForStation(stationId, radiusM);
 
-    if (turn.phase === "CHASE" && turn.baseStationSelectionRequired) {
+    if (turn.phase === "CHASE" && turn.baseStationSelectionRequired && !activeMove) {
       const allowedCandidateIds = turn.baseStationCandidateIds ?? [];
       if (allowedCandidateIds.length > 0 && !allowedCandidateIds.includes(stationId)) {
         throw new HttpsError("failed-precondition", "Esa estacion no esta entre las opciones detectadas al final del escape.");
@@ -382,21 +388,28 @@ export const confirmBaseStation = onCall(async (request) => {
     }
 
     const now = nowTs();
-    tx.update(gameRef, {
-      currentTurn: {
-        ...turn,
-        hidingZone,
-        baseStationCandidateIds: [],
-        baseStationSelectionRequired: false,
-        endgameActive: false,
-        endgameAnchorPoint: null,
-        endgameLastChangedAt: null,
-        lastEndgameVerificationAt: null,
-        endgameQuestionsUnlocked: false,
-        lastEndgameQuestionsConsultAt: null,
-        foundVotes: [],
-        captureAttempt: null,
+    const currentTurn = activeMove ? {
+      ...turn,
+      moveState: {
+        ...activeMove,
+        targetStationId: stationId,
       },
+    } : {
+      ...turn,
+      hidingZone,
+      baseStationCandidateIds: [],
+      baseStationSelectionRequired: false,
+      endgameActive: false,
+      endgameAnchorPoint: null,
+      endgameLastChangedAt: null,
+      lastEndgameVerificationAt: null,
+      endgameQuestionsUnlocked: false,
+      lastEndgameQuestionsConsultAt: null,
+      foundVotes: [],
+      captureAttempt: null,
+    };
+    tx.update(gameRef, {
+      currentTurn,
       updatedAt: now,
     });
     appendGameEventInTx(tx, gameRef, game, {
@@ -407,6 +420,7 @@ export const confirmBaseStation = onCall(async (request) => {
       payload: {
         stationId,
         radiusM,
+        moveActive: Boolean(activeMove),
         selectionWasPending: turn.baseStationSelectionRequired ?? false,
       },
     });
@@ -482,6 +496,7 @@ export const consultEndgameQuestions = onCall(async (request) => {
 
   let unlocked = false;
   let cooldownActive = false;
+  let pendingConfirmation = false;
   const gameRef = db.collection("games").doc(gameId);
   await db.runTransaction(async (tx) => {
     const gameSnap = await tx.get(gameRef);
@@ -511,12 +526,26 @@ export const consultEndgameQuestions = onCall(async (request) => {
         now.toMillis() - lastConsultMillis < ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS * 1000;
     }
 
+    const currentTurn = {
+      ...refreshedTurn,
+      endgameQuestionsUnlocked: unlocked ? true : refreshedTurn.endgameQuestionsUnlocked ?? false,
+      lastEndgameQuestionsConsultAt: cooldownActive ? refreshedTurn.lastEndgameQuestionsConsultAt ?? null : now,
+      endgameConsultation: refreshedTurn.endgameConsultation ?? null,
+    };
+    if (!unlocked && !cooldownActive && refreshedTurn.endgameConsultation?.status !== "PENDING_HIDER") {
+      pendingConfirmation = true;
+      currentTurn.endgameConsultation = {
+        status: "PENDING_HIDER",
+        requestedByUid: uid,
+        requestedByTeamId: seatTeamId,
+        requestedAt: now,
+        resolvedByUid: null,
+        resolvedAt: null,
+      };
+    }
+
     tx.update(gameRef, {
-      currentTurn: {
-        ...refreshedTurn,
-        endgameQuestionsUnlocked: unlocked ? true : refreshedTurn.endgameQuestionsUnlocked ?? false,
-        lastEndgameQuestionsConsultAt: cooldownActive ? refreshedTurn.lastEndgameQuestionsConsultAt ?? null : now,
-      },
+      currentTurn,
       updatedAt: now,
     });
     appendGameEventInTx(tx, gameRef, game, {
@@ -527,11 +556,70 @@ export const consultEndgameQuestions = onCall(async (request) => {
       payload: {
         unlocked,
         cooldownActive,
+        pendingConfirmation,
       },
     });
   });
 
-  return {ok: true, unlocked, cooldownActive};
+  return {ok: true, unlocked, cooldownActive, pendingConfirmation};
+});
+
+export const resolveEndgameConsultation = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const confirmed = Boolean(request.data?.confirmed);
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "La consulta de endgame solo se responde en CHASE.");
+    }
+    assertOperationalPlayAllowed(game);
+    if (turn.endgameConsultation?.status !== "PENDING_HIDER") {
+      throw new HttpsError("failed-precondition", "No hay consulta de endgame pendiente.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede responder la consulta de endgame.");
+    }
+
+    const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "resolve_endgame_consultation", now, 5);
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        endgameActive: confirmed ? true : turn.endgameActive ?? false,
+        endgameLastChangedAt: confirmed ? turn.endgameLastChangedAt ?? now : turn.endgameLastChangedAt ?? null,
+        endgameQuestionsUnlocked: confirmed ? true : turn.endgameQuestionsUnlocked ?? false,
+        endgameConsultation: {
+          ...turn.endgameConsultation,
+          status: confirmed ? "CONFIRMED" : "REJECTED",
+          resolvedByUid: uid,
+          resolvedAt: now,
+        },
+      },
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: confirmed ? "ENDGAME_CONSULTATION_CONFIRMED" : "ENDGAME_CONSULTATION_REJECTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        requestedByTeamId: turn.endgameConsultation.requestedByTeamId,
+      },
+    });
+  });
+
+  return {ok: true};
 });
 
 export const sendQuestion = onCall(async (request) => {
@@ -585,6 +673,9 @@ export const sendQuestion = onCall(async (request) => {
     }
     if (game.currentTurn.pendingQuestionId) {
       throw new HttpsError("failed-precondition", "Ya existe una pregunta pendiente.");
+    }
+    if (game.currentTurn.moveState?.status === "ACTIVE") {
+      throw new HttpsError("failed-precondition", "No se pueden hacer preguntas durante Move.");
     }
     if (game.currentTurn.lootOffer) {
       throw new HttpsError("failed-precondition", "Hay loot pendiente de resolver.");
@@ -987,6 +1078,218 @@ export const completeCurseEffect = onCall(async (request) => {
   return {ok: true};
 });
 
+export const playDiscardDrawPowerup = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const cardId = String(request.data?.cardId ?? "").trim();
+  const discardCardIds: string[] = Array.isArray(request.data?.discardCardIds) ?
+    request.data.discardCardIds.map((value: unknown) => String(value)) :
+    [];
+
+  if (!gameId || !cardId) {
+    throw new HttpsError("invalid-argument", "gameId y cardId son obligatorios.");
+  }
+  const baseCardId = cardId.split("#")[0];
+  const rule = baseCardId === "powerup_discard1_draw2" ?
+    {discard: 1, draw: 2} :
+    baseCardId === "powerup_discard2_draw3" ?
+      {discard: 2, draw: 3} :
+      null;
+  if (!rule) {
+    throw new HttpsError("invalid-argument", "Carta de descarte/robo invalida.");
+  }
+  if (discardCardIds.length !== rule.discard || hasDuplicates(discardCardIds)) {
+    throw new HttpsError("invalid-argument", `Tenés que descartar exactamente ${rule.discard} carta(s).`);
+  }
+  if (discardCardIds.includes(cardId)) {
+    throw new HttpsError("invalid-argument", "La carta jugada se descarta automaticamente; elegí otras cartas.");
+  }
+
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "La carta solo se juega en CHASE.");
+    }
+    assertOperationalPlayAllowed(game);
+    if (turn.lootOffer) {
+      throw new HttpsError("failed-precondition", "Primero resolvé el loot pendiente.");
+    }
+    if (turn.moveState?.status === "ACTIVE") {
+      throw new HttpsError("failed-precondition", "No se puede jugar esta carta durante Move.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede jugar esta carta.");
+    }
+
+    const hand = [...(turn.hiderHand ?? [])];
+    const powerupIndex = hand.indexOf(cardId);
+    if (powerupIndex < 0) {
+      throw new HttpsError("invalid-argument", "La carta no esta en la mano del hider.");
+    }
+    const discardSet = new Set(discardCardIds);
+    for (const discardCardId of discardSet) {
+      if (!hand.includes(discardCardId)) {
+        throw new HttpsError("invalid-argument", "Todas las cartas a descartar deben estar en la mano.");
+      }
+    }
+
+    const handAfterDiscard = hand.filter((heldCardId) => heldCardId !== cardId && !discardSet.has(heldCardId));
+    if (handAfterDiscard.length !== hand.length - rule.discard - 1) {
+      throw new HttpsError("invalid-argument", "Selección de descarte invalida.");
+    }
+
+    const drawResult = drawFromDeck({
+      ...turn,
+      hiderHand: handAfterDiscard,
+      discardPile: [
+        ...(turn.discardPile ?? []),
+        cardId,
+        ...discardCardIds,
+      ],
+    }, rule.draw);
+    const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "play_discard_draw_powerup", now, 5);
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        hiderHand: [
+          ...handAfterDiscard,
+          ...drawResult.drawnCardIds,
+        ],
+        drawPile: drawResult.drawPile,
+        discardPile: drawResult.discardPile,
+      },
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "DISCARD_DRAW_POWERUP_PLAYED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        cardId,
+        discardedCardIds: discardCardIds,
+        drawnCount: drawResult.drawnCardIds.length,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
+export const playMovePowerup = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const cardId = String(request.data?.cardId ?? "").trim();
+
+  if (!gameId || !cardId) {
+    throw new HttpsError("invalid-argument", "gameId y cardId son obligatorios.");
+  }
+  if (cardId.split("#")[0] !== "powerup_move") {
+    throw new HttpsError("invalid-argument", "Carta Move invalida.");
+  }
+
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (!turn || game.status !== "LIVE" || turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "SALÍ DE AHÍ solo se juega en CHASE.");
+    }
+    assertOperationalPlayAllowed(game);
+    if (!turn.hidingZone?.stationId) {
+      throw new HttpsError("failed-precondition", "La base actual todavia no esta fijada.");
+    }
+    if (turn.pendingQuestionId) {
+      throw new HttpsError("failed-precondition", "No se puede jugar SALÍ DE AHÍ con una pregunta pendiente.");
+    }
+    if (turn.lootOffer) {
+      throw new HttpsError("failed-precondition", "Primero resolvé el loot pendiente.");
+    }
+    if (turn.endgameActive) {
+      throw new HttpsError("failed-precondition", "No se puede jugar SALÍ DE AHÍ durante endgame.");
+    }
+    if (turn.moveState?.status === "ACTIVE") {
+      throw new HttpsError("failed-precondition", "SALÍ DE AHÍ ya está activo.");
+    }
+
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (seatTeamId !== turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo el hider puede jugar SALÍ DE AHÍ.");
+    }
+
+    const hand = [...(turn.hiderHand ?? [])];
+    const cardIndex = hand.indexOf(cardId);
+    if (cardIndex < 0) {
+      throw new HttpsError("invalid-argument", "La carta no esta en la mano del hider.");
+    }
+    hand.splice(cardIndex, 1);
+
+    const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "play_move_powerup", now, 5);
+    const remainingPhaseSeconds = Math.max(0, Math.ceil((turn.phaseEndsAt.toMillis() - now.toMillis()) / 1000));
+    const endsAt = Timestamp.fromMillis(now.toMillis() + MOVE_DURATION_SECONDS * 1000);
+
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        hiderHand: hand,
+        discardPile: [...(turn.discardPile ?? []), cardId],
+        moveState: {
+          status: "ACTIVE",
+          cardId,
+          startedAt: now,
+          endsAt,
+          previousStationId: turn.hidingZone.stationId,
+          targetStationId: null,
+          completedAt: null,
+          remainingPhaseSeconds,
+        },
+        baseStationCandidateIds: [],
+        baseStationSelectionRequired: true,
+        endgameActive: false,
+        endgameAnchorPoint: null,
+        endgameLastChangedAt: null,
+        lastEndgameVerificationAt: null,
+        endgameQuestionsUnlocked: false,
+        lastEndgameQuestionsConsultAt: null,
+        foundVotes: [],
+        captureAttempt: null,
+      },
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "MOVE_STARTED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {
+        cardId,
+        previousStationId: turn.hidingZone.stationId,
+        endsAt,
+        remainingPhaseSeconds,
+      },
+    });
+  });
+
+  return {ok: true};
+});
+
 export const startCaptureAttempt = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
@@ -1363,6 +1666,57 @@ export {
   finishGame,
 } from "./query-callables";
 
+const completeMoveIfDueInTx = (
+  tx: Transaction,
+  gameRef: DocumentReference,
+  game: GameDoc,
+  turn: TurnState,
+  txNow: Timestamp,
+): TurnState => {
+  const moveState = turn.moveState;
+  if (!moveState || moveState.status !== "ACTIVE" || moveState.endsAt.toMillis() > txNow.toMillis()) {
+    return turn;
+  }
+
+  const nextStationId = moveState.targetStationId || moveState.previousStationId;
+  const hidingZone = buildHidingZoneForStation(nextStationId, game.settings.zoneRadiusM);
+  const nextTurn: TurnState = {
+    ...turn,
+    phaseEndsAt: Timestamp.fromMillis(txNow.toMillis() + moveState.remainingPhaseSeconds * 1000),
+    hidingZone,
+    baseStationCandidateIds: [],
+    baseStationSelectionRequired: false,
+    moveState: {
+      ...moveState,
+      status: "COMPLETED",
+      targetStationId: nextStationId,
+      completedAt: txNow,
+    },
+    endgameActive: false,
+    endgameAnchorPoint: null,
+    endgameLastChangedAt: null,
+    lastEndgameVerificationAt: null,
+    endgameQuestionsUnlocked: false,
+    lastEndgameQuestionsConsultAt: null,
+    foundVotes: [],
+    captureAttempt: null,
+  };
+
+  appendGameEventInTx(tx, gameRef, game, {
+    type: "MOVE_COMPLETED",
+    createdAt: txNow,
+    actorUid: null,
+    actorTeamId: turn.hiderTeamId,
+    payload: {
+      previousStationId: moveState.previousStationId,
+      stationId: nextStationId,
+      targetWasSelected: Boolean(moveState.targetStationId),
+    },
+  });
+
+  return nextTurn;
+};
+
 export const processGameTick = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
@@ -1383,7 +1737,8 @@ export const processGameTick = onCall(async (request) => {
     const txNow = nowTs();
     const phaseDueAtStart = turn.phaseEndsAt.toMillis() <= txNow.toMillis();
     const questionDueAtStart = Boolean(turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis());
-    if (!phaseDueAtStart && !questionDueAtStart) return;
+    const moveDueAtStart = Boolean(turn.moveState?.status === "ACTIVE" && turn.moveState.endsAt.toMillis() <= txNow.toMillis());
+    if (!phaseDueAtStart && !questionDueAtStart && !moveDueAtStart) return;
 
     await assertRateLimitInTx(tx, gameRef, uid, `process_game_tick_${turn.runNumber}_${turn.phase}`, txNow, 3);
 
@@ -1406,6 +1761,13 @@ export const processGameTick = onCall(async (request) => {
       turn.pendingQuestionId = null;
       turn.pendingQuestionEndsAt = null;
       turn.expirations += 1;
+      changed = true;
+    }
+
+    const turnAfterMove = completeMoveIfDueInTx(tx, gameRef, game, turn, txNow);
+    if (turnAfterMove !== turn) {
+      game.currentTurn = turnAfterMove;
+      turn = turnAfterMove;
       changed = true;
     }
 
@@ -1480,7 +1842,8 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
     if (!turn) return false;
     const phaseDue = turn.phaseEndsAt.toMillis() <= now.toMillis();
     const questionDue = Boolean(turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= now.toMillis());
-    return phaseDue || questionDue;
+    const moveDue = Boolean(turn.moveState?.status === "ACTIVE" && turn.moveState.endsAt.toMillis() <= now.toMillis());
+    return phaseDue || questionDue || moveDue;
   });
 
   const tasks = dueDocs.map(async (docSnap) => {
@@ -1514,6 +1877,13 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
         turn.pendingQuestionId = null;
         turn.pendingQuestionEndsAt = null;
         turn.expirations += 1;
+        changed = true;
+      }
+
+      const turnAfterMove = completeMoveIfDueInTx(tx, docSnap.ref, game, turn, txNow);
+      if (turnAfterMove !== turn) {
+        game.currentTurn = turnAfterMove;
+        turn = turnAfterMove;
         changed = true;
       }
 
