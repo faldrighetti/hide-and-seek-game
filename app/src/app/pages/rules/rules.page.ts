@@ -16,7 +16,7 @@ export class RulesPage {
     {
       title: 'Estructura del juego',
       items: [
-        'Cada partida se divide en turnos. En cada turno hay un equipo/jugador escondido y el resto son buscadores.',
+        'Cada partida se divide en turnos. En cada turno hay un equipo escondido y el resto de equipos son buscadores.',
         'Cada turno tiene fase de escape, fase de búsqueda, posible endgame, captura o vencimiento del tiempo, e intervalo.',
         'El tiempo oficial y el orden de las acciones los determina el servidor.',
         'El equipo ganador es el que, cuando todos los equipos tuvieron su/s turno/s de esconderse, termina con el tiempo más largo de escondite en un solo turno.',
@@ -38,15 +38,15 @@ export class RulesPage {
         'Durante el escape, el escondido elige una estación jugable como base y puede cambiarla hasta que la confirme manualmente o la confirme el sistema al final de la fase de escape.',
         'Si no confirma una estación antes de que termine el escape, el servidor asigna la estación jugable más cercana a la última ubicación válida.',
         'La zona de escondite es un círculo de 600 metros de radio alrededor de la estación base.',
-        'Durante la búsqueda, el escondido debe permanecer dentro de su zona de escondite y no puede cambiar de estación base salvo mediante la carta Move.',
+        'Durante la búsqueda, el escondido debe permanecer dentro de su zona de escondite y no puede cambiar de estación base salvo mediante la carta "Salí de ahí".',
       ],
     },
     {
       title: 'Buscadores',
       items: [
-        'Debe haber al menos 2 buscadores.',
-        'Los buscadores deben permanecer juntos, comparten la misma información y cualquiera puede enviar preguntas.',
-        'Todos los jugadores deben compartir ubicación. El equipo escondido puede ver la ubicación del equipo buscador.',
+        'Los integrantes de cada equipo deben permanecer juntos.',
+        'Cualquiera de los buscadores puede enviar preguntas.',
+        'Los buscadores deben compartir ubicación con el equipo escondido.',
       ],
     },
     {
@@ -68,11 +68,11 @@ export class RulesPage {
     {
       title: 'Endgame y captura',
       items: [
-        'El endgame se activa automáticamente cuando los buscadores están dentro de la zona de escondite y no están subidos a un medio de transporte.',
-        'Una vez iniciado el endgame, el escondido debe quedarse fijo en un punto público, legalmente accesible, en planta baja y razonablemente visible. No tiene permitido cambiar de ubicación.',
-        'Encontrar al escondido requiere reconocimiento inequivoco en persona y confirmacion manual entre jugadores.',
-        'Cuando los buscadores se encuentran a 15 metros o menos del escondido, se activará el botón para confirmar la captura al sistema.',
-        'Una vez que se confirma la captura, inicia la fase de intervalo y el turno termina. Los roles se invierten y al finalizar la fase de intervalo, empieza la fase de escape.'
+        'El endgame se activa cuando los buscadores consultan y el escondido lo confirma. Para consultarlo, tienen que creer estar dentro de la zona de escondite y no estar subidos a ningún transporte.',
+        'Una vez iniciado el endgame, el escondido debe quedarse fijo en un punto público, en planta baja y razonablemente visible. No tiene permitido cambiar de ubicación.',
+        'Encontrar al escondido requiere reconocimiento inequívoco en persona y confirmacion manual entre jugadores.',
+        'Para confirmar la captura al sistema, los buscadores deben realizar una confirmación manual y los escondidos deben confirmar la captura.',
+        'Una vez que se confirma la captura, el turno termina e inicia la fase de intervalo. Los roles se invierten y al finalizar la fase de intervalo, empieza la fase de escape.'
       ],
     },
     {
@@ -85,9 +85,7 @@ export class RulesPage {
     {
       title: 'Pausas y emergencias',
       items: [
-        'La ubicacion se coordina por fuera de la app. La app registra pausas, emergencias, desconexion temporal y abandono tecnico.',
-        'Si un jugador sale del área de juego de manera sostenida, se alerta a todos y el turno puede congelarse hasta resolverlo.',
-        'Cualquier jugador puede declarar una emergencia. La seguridad prevalece sobre la competencia y se revelan las ubicaciones.',
+        'La ubicación se coordina por fuera de la app. La app registra pausas y abandono técnico.',
       ],
     },
     {
