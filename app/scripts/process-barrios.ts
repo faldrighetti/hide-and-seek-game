@@ -22,7 +22,7 @@ const RIACHUELO_PATH = join(ASSETS_DIR, 'riachuelo.geojson');
 const PROCESSED_STATIONS_PATH = join(ASSETS_DIR, 'stations.processed.json');
 const SIMPLIFIED_BARRIOS_PATH = join(ASSETS_DIR, 'barrios_caba.simplified.json');
 const MAP_BOUNDS_PATH = join(ASSETS_DIR, 'map-generator.bounds.json');
-const MAP_NAVIGATION_BUFFER_M = 2000;
+const MAP_NAVIGATION_BUFFER_M = 600;
 
 const STATION_FILE_CANDIDATES = [
   join(ASSETS_DIR, 'stations.json'),
