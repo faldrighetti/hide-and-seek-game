@@ -142,6 +142,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   matchingField: MatchingConstraint['field'] = 'BARRIO';
   matchingValue = '';
   questionValidationError = '';
+  readonly selectPopoverOptions = { cssClass: 'fit-select-popover' };
   activeGameId = '';
   pendingGameQuestion: PendingQuestion | null = null;
   loadedGameQuestion: PendingQuestion | null = null;

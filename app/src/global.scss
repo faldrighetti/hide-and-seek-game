@@ -36,3 +36,18 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
 @import "leaflet/dist/leaflet.css";
+.fit-select-popover {
+  --width: max-content;
+  --max-width: none;
+}
+
+.fit-select-popover ion-list,
+.fit-select-popover ion-item,
+.fit-select-popover ion-radio {
+  width: max-content;
+  max-width: none;
+}
+
+.fit-select-popover ion-label {
+  white-space: nowrap;
+}

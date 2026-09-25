@@ -195,7 +195,7 @@
           <ion-select
             label="Catálogo"
             labelPlacement="stacked"
-            interface="popover"
+            interface="popover" [interfaceOptions]="selectPopoverOptions"
             [value]="selectedQuestionOptionId"
             (ionChange)="onQuestionOptionChange($any($event.detail.value))"
           >
@@ -235,11 +235,11 @@
             </ion-segment>
 
             <div class="coordinate-grid" *ngIf="option.category === 'measuring'">
-              <ion-select label="Target" labelPlacement="stacked" interface="popover" [(ngModel)]="measuringTarget">
+              <ion-select label="Target" labelPlacement="stacked" interface="popover" [interfaceOptions]="selectPopoverOptions" [(ngModel)]="measuringTarget">
                 <ion-select-option value="GENERAL_PAZ">General Paz</ion-select-option>
                 <ion-select-option value="RIACHUELO">Riachuelo</ion-select-option>
               </ion-select>
-              <ion-select label="Respuesta" labelPlacement="stacked" interface="popover" [(ngModel)]="questionAnswer">
+              <ion-select label="Respuesta" labelPlacement="stacked" interface="popover" [interfaceOptions]="selectPopoverOptions" [(ngModel)]="questionAnswer">
                 <ion-select-option value="CLOSER">Más cerca</ion-select-option>
                 <ion-select-option value="FARTHER">Más lejos</ion-select-option>
                 <ion-select-option value="EQUAL">Igual</ion-select-option>
@@ -256,7 +256,7 @@
               <ion-select
                 label="Campo"
                 labelPlacement="stacked"
-                interface="popover"
+                interface="popover" [interfaceOptions]="selectPopoverOptions"
                 [(ngModel)]="matchingField"
                 (ionChange)="updateMatchingValueFromSeekerLocation()"
               >
@@ -267,7 +267,7 @@
                 *ngIf="matchingField === 'BARRIO'"
                 label="Valor seeker"
                 labelPlacement="stacked"
-                interface="popover"
+                interface="popover" [interfaceOptions]="selectPopoverOptions"
                 [(ngModel)]="matchingValue"
               >
                 <ion-select-option *ngFor="let barrio of barrioOptions" [value]="barrio">{{ barrio }}</ion-select-option>
@@ -276,7 +276,7 @@
                 *ngIf="matchingField === 'COMUNA'"
                 label="Valor seeker"
                 labelPlacement="stacked"
-                interface="popover"
+                interface="popover" [interfaceOptions]="selectPopoverOptions"
                 [(ngModel)]="matchingValue"
               >
                 <ion-select-option *ngFor="let comuna of comunaOptions" [value]="comuna.id.toString()">{{ comuna.label }}</ion-select-option>
