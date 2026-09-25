@@ -11,11 +11,8 @@
 }
 
 .map-panel {
-  align-items: center;
-  display: flex;
   min-width: 0;
   overflow: hidden;
-  padding-block: 24px;
 }
 
 #map-generator-leaflet {
@@ -153,10 +150,6 @@ ion-item.selected {
   .control-panel {
     border-right: 0;
     max-height: 48vh;
-  }
-
-  .map-panel {
-    padding-block: 0;
   }
 
   #map-generator-leaflet {

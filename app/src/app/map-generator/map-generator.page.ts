@@ -591,13 +591,18 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const playableBounds = L.latLngBounds(stationCoordinates);
-    this.map.setMaxBounds(playableBounds.pad(0.35));
-    this.map.fitBounds(playableBounds.pad(0.08), {
-      padding: [18, 18],
+    const cabaStationCoordinates = this.stations
+      .filter(station => Boolean(station.barrio) && Number.isFinite(station.lat) && Number.isFinite(station.lng))
+      .map(station => L.latLng(station.lat, station.lng));
+    const maxPlayableBounds = L.latLngBounds(stationCoordinates);
+    const focusBounds = L.latLngBounds(cabaStationCoordinates.length > 0 ? cabaStationCoordinates : stationCoordinates);
+    this.map.setMaxBounds(maxPlayableBounds.pad(0.35));
+    this.map.fitBounds(focusBounds.pad(0.03), {
+      padding: [10, 10],
       animate: false,
       maxZoom: 12,
     });
+    this.map.panTo(focusBounds.getCenter(), { animate: false });
   }
   private async loadMapData(): Promise<void> {
     try {
