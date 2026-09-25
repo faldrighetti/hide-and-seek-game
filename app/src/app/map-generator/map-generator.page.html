@@ -239,8 +239,11 @@
                 <ion-select-option value="GENERAL_PAZ">General Paz</ion-select-option>
                 <ion-select-option value="RIACHUELO">Riachuelo</ion-select-option>
               </ion-select>
-              <ion-input label="Lat seeker" labelPlacement="stacked" type="number" [(ngModel)]="currentSeekerLat"></ion-input>
-              <ion-input label="Lng seeker" labelPlacement="stacked" type="number" [(ngModel)]="currentSeekerLng"></ion-input>
+              <ion-select label="Respuesta" labelPlacement="stacked" interface="popover" [(ngModel)]="questionAnswer">
+                <ion-select-option value="CLOSER">Más cerca</ion-select-option>
+                <ion-select-option value="FARTHER">Más lejos</ion-select-option>
+                <ion-select-option value="EQUAL">Igual</ion-select-option>
+              </ion-select>
             </div>
             <ion-note *ngIf="option.category === 'measuring' && computedMeasuringDistanceM !== null">
               Distancia calculada: {{ computedMeasuringDistanceM }} m
@@ -248,17 +251,6 @@
             <ion-note *ngIf="option.category === 'measuring' && computedMeasuringNearestPoint as nearestPoint">
               Punto más cercano: {{ nearestPoint.lat | number: '1.5-5' }}, {{ nearestPoint.lng | number: '1.5-5' }}
             </ion-note>
-            <ion-segment *ngIf="option.category === 'measuring'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
-              <ion-segment-button value="CLOSER">
-                <ion-label>Más cerca</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="FARTHER">
-                <ion-label>Más lejos</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="EQUAL">
-                <ion-label>Igual</ion-label>
-              </ion-segment-button>
-            </ion-segment>
 
             <div class="coordinate-grid" *ngIf="option.category === 'matching'">
               <ion-select

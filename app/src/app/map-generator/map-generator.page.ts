@@ -1193,7 +1193,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.comunaOptions = (geography.comunas ?? [])
       .map(comuna => ({
         id: Number(comuna.id),
-        label: comuna.nombre?.trim() || `Comuna ${comuna.id}`,
+        label: String(comuna.id),
       }))
       .filter(comuna => Number.isFinite(comuna.id))
       .sort((first, second) => first.id - second.id);
