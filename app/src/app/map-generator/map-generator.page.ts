@@ -51,7 +51,7 @@ interface MapNavigationBoundsAsset {
 
 interface CabaGeographyAsset {
   barrios?: Array<{ nombre?: string }>;
-  comunas?: Array<{ id?: number; nombre?: string }>;
+  comunas?: Array<{ id?: number; nombre?: string; barrios?: string[] }>;
 }
 
 interface QuestionCatalogAsset {
@@ -1193,7 +1193,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.comunaOptions = (geography.comunas ?? [])
       .map(comuna => ({
         id: Number(comuna.id),
-        label: String(comuna.id),
+        label: String(comuna.id) + ' - ' + (comuna.barrios ?? []).join(', '),
       }))
       .filter(comuna => Number.isFinite(comuna.id))
       .sort((first, second) => first.id - second.id);
