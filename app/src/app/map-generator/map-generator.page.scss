@@ -1,6 +1,6 @@
 .map-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) 1fr;
+  grid-template-columns: minmax(480px, 1fr) clamp(320px, 38vw, 560px);
   min-height: calc(100vh - 56px);
 }
 
@@ -139,7 +139,7 @@ ion-item.selected {
   font-size: 20px;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .map-layout {
     grid-template-columns: 1fr;
   }

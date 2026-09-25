@@ -500,6 +500,26 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.map.fitBounds(maxBounds, { padding: [12, 12], animate: false });
   }
 
+  private fitMapToPlayableStations(): void {
+    if (!this.map || this.stations.length === 0) {
+      return;
+    }
+
+    const stationCoordinates = this.stations
+      .filter(station => Number.isFinite(station.lat) && Number.isFinite(station.lng))
+      .map(station => L.latLng(station.lat, station.lng));
+    if (stationCoordinates.length === 0) {
+      return;
+    }
+
+    const playableBounds = L.latLngBounds(stationCoordinates);
+    this.map.setMaxBounds(playableBounds.pad(0.35));
+    this.map.fitBounds(playableBounds.pad(0.08), {
+      padding: [18, 18],
+      animate: false,
+      maxZoom: 12,
+    });
+  }
   private async loadMapData(): Promise<void> {
     try {
       this.syncGameContextFromRoute();
@@ -550,6 +570,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       this.initMap(boundsAsset);
       this.allProcessedStations = stationsFile.stations;
       this.stations = stationsFile.stations.filter(station => station.isPlayable);
+      this.fitMapToPlayableStations();
       this.seekerState = this.seekerMapState.load(this.stateScopeKey);
       this.recalculateEvaluations();
 
