@@ -709,6 +709,7 @@ export const sendQuestion = onCall(async (request) => {
       distanceM,
       customDistanceM,
       status: "PENDING",
+      runNumber: game.currentTurn.runNumber,
       createdAt: now,
       expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
     });
@@ -777,7 +778,10 @@ export const resolveQuestion = onCall(async (request) => {
     const qSnap = await tx.get(qRef);
     await assertRateLimitInTx(tx, gameRef, uid, "resolve_question", now, 5);
     if (!qSnap.exists) throw new HttpsError("not-found", "Pregunta no encontrada.");
-    const categoryId = String(qSnap.data()?.categoryId ?? "").trim();
+    const questionData = qSnap.data() ?? {};
+    const categoryId = String(questionData.categoryId ?? "").trim();
+    const prompt = String(questionData.prompt ?? "");
+    const answerText = typeof request.data?.answerText === "string" ? String(request.data.answerText).trim() : "";
     const drawRule = QUESTION_DRAW_RULES[categoryId] ?? {draw: 1, take: 1};
     const deckDraw = drawFromDeck(turn, drawRule.draw);
 
@@ -786,6 +790,7 @@ export const resolveQuestion = onCall(async (request) => {
       resolution,
       resolvedByUid: uid,
       resolvedAt: now,
+      answerText: resolution === "ANSWER" ? answerText : null,
     });
 
     const categoryCooldowns = {...(turn.categoryCooldowns ?? {})};
@@ -801,6 +806,14 @@ export const resolveQuestion = onCall(async (request) => {
         categoryCooldowns,
         drawPile: deckDraw.drawPile,
         discardPile: deckDraw.discardPile,
+        lastQuestionResult: {
+          questionId: qRef.id,
+          categoryId,
+          prompt,
+          resolution: resolution as "ANSWER" | "VETO" | "RANDOMIZE",
+          answerText: resolution === "ANSWER" ? answerText : null,
+          resolvedAt: now,
+        },
         lootOffer: {
           questionId: qRef.id,
           categoryId,

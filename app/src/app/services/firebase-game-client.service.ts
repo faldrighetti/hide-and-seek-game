@@ -17,6 +17,7 @@ import {
   doc,
   getFirestore,
   onSnapshot,
+  orderBy,
   query,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -112,6 +113,29 @@ export class FirebaseGameClientService {
     });
   }
 
+  questions$(gameId: string): Observable<Array<Record<string, unknown> & { id: string }>> {
+    return new Observable(subscriber => {
+      let closed = false;
+      let unsubscribe: Unsubscribe | null = null;
+
+      this.auth.authStateReady()
+        .then(() => {
+          if (closed) return;
+          this.requireCurrentUser();
+          unsubscribe = onSnapshot(
+            query(collection(this.firestore, `games/${gameId}/questions`), orderBy('createdAt', 'desc')),
+            snapshot => subscriber.next(snapshot.docs.map(question => ({ id: question.id, ...question.data() }))),
+            error => subscriber.error(error),
+          );
+        })
+        .catch(error => subscriber.error(error));
+
+      return () => {
+        closed = true;
+        unsubscribe?.();
+      };
+    });
+  }
   questionDoc$(gameId: string, questionId: string): Observable<(Record<string, unknown> & { id: string }) | null> {
     return new Observable(subscriber => {
       let closed = false;
@@ -147,3 +171,5 @@ export class FirebaseGameClientService {
     connectFunctionsEmulator(this.functions, config.functionsHost, config.functionsPort);
   }
 }
+
+

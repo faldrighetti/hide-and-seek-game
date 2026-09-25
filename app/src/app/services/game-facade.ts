@@ -11,6 +11,7 @@ import {
   NotificationPreferences,
   PendingQuestion,
   PlayerRole,
+  TurnQuestionHistoryItem,
   QuestionResolution,
   Seat,
   TeamStanding,
@@ -148,7 +149,10 @@ export class GameFacadeService {
   private loadedGameId: string | null = null;
   private gameSubscription: Subscription | null = null;
   private questionSubscription: Subscription | null = null;
+  private questionsSubscription: Subscription | null = null;
   private loadedPendingQuestionKey: string | null = null;
+  private turnQuestionHistoryRunNumber = 0;
+  private turnQuestionHistoryStartedAt: number | null = null;
 
   private readonly blueprintSubject = new BehaviorSubject<GameBlueprint>(
     buildBlueprint('INDIVIDUAL_3', 2, 'TOTAL_TIME'),
@@ -160,6 +164,9 @@ export class GameFacadeService {
 
   private readonly pendingQuestionSubject = new BehaviorSubject<PendingQuestion | null>(null);
   readonly pendingQuestion$ = this.pendingQuestionSubject.asObservable();
+
+  private readonly turnQuestionHistorySubject = new BehaviorSubject<TurnQuestionHistoryItem[]>([]);
+  readonly turnQuestionHistory$ = this.turnQuestionHistorySubject.asObservable();
 
   readonly playerRole$ = combineLatest([
     this.firebaseClient.user$,
@@ -214,6 +221,9 @@ export class GameFacadeService {
     }
     this.loadedGameId = gameId;
     this.gameSubscription?.unsubscribe();
+    this.questionsSubscription?.unsubscribe();
+    this.questionsSubscription = null;
+    this.turnQuestionHistorySubject.next([]);
     this.gameSubscription = combineLatest([
       this.firebaseClient.gameDoc$(gameId),
       this.firebaseClient.seats$(gameId),
@@ -221,9 +231,11 @@ export class GameFacadeService {
       next: ([game, seats]) => {
         if (!game) {
           this.syncPendingQuestion(gameId, null);
+          this.turnQuestionHistorySubject.next([]);
           return;
         }
         this.syncPendingQuestion(gameId, this.getPendingQuestionId(game));
+        this.syncTurnQuestionHistory(gameId, game);
         this.blueprintSubject.next(this.mapGameDocToBlueprint(game));
         this.lobbySubject.next(this.mapGameDocToLobby(gameId, game, seats));
       },
@@ -660,6 +672,44 @@ export class GameFacadeService {
     return typeof pendingQuestionId === 'string' && pendingQuestionId.trim() ? pendingQuestionId : null;
   }
 
+  private syncTurnQuestionHistory(gameId: string, game: Record<string, unknown>): void {
+    const currentTurn = game['currentTurn'] as Record<string, unknown> | undefined;
+    const nextRunNumber = Number(currentTurn?.['runNumber'] ?? 0);
+    const turnStartedAtIso = this.timestampToIso(currentTurn?.['phaseStartedAt']);
+    const nextStartedAt = turnStartedAtIso ? Date.parse(turnStartedAtIso) : null;
+    const turnChanged = nextRunNumber !== this.turnQuestionHistoryRunNumber || nextStartedAt !== this.turnQuestionHistoryStartedAt;
+    this.turnQuestionHistoryRunNumber = nextRunNumber;
+    this.turnQuestionHistoryStartedAt = nextStartedAt;
+    if (turnChanged) {
+      this.turnQuestionHistorySubject.next([]);
+    }
+
+    if (this.questionsSubscription) {
+      return;
+    }
+
+    this.questionsSubscription = this.firebaseClient.questions$(gameId).subscribe({
+      next: questions => {
+        const mapped = questions
+          .map(question => this.mapTurnQuestionHistoryItem(question))
+          .filter(question => {
+            if (question.runNumber !== null) {
+              return question.runNumber === this.turnQuestionHistoryRunNumber;
+            }
+            if (this.turnQuestionHistoryStartedAt !== null && question.createdAtIso) {
+              return Date.parse(question.createdAtIso) >= this.turnQuestionHistoryStartedAt;
+            }
+            return true;
+          })
+          .sort((first, second) => Date.parse(second.createdAtIso ?? '') - Date.parse(first.createdAtIso ?? ''));
+        this.turnQuestionHistorySubject.next(mapped);
+      },
+      error: error => {
+        console.warn('[firebase-game] No se pudo cargar el historial de preguntas', error);
+        this.turnQuestionHistorySubject.next([]);
+      },
+    });
+  }
   private syncPendingQuestion(gameId: string, questionId: string | null): void {
     const questionKey = questionId ? `${gameId}/${questionId}` : null;
     if (this.loadedPendingQuestionKey === questionKey) {
@@ -684,6 +734,25 @@ export class GameFacadeService {
     });
   }
 
+  private mapTurnQuestionHistoryItem(question: Record<string, unknown> & { id: string }): TurnQuestionHistoryItem {
+    const resolution = question['resolution'];
+    const status = question['status'];
+    return {
+      id: question.id,
+      categoryId: String(question['categoryId'] ?? ''),
+      prompt: String(question['prompt'] ?? ''),
+      isPhoto: Boolean(question['isPhoto']),
+      distanceM: typeof question['distanceM'] === 'number' ? question['distanceM'] : null,
+      customDistanceM: typeof question['customDistanceM'] === 'number' ? question['customDistanceM'] : null,
+      status: status === 'RESOLVED' || status === 'EXPIRED' ? status : 'PENDING',
+      resolution: resolution === 'ANSWER' || resolution === 'VETO' || resolution === 'RANDOMIZE' || resolution === 'TIMEOUT' ? resolution : null,
+      answerText: typeof question['answerText'] === 'string' ? question['answerText'] : null,
+      runNumber: typeof question['runNumber'] === 'number' ? question['runNumber'] : null,
+      createdAtIso: this.timestampToIso(question['createdAt']),
+      resolvedAtIso: this.timestampToIso(question['resolvedAt']),
+      expiresAtIso: this.timestampToIso(question['expiresAt']),
+    };
+  }
   private mapQuestionDoc(question: Record<string, unknown> & { id: string }): PendingQuestion {
     return {
       id: question.id,
@@ -806,3 +875,5 @@ export class GameFacadeService {
     };
   }
 }
+
+

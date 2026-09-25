@@ -111,6 +111,22 @@ export interface LastQuestionResult {
   resolvedAtIso: string | null;
 }
 
+export interface TurnQuestionHistoryItem {
+  id: string;
+  categoryId: string;
+  prompt: string;
+  isPhoto: boolean;
+  distanceM: number | null;
+  customDistanceM: number | null;
+  status: 'PENDING' | 'RESOLVED' | 'EXPIRED';
+  resolution: QuestionResolution | 'TIMEOUT' | null;
+  answerText: string | null;
+  runNumber: number | null;
+  createdAtIso: string | null;
+  resolvedAtIso: string | null;
+  expiresAtIso: string | null;
+}
+
 export interface PendingQuestion {
   id: string;
   categoryId: string;

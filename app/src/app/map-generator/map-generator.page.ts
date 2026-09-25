@@ -33,6 +33,13 @@ import { GameFacadeService } from '../services/game-facade';
 
 type CandidateStationView = Station & Pick<StationCandidateView, 'status' | 'selected'>;
 
+interface StationModeGroup<TStation extends Station = Station> {
+  id: string;
+  label: string;
+  count: number;
+  groups: StationLineGroup<TStation>[];
+}
+
 interface EliminationHistoryGroup {
   record: ConstraintRecord;
   title: string;
@@ -239,6 +246,14 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   get canRedo(): boolean {
     return this.seekerState.cursor < this.seekerState.records.length;
+  }
+
+  get hiderStationModeGroups(): StationModeGroup[] {
+    return this.groupLineGroupsByMode(this.hiderStationGroups);
+  }
+
+  get seekerStationModeGroups(): StationModeGroup<CandidateStationView>[] {
+    return this.groupLineGroupsByMode(this.seekerStationGroups);
   }
 
   get canEliminateSelected(): boolean {
@@ -457,11 +472,35 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     return group.id;
   }
 
+  trackByModeGroupId(_: number, group: StationModeGroup): string {
+    return group.id;
+  }
+
   getRecordStationKeyCount(record: ConstraintRecord): number {
     if (record.data.type === 'MANUAL_ELIMINATION' || record.data.type === 'MANUAL_RESTORE') {
       return record.data.stationKeys.length;
     }
     return 0;
+  }
+
+  private groupLineGroupsByMode<TStation extends Station>(groups: StationLineGroup<TStation>[]): StationModeGroup<TStation>[] {
+    const sections = new Map<string, StationModeGroup<TStation>>();
+    for (const group of groups) {
+      const mode = group.id.startsWith('SUBTE:') ? 'SUBTE' : 'TREN';
+      const section = sections.get(mode) ?? {
+        id: mode,
+        label: mode === 'SUBTE' ? 'Subte' : 'Tren',
+        count: 0,
+        groups: [],
+      };
+      section.groups.push(group);
+      section.count += group.stations.length;
+      sections.set(mode, section);
+    }
+
+    return ['SUBTE', 'TREN']
+      .map(mode => sections.get(mode))
+      .filter((section): section is StationModeGroup<TStation> => Boolean(section));
   }
 
   private initMap(boundsAsset: MapNavigationBoundsAsset): void {
@@ -918,7 +957,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       return `Comparación ${record.data.target}`;
     }
     if (record.data.type === 'MATCHING') {
-      return `Matching ${record.data.field}`;
+      return `Coincidencia ${record.data.field}`;
     }
     return record.data.type;
   }
@@ -1053,13 +1092,13 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       {
         id: 'matching:barrios-caba',
         category: 'matching',
-        label: 'Matching - Barrio',
+        label: 'Coincidencia - Barrio',
         automation: 'AUTOMATIC',
       },
       {
         id: 'matching:comunas-caba',
         category: 'matching',
-        label: 'Matching - Comuna',
+        label: 'Coincidencia - Comuna',
         automation: 'AUTOMATIC',
       },
     );
@@ -1175,7 +1214,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     if (category === 'matching') {
       const normalizedPrompt = question.prompt.toLocaleLowerCase('es-AR');
-      return sameCategory.find(option => normalizedPrompt.includes(option.label.toLocaleLowerCase('es-AR').replace('matching - ', '')))
+      return sameCategory.find(option => normalizedPrompt.includes(option.label.toLocaleLowerCase('es-AR').replace('coincidencia - ', '').replace('matching - ', '')))
         ?? sameCategory[0];
     }
     return undefined;
@@ -1250,5 +1289,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       .map(([lng, lat]) => ({ lat, lng }));
   }
 }
+
+
 
 

@@ -599,6 +599,23 @@
                 </ng-container>
               </ion-card-content>
             </ion-card>
+            <ion-card *ngIf="turnQuestionHistory$ | async as turnQuestionHistory" class="question-history-card">
+              <ion-card-header>
+                <ion-card-title>Historial del turno</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <p *ngIf="turnQuestionHistory.length === 0">Sin preguntas en este turno.</p>
+                <ion-list *ngIf="turnQuestionHistory.length > 0" lines="full">
+                  <ion-item *ngFor="let question of turnQuestionHistory; trackBy: trackByQuestionHistoryItem">
+                    <ion-label class="ion-text-wrap">
+                      <p class="question-history-meta">{{ questionHistoryMeta(question) }}</p>
+                      <h3>{{ question.prompt }}</h3>
+                      <p><strong>Respuesta:</strong> {{ questionHistoryAnswerText(question) }}</p>
+                    </ion-label>
+                  </ion-item>
+                </ion-list>
+              </ion-card-content>
+            </ion-card>
             <ion-accordion-group class="question-menu">
               <ion-accordion
                 *ngFor="let category of visibleQuestionCategories(vm); trackBy: trackByQuestionCategory"

@@ -30,20 +30,30 @@
       <section *ngIf="mode === 'HIDER'" class="panel-section">
         <h2>Zona de escondite</h2>
         <ion-accordion-group>
-          <ion-accordion *ngFor="let group of hiderStationGroups; trackBy: trackByGroupId" [value]="group.id">
+          <ion-accordion *ngFor="let modeGroup of hiderStationModeGroups; trackBy: trackByModeGroupId" [value]="modeGroup.id">
             <ion-item slot="header">
-              <ion-label>{{ group.label }}</ion-label>
-              <ion-note slot="end">{{ group.stations.length }}</ion-note>
+              <ion-label>{{ modeGroup.label }}</ion-label>
+              <ion-note slot="end">{{ modeGroup.count }}</ion-note>
             </ion-item>
-            <ion-list slot="content" lines="full">
-              <ion-item button *ngFor="let station of group.stations" (click)="selectHiderStation(station)">
-                <ion-label>
-                  <h3>{{ station.name }}</h3>
-                  <p>{{ station.barrio || 'General Paz / AMBA' }}</p>
-                  <p *ngIf="station.hub_id">Hub: {{ station.hub_id }}</p>
-                </ion-label>
-              </ion-item>
-            </ion-list>
+            <div slot="content" class="transport-group-content">
+              <ion-accordion-group>
+                <ion-accordion *ngFor="let group of modeGroup.groups; trackBy: trackByGroupId" [value]="group.id">
+                  <ion-item slot="header">
+                    <ion-label>{{ group.label }}</ion-label>
+                    <ion-note slot="end">{{ group.stations.length }}</ion-note>
+                  </ion-item>
+                  <ion-list slot="content" lines="full">
+                    <ion-item button *ngFor="let station of group.stations" (click)="selectHiderStation(station)">
+                      <ion-label>
+                        <h3>{{ station.name }}</h3>
+                        <p>{{ station.barrio || 'General Paz / AMBA' }}</p>
+                        <p *ngIf="station.hub_id">Hub: {{ station.hub_id }}</p>
+                      </ion-label>
+                    </ion-item>
+                  </ion-list>
+                </ion-accordion>
+              </ion-accordion-group>
+            </div>
           </ion-accordion>
         </ion-accordion-group>
       </section>
@@ -265,7 +275,7 @@
               </ion-select>
               <ion-select
                 *ngIf="matchingField === 'BARRIO'"
-                label="Valor seeker"
+                label="Valor del equipo buscador"
                 labelPlacement="stacked"
                 interface="popover" [interfaceOptions]="selectPopoverOptions"
                 [(ngModel)]="matchingValue"
@@ -274,7 +284,7 @@
               </ion-select>
               <ion-select
                 *ngIf="matchingField === 'COMUNA'"
-                label="Valor seeker"
+                label="Valor del equipo buscador"
                 labelPlacement="stacked"
                 interface="popover" [interfaceOptions]="selectPopoverOptions"
                 [(ngModel)]="matchingValue"
@@ -297,37 +307,47 @@
         </div>
 
         <ion-accordion-group>
-          <ion-accordion *ngFor="let group of seekerStationGroups; trackBy: trackByGroupId" [value]="group.id">
+          <ion-accordion *ngFor="let modeGroup of seekerStationModeGroups; trackBy: trackByModeGroupId" [value]="modeGroup.id">
             <ion-item slot="header">
-              <ion-label>{{ group.label }}</ion-label>
-              <ion-button
-                slot="end"
-                fill="clear"
-                size="small"
-                class="line-select-button"
-                [title]="stationGroupSelectionLabel(group)"
-                [attr.aria-label]="stationGroupSelectionLabel(group)"
-                (click)="toggleSeekerStationGroup(group); $event.stopPropagation()"
-              >
-                <ion-icon [name]="stationGroupSelectionIcon(group)"></ion-icon>
-              </ion-button>
-              <ion-note slot="end">{{ group.stations.length }}</ion-note>
+              <ion-label>{{ modeGroup.label }}</ion-label>
+              <ion-note slot="end">{{ modeGroup.count }}</ion-note>
             </ion-item>
-            <ion-list slot="content" lines="full">
-              <ion-item
-                button
-                *ngFor="let item of group.stations"
-                [class.selected]="item.selected"
-                (click)="toggleSeekerStation(item)"
-              >
-                <ion-checkbox slot="start" [checked]="item.selected"></ion-checkbox>
-                <ion-label>
-                  <h3>{{ item.name }}</h3>
-                  <p>{{ item.status }} - {{ item.barrio || 'General Paz / AMBA' }}</p>
-                  <p *ngIf="item.hub_id">Hub: {{ item.hub_id }}</p>
-                </ion-label>
-              </ion-item>
-            </ion-list>
+            <div slot="content" class="transport-group-content">
+              <ion-accordion-group>
+                <ion-accordion *ngFor="let group of modeGroup.groups; trackBy: trackByGroupId" [value]="group.id">
+                  <ion-item slot="header">
+                    <ion-label>{{ group.label }}</ion-label>
+                    <ion-button
+                      slot="end"
+                      fill="clear"
+                      size="small"
+                      class="line-select-button"
+                      [title]="stationGroupSelectionLabel(group)"
+                      [attr.aria-label]="stationGroupSelectionLabel(group)"
+                      (click)="toggleSeekerStationGroup(group); $event.stopPropagation()"
+                    >
+                      <ion-icon [name]="stationGroupSelectionIcon(group)"></ion-icon>
+                    </ion-button>
+                    <ion-note slot="end">{{ group.stations.length }}</ion-note>
+                  </ion-item>
+                  <ion-list slot="content" lines="full">
+                    <ion-item
+                      button
+                      *ngFor="let item of group.stations"
+                      [class.selected]="item.selected"
+                      (click)="toggleSeekerStation(item)"
+                    >
+                      <ion-checkbox slot="start" [checked]="item.selected"></ion-checkbox>
+                      <ion-label>
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.status }} - {{ item.barrio || 'General Paz / AMBA' }}</p>
+                        <p *ngIf="item.hub_id">Hub: {{ item.hub_id }}</p>
+                      </ion-label>
+                    </ion-item>
+                  </ion-list>
+                </ion-accordion>
+              </ion-accordion-group>
+            </div>
           </ion-accordion>
         </ion-accordion-group>
       </section>

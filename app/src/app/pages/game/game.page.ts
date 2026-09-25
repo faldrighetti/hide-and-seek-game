@@ -12,6 +12,7 @@ import {
   PlayerRole,
   QuestionResolution,
   TeamStanding,
+  TurnQuestionHistoryItem,
 } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
@@ -100,6 +101,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$;
   readonly pendingQuestion$: Observable<PendingQuestion | null> = this.gameFacade.pendingQuestion$;
+  readonly turnQuestionHistory$: Observable<TurnQuestionHistoryItem[]> = this.gameFacade.turnQuestionHistory$;
   readonly playerRole$: Observable<PlayerRole> = this.gameFacade.playerRole$;
 
   drawRulesByCategory: DrawRule[] = [];
@@ -1047,6 +1049,38 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 'El hider usó Randomizar. La pregunta original queda resuelta.';
   }
 
+  questionHistoryAnswerText(question: TurnQuestionHistoryItem): string {
+    if (question.status === 'PENDING') {
+      return 'Pendiente de respuesta';
+    }
+    if (question.resolution === 'ANSWER') {
+      return question.answerText || 'Respuesta registrada sin texto.';
+    }
+    if (question.resolution === 'VETO') {
+      return 'Vetada por el hider.';
+    }
+    if (question.resolution === 'RANDOMIZE') {
+      return 'Randomizada por el hider.';
+    }
+    if (question.resolution === 'TIMEOUT' || question.status === 'EXPIRED') {
+      return 'Vencida sin respuesta.';
+    }
+    return question.answerText || 'Sin respuesta registrada.';
+  }
+
+  questionHistoryMeta(question: TurnQuestionHistoryItem): string {
+    const parts = [question.isPhoto ? 'Foto' : question.categoryId];
+    if (question.resolvedAtIso) {
+      parts.push(new Date(question.resolvedAtIso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }));
+    } else if (question.createdAtIso) {
+      parts.push(new Date(question.createdAtIso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }));
+    }
+    return parts.filter(Boolean).join(' · ');
+  }
+
+  trackByQuestionHistoryItem(_: number, question: TurnQuestionHistoryItem): string {
+    return question.id;
+  }
   randomizedQuestionText(pendingQuestion: PendingQuestion | null): string {
     return pendingQuestion?.prompt ?? '';
   }
@@ -2000,3 +2034,4 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return message || fallback;
   }
 }
+
