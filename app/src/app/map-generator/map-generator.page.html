@@ -138,29 +138,15 @@
 
         <div class="manual-circle">
           <h2>Círculo manual</h2>
-          <ion-note>El centro puede elegirse tocando el mapa o ingresando coordenadas.</ion-note>
-          <div class="coordinate-grid">
-            <ion-input
-              label="Lat"
-              labelPlacement="stacked"
-              type="number"
-              [(ngModel)]="circleCenterLat"
-            ></ion-input>
-            <ion-input
-              label="Lng"
-              labelPlacement="stacked"
-              type="number"
-              [(ngModel)]="circleCenterLng"
-            ></ion-input>
-            <ion-input
-              label="Radio m"
-              labelPlacement="stacked"
-              type="number"
-              min="1"
-              [(ngModel)]="circleRadiusM"
-            ></ion-input>
-          </div>
-          <ion-segment [value]="circleMode" (ionChange)="circleMode = $any($event.detail.value)">
+          <ion-input
+            label="Radio m"
+            labelPlacement="stacked"
+            type="number"
+            min="1"
+            [(ngModel)]="circleRadiusM"
+            (ionInput)="onManualCirclePreviewConfigChange()"
+          ></ion-input>
+          <ion-segment [value]="circleMode" (ionChange)="circleMode = $any($event.detail.value); onManualCirclePreviewConfigChange()">
             <ion-segment-button value="ELIMINATE_INSIDE">
               <ion-label>Eliminar dentro</ion-label>
             </ion-segment-button>
@@ -168,14 +154,11 @@
               <ion-label>Eliminar fuera</ion-label>
             </ion-segment-button>
           </ion-segment>
-          <ion-input
-            label="Motivo"
-            labelPlacement="stacked"
-            [(ngModel)]="circleReason"
-            placeholder="Ej. Hospital más cercano"
-          ></ion-input>
           <ion-note color="danger" *ngIf="circleValidationError">{{ circleValidationError }}</ion-note>
-          <ion-button size="small" fill="outline" (click)="saveManualCircle()">Guardar círculo</ion-button>
+          <div class="manual-circle-actions">
+            <ion-button size="small" fill="outline" (click)="toggleManualCirclePreview()">{{ isManualCirclePreviewVisible ? 'Ocultar' : 'Ver' }}</ion-button>
+            <ion-button size="small" fill="outline" (click)="saveManualCircle()">Guardar círculo</ion-button>
+          </div>
         </div>
 
         <div class="manual-direction">
@@ -342,26 +325,21 @@
       </section>
 
       <section *ngIf="mode === 'SEEKER'" class="history">
-        <h2>Estaciones eliminadas</h2>
-        <p *ngIf="eliminationHistoryGroups.length === 0">Sin eliminaciones.</p>
         <ion-accordion-group>
-          <ion-accordion *ngFor="let group of eliminationHistoryGroups" [value]="group.record.id">
+          <ion-accordion value="possible-stations">
             <ion-item slot="header">
-              <ion-label>
-                <h3>{{ group.title }}</h3>
-                <p>{{ group.reason }} - {{ group.eliminatedStations.length }} estaciones</p>
-                <p *ngIf="!group.record.enabled">Desactivada</p>
-              </ion-label>
-              <ion-button slot="end" size="small" fill="clear" (click)="toggleRecordEnabled(group.record); $event.stopPropagation()">
-                {{ group.record.enabled ? 'Desactivar' : 'Activar' }}
-              </ion-button>
+              <ion-label>Estaciones posibles</ion-label>
+              <ion-note slot="end">{{ possibleStations.length }}</ion-note>
             </ion-item>
             <ion-list slot="content" lines="full">
-              <ion-item *ngFor="let station of group.eliminatedStations">
+              <ion-item *ngIf="possibleStations.length === 0">
+                <ion-label>Sin estaciones posibles.</ion-label>
+              </ion-item>
+              <ion-item *ngFor="let station of possibleStations; trackBy: trackByCandidateStationId">
                 <ion-label>
                   <h3>{{ station.name }}</h3>
-                  <p>{{ station.mode }} {{ station.line }}</p>
-                  <p *ngIf="group.propagatedHubStations.includes(station)">Eliminada por propagación de hub</p>
+                  <p>{{ station.mode }} {{ station.line }} - {{ station.barrio || 'General Paz / AMBA' }}</p>
+                  <p *ngIf="station.hub_id">Hub: {{ station.hub_id }}</p>
                 </ion-label>
               </ion-item>
             </ion-list>

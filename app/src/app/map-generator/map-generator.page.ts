@@ -127,7 +127,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   circleCenterLng: number | null = null;
   circleRadiusM: number | null = 1000;
   circleMode: ManualCircleConstraint['mode'] = 'ELIMINATE_INSIDE';
-  circleReason = '';
   circleValidationError = '';
   directionOriginLat: number | null = null;
   directionOriginLng: number | null = null;
@@ -164,6 +163,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private barriosLayer?: L.GeoJSON;
   private stationsLayer = L.layerGroup();
   private restrictionsLayer = L.layerGroup();
+  private manualCirclePreviewLayer = L.layerGroup();
   private stationMarkers = new Map<string, L.CircleMarker>();
   private seekerLocationSubscription?: Subscription;
   private pendingQuestionSubscription?: Subscription;
@@ -253,6 +253,14 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   get seekerStationModeGroups(): StationModeGroup<CandidateStationView>[] {
     return this.groupLineGroupsByMode(this.seekerStationGroups);
+  }
+
+  get possibleStations(): CandidateStationView[] {
+    return this.candidateViews.filter(station => station.status === 'POSSIBLE');
+  }
+
+  get isManualCirclePreviewVisible(): boolean {
+    return this.manualCirclePreviewLayer.getLayers().length > 0;
   }
 
   get canEliminateSelected(): boolean {
@@ -389,7 +397,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   saveManualCircle(): void {
     this.circleValidationError = '';
     if (!this.isValidLatLng(this.circleCenterLat, this.circleCenterLng)) {
-      this.circleValidationError = 'Ingresá coordenadas válidas.';
+      this.circleValidationError = 'Tocá el mapa para definir el centro.';
       return;
     }
     if (!Number.isFinite(this.circleRadiusM) || Number(this.circleRadiusM) <= 0) {
@@ -407,7 +415,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       },
       radiusM: Number(this.circleRadiusM),
       mode: this.circleMode,
-      reason: this.circleReason.trim() || undefined,
       enabled: true,
     };
 
@@ -420,8 +427,36 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     };
 
     this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
-    this.circleReason = '';
+    this.hideManualCirclePreview();
     this.recalculateEvaluations();
+  }
+
+  toggleManualCirclePreview(): void {
+    if (this.isManualCirclePreviewVisible) {
+      this.hideManualCirclePreview();
+      return;
+    }
+
+    this.circleValidationError = '';
+    if (!this.isValidLatLng(this.circleCenterLat, this.circleCenterLng)) {
+      this.circleValidationError = 'Tocá el mapa para definir el centro.';
+      return;
+    }
+    if (!Number.isFinite(this.circleRadiusM) || Number(this.circleRadiusM) <= 0) {
+      this.circleValidationError = 'Ingresá un radio mayor que cero.';
+      return;
+    }
+    this.renderManualCirclePreview();
+  }
+
+  onManualCirclePreviewConfigChange(): void {
+    if (this.isManualCirclePreviewVisible) {
+      this.renderManualCirclePreview();
+    }
+  }
+
+  hideManualCirclePreview(): void {
+    this.manualCirclePreviewLayer.clearLayers();
   }
 
   saveManualDirection(direction: ManualDirectionConstraint['direction']): void {
@@ -463,6 +498,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   trackByStationId(_: number, item: StationCandidateView): string {
     return item.station.id;
+  }
+
+  trackByCandidateStationId(_: number, item: CandidateStationView): string {
+    return item.id;
   }
 
   trackByGroupId(_: number, group: StationLineGroup): string {
@@ -526,6 +565,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
     this.stationsLayer.addTo(this.map);
     this.restrictionsLayer.addTo(this.map);
+    this.manualCirclePreviewLayer.addTo(this.map);
     this.map.on('click', event => {
       if (this.mode === 'SEEKER') {
         this.circleCenterLat = Number(event.latlng.lat.toFixed(6));
@@ -533,6 +573,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         this.directionOriginLat = this.circleCenterLat;
         this.directionOriginLng = this.circleCenterLng;
         this.seekerLocationReference.setManualReference(this.circleCenterLat, this.circleCenterLng);
+        this.onManualCirclePreviewConfigChange();
       }
     });
     this.map.fitBounds(maxBounds, { padding: [12, 12], animate: false });
@@ -787,6 +828,24 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.bringLayerGroupToFront(this.stationsLayer);
   }
 
+  private renderManualCirclePreview(): void {
+    this.manualCirclePreviewLayer.clearLayers();
+    if (!this.map || !this.isValidLatLng(this.circleCenterLat, this.circleCenterLng) || !Number.isFinite(this.circleRadiusM) || Number(this.circleRadiusM) <= 0) {
+      return;
+    }
+
+    L.circle([Number(this.circleCenterLat), Number(this.circleCenterLng)], {
+      radius: Number(this.circleRadiusM),
+      color: this.circleMode === 'ELIMINATE_INSIDE' ? '#f59e0b' : '#38bdf8',
+      fillColor: this.circleMode === 'ELIMINATE_INSIDE' ? '#fbbf24' : '#7dd3fc',
+      fillOpacity: 0.12,
+      weight: 2,
+      dashArray: '6 6',
+      interactive: false,
+    }).addTo(this.manualCirclePreviewLayer);
+    this.bringLayerGroupToFront(this.stationsLayer);
+  }
+
   private renderSelectedSeekerZones(): void {
     const selectedStations = this.stations.filter(station => this.selectedStationIds.has(station.id));
     for (const station of selectedStations) {
@@ -844,7 +903,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       data: {
         type,
         stationKeys: uniqueStationKeys,
-        reason: this.circleReason.trim() || reason,
+        reason,
       },
     };
 

@@ -11,12 +11,17 @@
 }
 
 .map-panel {
+  align-items: center;
+  display: flex;
   min-width: 0;
+  overflow: hidden;
+  padding-block: 24px;
 }
 
 #map-generator-leaflet {
   width: 100%;
-  height: calc(100vh - 56px);
+  height: min(calc(100vh - 112px), 74vw);
+  min-height: 420px;
 }
 
 .panel-section,
@@ -97,6 +102,7 @@ h2 {
   font-size: 12px;
 }
 
+.manual-circle-actions,
 .actions-row {
   display: flex;
   flex-wrap: wrap;
@@ -149,8 +155,13 @@ ion-item.selected {
     max-height: 48vh;
   }
 
+  .map-panel {
+    padding-block: 0;
+  }
+
   #map-generator-leaflet {
     height: 52vh;
+    min-height: 360px;
   }
 
   .coordinate-grid {
