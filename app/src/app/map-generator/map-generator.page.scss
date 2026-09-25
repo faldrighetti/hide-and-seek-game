@@ -118,6 +118,10 @@ h2 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.matching-grid {
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+}
+
 ion-note {
   display: block;
   margin: 8px 0;

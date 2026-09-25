@@ -252,7 +252,7 @@
               Punto más cercano: {{ nearestPoint.lat | number: '1.5-5' }}, {{ nearestPoint.lng | number: '1.5-5' }}
             </ion-note>
 
-            <div class="coordinate-grid" *ngIf="option.category === 'matching'">
+            <div class="coordinate-grid matching-grid" *ngIf="option.category === 'matching'">
               <ion-select
                 label="Campo"
                 labelPlacement="stacked"
