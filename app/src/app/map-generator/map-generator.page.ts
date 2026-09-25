@@ -131,7 +131,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   circleValidationError = '';
   directionOriginLat: number | null = null;
   directionOriginLng: number | null = null;
-  directionReason = '';
   directionValidationError = '';
   barrioOptions: string[] = [];
   comunaOptions: Array<{ id: number; label: string }> = [];
@@ -429,7 +428,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.directionValidationError = '';
     this.ensureDirectionOrigin();
     if (!this.isValidLatLng(this.directionOriginLat, this.directionOriginLng)) {
-      this.directionValidationError = 'Ingresá coordenadas válidas.';
+      this.directionValidationError = 'Seleccioná una estación o tocá el mapa para definir el origen.';
       return;
     }
 
@@ -442,7 +441,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         lng: Number(this.directionOriginLng),
       },
       direction,
-      reason: this.directionReason.trim() || undefined,
       enabled: true,
     };
 
@@ -455,7 +453,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     };
 
     this.seekerState = this.seekerMapState.append(this.seekerState, record, this.stateScopeKey);
-    this.directionReason = '';
     this.recalculateEvaluations();
   }
 
@@ -533,6 +530,8 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       if (this.mode === 'SEEKER') {
         this.circleCenterLat = Number(event.latlng.lat.toFixed(6));
         this.circleCenterLng = Number(event.latlng.lng.toFixed(6));
+        this.directionOriginLat = this.circleCenterLat;
+        this.directionOriginLng = this.circleCenterLng;
         this.seekerLocationReference.setManualReference(this.circleCenterLat, this.circleCenterLng);
       }
     });
@@ -1014,15 +1013,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     if (this.isValidLatLng(this.directionOriginLat, this.directionOriginLng)) {
       return;
     }
-    if (this.isValidLatLng(this.seekerLocationState?.lastLat ?? null, this.seekerLocationState?.lastLng ?? null)) {
-      this.directionOriginLat = this.seekerLocationState?.lastLat ?? null;
-      this.directionOriginLng = this.seekerLocationState?.lastLng ?? null;
-      return;
-    }
-    if (this.isValidLatLng(this.circleCenterLat, this.circleCenterLng)) {
-      this.directionOriginLat = this.circleCenterLat;
-      this.directionOriginLng = this.circleCenterLng;
-    }
+    this.syncDirectionOriginFromSingleSelection();
   }
 
   get selectedQuestionOption(): QuestionCatalogOption | undefined {
@@ -1289,7 +1280,4 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       .map(([lng, lat]) => ({ lat, lng }));
   }
 }
-
-
-
 

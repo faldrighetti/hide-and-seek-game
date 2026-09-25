@@ -180,17 +180,6 @@
 
         <div class="manual-direction">
           <h2>Eliminar por dirección</h2>
-          <ion-note>Si hay una sola estación seleccionada, se usa como origen. Si no, se autocompleta con la referencia seeker o el centro manual.</ion-note>
-          <div class="coordinate-grid">
-            <ion-input label="Lat origen" labelPlacement="stacked" type="number" [(ngModel)]="directionOriginLat"></ion-input>
-            <ion-input label="Lng origen" labelPlacement="stacked" type="number" [(ngModel)]="directionOriginLng"></ion-input>
-          </div>
-          <ion-input
-            label="Motivo"
-            labelPlacement="stacked"
-            [(ngModel)]="directionReason"
-            placeholder="Ej. Queda al norte de mi ubicación"
-          ></ion-input>
           <div class="direction-actions">
             <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('NORTH')">Eliminar Norte</ion-button>
             <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('SOUTH')">Eliminar Sur</ion-button>
@@ -386,5 +375,4 @@
     </main>
   </div>
 </ion-content>
-
 
