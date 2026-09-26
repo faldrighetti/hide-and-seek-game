@@ -596,7 +596,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
 
     const cabaStationCoordinates = this.stations
-      .filter(station => Boolean(station.barrio) && Number.isFinite(station.lat) && Number.isFinite(station.lng))
+      .filter(station => Boolean(station.barrio) && station.barrio !== 'GBA' && Number.isFinite(station.lat) && Number.isFinite(station.lng))
       .map(station => L.latLng(station.lat, station.lng));
     const maxPlayableBounds = L.latLngBounds(stationCoordinates);
     const focusBounds = L.latLngBounds(cabaStationCoordinates.length > 0 ? cabaStationCoordinates : stationCoordinates);
@@ -1383,5 +1383,4 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       .map(([lng, lat]) => ({ lat, lng }));
   }
 }
-
 

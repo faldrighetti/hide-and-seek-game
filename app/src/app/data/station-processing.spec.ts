@@ -79,6 +79,7 @@ describe('station processing', () => {
 
     expect(result.assignedCount).toBe(0);
     expect(result.outsidePolygonIds).toEqual(['outside']);
+    expect(result.stations[0].barrio).toBe('GBA');
   });
 
   it('derives deterministic map navigation bounds from CABA boundaries plus buffer', () => {
@@ -262,3 +263,4 @@ function testRiachueloLine() {
     ],
   };
 }
+

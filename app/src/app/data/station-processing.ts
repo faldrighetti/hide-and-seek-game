@@ -5,6 +5,8 @@ import { GAME_CONFIG } from '../config/game-config';
 import { Station, TransportMode } from '../models/station.model';
 import { STATION_HUB_DEFINITIONS } from './station-hubs';
 
+const GBA_BARRIO = 'GBA';
+
 export interface RawStationsFile {
   version?: string;
   transport?: Array<Record<string, Array<{ line: string; stations: Array<Partial<Station>> }>>>;
@@ -112,7 +114,7 @@ export function classifyPlayableStations(
 ): { stations: Station[]; summary: PlayabilitySummary } {
   const processed = stations.map(station => {
     const isBelgranoSur = station.mode === 'TREN' && normalizeStationText(station.line) === 'belgrano sur';
-    const isInsideCaba = Boolean(station.barrio);
+    const isInsideCaba = Boolean(station.barrio) && station.barrio !== GBA_BARRIO;
     const distanceToGeneralPazM = isInsideCaba || !isValidCoordinate(station)
       ? undefined
       : Math.round(distancePointToLineGeometryM([station.lng, station.lat], generalPaz));
@@ -349,7 +351,7 @@ export function assignBarriosToStations(
     const barrio = barrioFeatures.find(feature => booleanPointInPolygon(stationPoint, feature));
     if (!barrio) {
       outsidePolygonIds.push(station.id);
-      return { ...station };
+      return { ...station, barrio: GBA_BARRIO };
     }
 
     assignedCount += 1;
@@ -374,8 +376,8 @@ export function validateProcessedStations(stations: Station[]): StationProcessin
   const warnings = missingRequired.map(id => `Station ${id} is missing id, name, line or mode.`);
 
   return {
-    assignedCount: stations.filter(station => Boolean(station.barrio)).length,
-    outsidePolygonIds: stations.filter(station => isValidCoordinate(station) && !station.barrio).map(station => station.id),
+    assignedCount: stations.filter(station => Boolean(station.barrio) && station.barrio !== GBA_BARRIO).length,
+    outsidePolygonIds: stations.filter(station => isValidCoordinate(station) && station.barrio === GBA_BARRIO).map(station => station.id),
     invalidCoordinateIds,
     duplicateIds,
     duplicateNamesWithoutHub,
@@ -589,3 +591,4 @@ function projectLonLatToMeters(position: Position, referenceLat: number): { x: n
     y: position[1] * metersPerDegreeLat,
   };
 }
+

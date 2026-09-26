@@ -1183,6 +1183,7 @@
       "name": "Liniers"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 1978,
       "distanceToRiachueloM": 8321,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1257,6 +1258,7 @@
       "name": "Rivadavia"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 1183,
       "distanceToRiachueloM": 15060,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1270,6 +1272,7 @@
       "name": "Vicente López"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 2606,
       "distanceToRiachueloM": 16610,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1368,6 +1371,7 @@
       "name": "Saavedra"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 430,
       "distanceToRiachueloM": 14570,
       "id": "tren_mitre_juan_b_justo",
@@ -1405,6 +1409,7 @@
       "name": "Pueyrredón"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 96,
       "distanceToRiachueloM": 11923,
       "id": "tren_mitre_miguelete",
@@ -1417,6 +1422,7 @@
       "name": "Miguelete"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 1626,
       "distanceToRiachueloM": 15629,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1430,6 +1436,7 @@
       "name": "Florida"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 2310,
       "distanceToRiachueloM": 16248,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1443,6 +1450,7 @@
       "name": "Dr. Cetrángolo"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 2904,
       "distanceToRiachueloM": 16762,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1481,6 +1489,7 @@
       "name": "Hipólito Yrigoyen"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 9691,
       "distanceToRiachueloM": 610,
       "id": "tren_roca_avellaneda",
@@ -1493,6 +1502,7 @@
       "name": "Avellaneda"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 9838,
       "distanceToRiachueloM": 2360,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1506,6 +1516,7 @@
       "name": "Sarandí"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 12780,
       "distanceToRiachueloM": 5135,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1594,6 +1605,7 @@
       "name": "Devoto"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 145,
       "distanceToRiachueloM": 10046,
       "id": "tren_san_martin_saenz_pena",
@@ -1606,6 +1618,7 @@
       "name": "Sáenz Peña"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 1996,
       "distanceToRiachueloM": 11047,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1656,6 +1669,7 @@
       "name": "Ciudad Universitaria"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 204,
       "distanceToRiachueloM": 14084,
       "id": "tren_belgrano_norte_aristobulo_del_valle",
@@ -1668,6 +1682,7 @@
       "name": "Aristóbulo del Valle"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 717,
       "distanceToRiachueloM": 14865,
       "id": "tren_belgrano_norte_padilla",
@@ -1680,6 +1695,7 @@
       "name": "Padilla"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 2089,
       "distanceToRiachueloM": 16163,
       "exclusionReason": "TOO_FAR_FROM_CABA_LIMITS",
@@ -1766,6 +1782,7 @@
       "name": "Devoto"
     },
     {
+      "barrio": "GBA",
       "distanceToGeneralPazM": 75,
       "distanceToRiachueloM": 10477,
       "id": "tren_urquiza_lynch",
