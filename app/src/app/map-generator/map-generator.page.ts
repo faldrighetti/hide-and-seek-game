@@ -600,8 +600,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.map.fitBounds(focusBounds.pad(0.03), {
       padding: [10, 10],
       animate: false,
-      maxZoom: 12,
+      maxZoom: this.minZoom,
     });
+    this.map.setZoom(this.minZoom, { animate: false });
     this.map.panTo(focusBounds.getCenter(), { animate: false });
   }
   private async loadMapData(): Promise<void> {
