@@ -211,6 +211,7 @@ export interface LobbyState {
   joinLink: string;
   seats: Seat[];
   teamsLocked: boolean;
+  settings: GameSettings;
 }
 
 export interface OperationalState {

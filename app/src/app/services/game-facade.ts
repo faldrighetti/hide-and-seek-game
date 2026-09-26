@@ -203,6 +203,7 @@ export class GameFacadeService {
       joinLink: response.joinUrl || `${window.location.origin}/join/${response.gameId}`,
       seats: [],
       teamsLocked: false,
+      settings: response.settings,
     };
   }
 
@@ -290,6 +291,13 @@ export class GameFacadeService {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>(
       'confirmCaptureBySeeker',
       { gameId },
+    );
+  }
+
+  setUkMode(gameId: string, ukMode: boolean): Promise<{ ok: boolean; ukMode: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; ukMode: boolean }, { ok: boolean; ukMode: boolean }>(
+      'setUkMode',
+      { gameId, ukMode },
     );
   }
 
@@ -490,6 +498,7 @@ export class GameFacadeService {
         host: Boolean(seat['isHost']),
       })),
       teamsLocked: Boolean(game['teamsLocked']),
+      settings: { ...DEFAULT_SETTINGS, ...(game['settings'] as Partial<GameBlueprint['settings'] | undefined>) },
     };
   }
 
@@ -875,5 +884,4 @@ export class GameFacadeService {
     };
   }
 }
-
 

@@ -45,9 +45,7 @@
                   <ion-list slot="content" lines="full">
                     <ion-item button *ngFor="let station of group.stations" (click)="selectHiderStation(station)">
                       <ion-label>
-                        <h3>{{ station.name }}</h3>
-                        <p>{{ station.barrio || 'General Paz / AMBA' }}</p>
-                        <p *ngIf="station.hub_id">Hub: {{ station.hub_id }}</p>
+                        <h3>{{ stationCompactLabel(station) }}</h3>
                       </ion-label>
                     </ion-item>
                   </ion-list>
@@ -132,6 +130,7 @@
           <ion-button *ngIf="canEliminateSelected" size="small" color="danger" (click)="eliminateSelected()">Eliminar</ion-button>
           <ion-button *ngIf="canRestoreSelected" size="small" fill="outline" (click)="restoreSelected()">Recuperar</ion-button>
           <ion-button *ngIf="canRestoreAll" size="small" fill="outline" (click)="restoreAllEliminations()">Restaurar</ion-button>
+          <ion-button *ngIf="selectedStationIds.size > 0" size="small" fill="outline" (click)="clearSeekerSelection()">Limpiar selección</ion-button>
           <ion-button size="small" fill="clear" [disabled]="!canUndo" (click)="undo()">Deshacer</ion-button>
           <ion-button size="small" fill="clear" [disabled]="!canRedo" (click)="redo()">Rehacer</ion-button>
         </div>
@@ -324,9 +323,8 @@
                     >
                       <ion-checkbox slot="start" [checked]="item.selected"></ion-checkbox>
                       <ion-label>
-                        <h3>{{ item.name }}</h3>
-                        <p>{{ item.status }} - {{ item.barrio || 'General Paz / AMBA' }}</p>
-                        <p *ngIf="item.hub_id">Hub: {{ item.hub_id }}</p>
+                        <h3>{{ stationCompactLabel(item) }}</h3>
+                        <p>{{ item.status }}</p>
                       </ion-label>
                     </ion-item>
                   </ion-list>
@@ -350,9 +348,7 @@
               </ion-item>
               <ion-item *ngFor="let station of possibleStations; trackBy: trackByCandidateStationId">
                 <ion-label>
-                  <h3>{{ station.name }}</h3>
-                  <p>{{ station.mode }} {{ station.line }} - {{ station.barrio || 'General Paz / AMBA' }}</p>
-                  <p *ngIf="station.hub_id">Hub: {{ station.hub_id }}</p>
+                  <h3>{{ stationCompactLabel(station) }}</h3>
                 </ion-label>
               </ion-item>
             </ion-list>

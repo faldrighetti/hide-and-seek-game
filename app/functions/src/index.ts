@@ -279,6 +279,37 @@ export const lockTeams = onCall(async (request) => {
   return {ok: true, teamsLocked: lock};
 });
 
+export const setUkMode = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "set_uk_mode", 10);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const ukMode = Boolean(request.data?.ukMode);
+  if (!gameId) {
+    throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  }
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    if (game.status !== "LOBBY") {
+      throw new HttpsError("failed-precondition", "ukMode solo se puede cambiar en el lobby.");
+    }
+    if (modeTeamIds(game.mode).length <= 2 && ukMode) {
+      throw new HttpsError("failed-precondition", "ukMode solo aplica con más de 2 equipos.");
+    }
+
+    tx.update(gameRef, {
+      "settings.ukMode": ukMode,
+      updatedAt: nowTs(),
+    });
+  });
+
+  return {ok: true, ukMode};
+});
 export const startGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);

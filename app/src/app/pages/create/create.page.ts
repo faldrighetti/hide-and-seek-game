@@ -16,7 +16,6 @@ export class CreatePage {
   mode: GameMode = 'INDIVIDUAL_3';
   turnsPerTeam: 1 | 2 | 3 = 2;
   winCondition: WinCondition = 'TOTAL_TIME';
-  ukMode = false;
   hostDisplayName = '';
   creating = false;
   errorMessage = '';
@@ -31,7 +30,7 @@ export class CreatePage {
         this.mode,
         this.turnsPerTeam,
         this.winCondition,
-        this.ukMode,
+        false,
         this.hostDisplayName,
       );
     } catch (error) {

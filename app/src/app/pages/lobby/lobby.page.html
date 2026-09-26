@@ -54,6 +54,15 @@
           </div>
 
           <div class="actions" *ngIf="vm.role.isHost">
+            <ion-item *ngIf="vm.teams.length > 2" lines="none" class="uk-mode-toggle">
+              <ion-toggle
+                [checked]="vm.lobby.settings.ukMode"
+                [disabled]="!vm.role.isHost || updatingUkMode"
+                (ionChange)="setUkMode($event.detail.checked, vm.role.isHost)"
+              >
+                ukMode
+              </ion-toggle>
+            </ion-item>
             <ion-button expand="block" fill="outline" [disabled]="vm.lobby.teamsLocked || randomizing" (click)="randomizeTeams(vm.role.isHost)">
               {{ randomizing ? 'Asignando...' : 'Asignar al azar' }}
             </ion-button>

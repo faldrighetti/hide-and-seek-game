@@ -37,6 +37,7 @@ export class LobbyPage implements OnDestroy {
   starting = false;
   assigningSeatId: string | null = null;
   randomizing = false;
+  updatingUkMode = false;
   errorMessage = '';
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$.pipe(
     map(lobby => (lobby?.gameId === this.gameId ? lobby : null)),
@@ -108,6 +109,21 @@ export class LobbyPage implements OnDestroy {
     }
   }
 
+  async setUkMode(enabled: boolean, isHost: boolean): Promise<void> {
+    if (!isHost) {
+      return;
+    }
+
+    this.updatingUkMode = true;
+    this.errorMessage = '';
+    try {
+      await this.gameFacade.setUkMode(this.gameId, enabled);
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'No se pudo actualizar ukMode.';
+    } finally {
+      this.updatingUkMode = false;
+    }
+  }
   async startGame(isHost: boolean): Promise<void> {
     if (!isHost) {
       return;

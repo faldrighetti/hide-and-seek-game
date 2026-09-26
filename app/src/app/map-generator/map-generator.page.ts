@@ -4,7 +4,7 @@ import * as L from 'leaflet';
 import { FeatureCollection, Geometry } from 'geojson';
 import { Subscription } from 'rxjs';
 import { PendingQuestion } from '../models/core-model';
-import { getStationComparisonKey, Station, StationsProcessedFile } from '../models/station.model';
+import { formatStationCompact, getStationComparisonKey, Station, StationsProcessedFile } from '../models/station.model';
 import { groupStationsByLine, StationLineGroup } from '../data/station-groups';
 import {
   ConstraintRecord,
@@ -339,6 +339,16 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
     this.renderStations();
     this.renderRestrictionOverlays();
+  }
+
+  clearSeekerSelection(): void {
+    this.selectedStationIds.clear();
+    this.refreshSelectionDerivedState();
+    this.renderStations();
+    this.renderRestrictionOverlays();
+  }
+  stationCompactLabel(station: Station): string {
+    return formatStationCompact(station);
   }
 
   toggleSeekerStationGroup(group: StationLineGroup<CandidateStationView>): void {

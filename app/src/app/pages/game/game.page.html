@@ -188,8 +188,7 @@
                     (click)="selectBaseStation(station, vm)"
                   >
                     <ion-label>
-                      <h3>{{ station.name }}</h3>
-                      <p>{{ station.mode }} {{ station.line }} · {{ station.barrio || 'AMBA' }}</p>
+                      <h3>{{ baseStationLabel(station) }}</h3>
                     </ion-label>
                   </ion-item>
                 </ion-list>
@@ -790,8 +789,4 @@
     </ng-container>
   </ion-grid>
 </ion-content>
-
-
-
-
 

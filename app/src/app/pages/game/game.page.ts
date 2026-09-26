@@ -18,7 +18,7 @@ import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
 import { CardDefinition } from 'src/app/models/card-definition.model';
 import { GAME_CONFIG } from '../../config/game-config';
-import { Station, StationsProcessedFile } from '../../models/station.model';
+import { formatStationCompact, Station, StationsProcessedFile } from '../../models/station.model';
 
 interface DrawRule {
   categoryKey: string;
@@ -1567,12 +1567,11 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   stationLabel(station: Station): string {
-    return `${station.name} (${station.mode} ${station.line})`;
+    return formatStationCompact(station);
   }
 
   baseStationLabel(station: Station): string {
-    const lineLabel = station.mode === 'SUBTE' ? `Línea ${station.line}` : `${station.mode} ${station.line}`;
-    return `${station.name}, ${lineLabel}`;
+    return formatStationCompact(station);
   }
 
   private toHiderCardData(card: CardDefinition): HiderCardData {
