@@ -202,7 +202,7 @@
 
           <ng-container *ngIf="selectedQuestionOption as option">
             <ion-input
-              *ngIf="option.category === 'radar'"
+              *ngIf="option.category === 'radar' && option.customDistance"
               label="Radio m"
               labelPlacement="stacked"
               type="number"
@@ -370,4 +370,6 @@
     </main>
   </div>
 </ion-content>
+
+
 

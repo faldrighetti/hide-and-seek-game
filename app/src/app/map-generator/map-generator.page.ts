@@ -85,6 +85,7 @@ interface QuestionCatalogOption {
   category: QuestionCatalogCategory;
   label: string;
   distanceM?: number;
+  customDistance?: boolean;
   automation: 'AUTOMATIC' | 'MANUAL_CIRCLE' | 'MANUAL_STATIONS' | 'MANUAL';
 }
 
@@ -703,7 +704,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.selectedQuestionCategory = option.category;
 
     if (option.category === 'radar') {
-      this.questionRadiusM = option.distanceM ?? this.questionRadiusM;
+      this.questionRadiusM = option.distanceM ?? (option.customDistance ? null : this.questionRadiusM);
       this.questionAnswer = 'INSIDE';
     } else if (option.category === 'thermometer') {
       this.questionAnswer = 'HOTTER';
@@ -1157,6 +1158,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
         category: 'radar',
         label: `Radar - ${item.label ?? 'personalizado'}`,
         distanceM: item.distanceM ?? undefined,
+        customDistance: Boolean(item.customDistance),
         automation: 'AUTOMATIC',
       });
     }
@@ -1381,4 +1383,5 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       .map(([lng, lat]) => ({ lat, lng }));
   }
 }
+
 
