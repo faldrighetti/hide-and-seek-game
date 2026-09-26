@@ -128,7 +128,7 @@ En MVP se puede hardcodear un mini JSON de pocas estaciones.
 - Seekers envían pregunta (categoría + pregunta fija o random de categoría).
 - Deben esperar respuesta para enviar otra.
 
-### 7.2 Respuesta del hider
+### 7.2 Respuesta del escondido
 El hider “contesta” la interacción con:
 - `ANSWER` (respuesta normal)
 - `VETO_CARD` (si tiene carta)
