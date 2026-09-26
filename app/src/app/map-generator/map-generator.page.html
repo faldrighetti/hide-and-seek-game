@@ -252,16 +252,12 @@
             </ion-note>
 
             <div class="coordinate-grid matching-grid" *ngIf="option.category === 'matching'">
-              <ion-select
+              <ion-input
                 label="Campo"
                 labelPlacement="stacked"
-                interface="popover" [interfaceOptions]="selectPopoverOptions"
-                [(ngModel)]="matchingField"
-                (ionChange)="updateMatchingValueFromSeekerLocation()"
-              >
-                <ion-select-option value="BARRIO">Barrio</ion-select-option>
-                <ion-select-option value="COMUNA">Comuna</ion-select-option>
-              </ion-select>
+                [value]="matchingField === 'COMUNA' ? 'Comuna' : 'Barrio'"
+                readonly="true"
+              ></ion-input>
               <ion-select
                 *ngIf="matchingField === 'BARRIO'"
                 label="Valor del equipo buscador"
@@ -370,6 +366,4 @@
     </main>
   </div>
 </ion-content>
-
-
 
