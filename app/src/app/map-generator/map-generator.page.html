@@ -177,21 +177,38 @@
           <ion-select
             label="Catálogo"
             labelPlacement="stacked"
-            interface="popover" [interfaceOptions]="selectPopoverOptions"
+            interface="popover"
+            [interfaceOptions]="selectPopoverOptions"
+            [value]="selectedQuestionCategory"
+            (ionChange)="onQuestionCategoryChange($any($event.detail.value))"
+          >
+            <ion-select-option *ngFor="let category of questionCatalogCategories" [value]="category.id">
+              {{ category.label }}
+            </ion-select-option>
+          </ion-select>
+
+          <ion-select
+            label="Opción"
+            labelPlacement="stacked"
+            interface="popover"
+            [interfaceOptions]="selectPopoverOptions"
             [value]="selectedQuestionOptionId"
             (ionChange)="onQuestionOptionChange($any($event.detail.value))"
           >
-            <ion-select-option *ngFor="let option of answeredQuestionOptions" [value]="option.id">
-              {{ option.label }}
+            <ion-select-option *ngFor="let option of selectedQuestionCategoryOptions" [value]="option.id">
+              {{ getQuestionOptionDisplayLabel(option) }}
             </ion-select-option>
           </ion-select>
 
           <ng-container *ngIf="selectedQuestionOption as option">
-            <div class="coordinate-grid" *ngIf="option.category === 'radar'">
-              <ion-input label="Lat seeker" labelPlacement="stacked" type="number" [(ngModel)]="questionOriginLat"></ion-input>
-              <ion-input label="Lng seeker" labelPlacement="stacked" type="number" [(ngModel)]="questionOriginLng"></ion-input>
-              <ion-input label="Radio m" labelPlacement="stacked" type="number" min="1" [(ngModel)]="questionRadiusM"></ion-input>
-            </div>
+            <ion-input
+              *ngIf="option.category === 'radar'"
+              label="Radio m"
+              labelPlacement="stacked"
+              type="number"
+              min="1"
+              [(ngModel)]="questionRadiusM"
+            ></ion-input>
             <ion-segment *ngIf="option.category === 'radar'" [value]="questionAnswer" (ionChange)="questionAnswer = $any($event.detail.value)">
               <ion-segment-button value="INSIDE">
                 <ion-label>Sí</ion-label>

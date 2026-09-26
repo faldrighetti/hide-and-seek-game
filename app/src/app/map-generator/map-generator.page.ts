@@ -78,9 +78,11 @@ interface QuestionCatalogAsset {
   };
 }
 
+type QuestionCatalogCategory = 'radar' | 'thermometer' | 'measuring' | 'matching';
+
 interface QuestionCatalogOption {
   id: string;
-  category: 'radar' | 'thermometer' | 'measuring' | 'matching';
+  category: QuestionCatalogCategory;
   label: string;
   distanceM?: number;
   automation: 'AUTOMATIC' | 'MANUAL_CIRCLE' | 'MANUAL_STATIONS' | 'MANUAL';
@@ -134,6 +136,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   barrioOptions: string[] = [];
   comunaOptions: Array<{ id: number; label: string }> = [];
   answeredQuestionOptions: QuestionCatalogOption[] = [];
+  selectedQuestionCategory: QuestionCatalogCategory = 'radar';
   selectedQuestionOptionId = '';
   questionOriginLat: number | null = null;
   questionOriginLng: number | null = null;
@@ -673,6 +676,23 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     }
   }
 
+  onQuestionCategoryChange(category: QuestionCatalogCategory): void {
+    this.selectedQuestionCategory = category;
+    const firstOption = this.selectedQuestionCategoryOptions[0];
+    this.onQuestionOptionChange(firstOption?.id ?? '');
+  }
+
+  getQuestionOptionDisplayLabel(option: QuestionCatalogOption): string {
+    const prefixByCategory: Record<QuestionCatalogCategory, string> = {
+      radar: 'Radar - ',
+      thermometer: 'Termómetro - ',
+      measuring: 'Comparación - ',
+      matching: 'Coincidencia - ',
+    };
+    const prefix = prefixByCategory[option.category];
+    return option.label.startsWith(prefix) ? option.label.slice(prefix.length) : option.label;
+  }
+
   onQuestionOptionChange(optionId: string): void {
     this.selectedQuestionOptionId = optionId;
     this.questionValidationError = '';
@@ -680,6 +700,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     if (!option) {
       return;
     }
+    this.selectedQuestionCategory = option.category;
 
     if (option.category === 'radar') {
       this.questionRadiusM = option.distanceM ?? this.questionRadiusM;
@@ -1081,6 +1102,21 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.syncDirectionOriginFromSingleSelection();
   }
 
+  get questionCatalogCategories(): Array<{ id: QuestionCatalogCategory; label: string }> {
+    const availableCategories = new Set<QuestionCatalogCategory>(this.answeredQuestionOptions.map(option => option.category));
+    const categories: Array<{ id: QuestionCatalogCategory; label: string }> = [
+      { id: 'radar', label: 'Radar' },
+      { id: 'thermometer', label: 'Termómetro' },
+      { id: 'measuring', label: 'Comparación' },
+      { id: 'matching', label: 'Coincidencia' },
+    ];
+    return categories.filter(category => availableCategories.has(category.id));
+  }
+
+  get selectedQuestionCategoryOptions(): QuestionCatalogOption[] {
+    return this.answeredQuestionOptions.filter(option => option.category === this.selectedQuestionCategory);
+  }
+
   get selectedQuestionOption(): QuestionCatalogOption | undefined {
     return this.answeredQuestionOptions.find(option => option.id === this.selectedQuestionOptionId);
   }
@@ -1119,7 +1155,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       options.push({
         id: `radar:${item.label ?? item.distanceM ?? 'custom'}`,
         category: 'radar',
-        label: `Radar - ${item.label ?? 'custom'}`,
+        label: `Radar - ${item.label ?? 'personalizado'}`,
         distanceM: item.distanceM ?? undefined,
         automation: 'AUTOMATIC',
       });
@@ -1164,7 +1200,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private buildAnsweredConstraint(option: QuestionCatalogOption): RadarConstraint | ThermometerConstraint | MeasuringConstraint | MatchingConstraint | null {
     if (option.category === 'radar') {
       if (!this.isValidLatLng(this.questionOriginLat, this.questionOriginLng) || !Number.isFinite(this.questionRadiusM) || Number(this.questionRadiusM) <= 0) {
-        this.questionValidationError = 'Carga origen y radio del radar.';
+        this.questionValidationError = 'Tocá el mapa para definir la referencia seeker e ingresá un radio.';
         return null;
       }
       return {
@@ -1254,7 +1290,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   }
 
   private findQuestionOptionForPendingQuestion(question: PendingQuestion): QuestionCatalogOption | undefined {
-    const category = question.categoryId as QuestionCatalogOption['category'];
+    const category = question.categoryId as QuestionCatalogCategory;
     if (!['radar', 'thermometer', 'measuring', 'matching'].includes(category)) {
       return undefined;
     }
