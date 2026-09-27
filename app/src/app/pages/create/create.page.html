@@ -19,14 +19,14 @@
     </ion-item>
 
     <ion-item>
-      <ion-select label="Turnos por equipo" [(ngModel)]="turnsPerTeam">
+      <ion-select label="Turnos por equipo" [ngModel]="turnsPerTeam" (ngModelChange)="onTurnsPerTeamChange($event)">
         <ion-select-option [value]="1">1</ion-select-option>
         <ion-select-option [value]="2">2</ion-select-option>
         <ion-select-option [value]="3">3</ion-select-option>
       </ion-select>
     </ion-item>
 
-    <ion-item>
+    <ion-item *ngIf="turnsPerTeam > 1; else singleTurnWinCondition">
       <ion-segment [(ngModel)]="winCondition">
         <ion-segment-button value="TOTAL_TIME"><ion-label>Tiempo total</ion-label></ion-segment-button>
         <ion-segment-button value="BEST_SINGLE_RUN">
@@ -34,20 +34,35 @@
         </ion-segment-button>
       </ion-segment>
     </ion-item>
+    <ng-template #singleTurnWinCondition>
+      <ion-item>
+        <ion-label>
+          <h2>Condición de victoria</h2>
+          <p>Tiempo total</p>
+        </ion-label>
+      </ion-item>
+    </ng-template>
   </ion-list>
 
   <ion-button expand="block" [disabled]="creating" (click)="create()">
     {{ creating ? 'Creando...' : 'Crear' }}
   </ion-button>
   <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
+  <ion-note *ngIf="copiedMessage" color="success">{{ copiedMessage }}</ion-note>
 
   <ion-card *ngIf="createdLobby as lobby">
     <ion-card-header>
       <ion-card-title>Partida creada</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <p><strong>gameId:</strong> {{ lobby.gameId }}</p>
-      <p><strong>link:</strong> {{ lobby.joinLink }}</p>
+      <div class="share-row">
+        <p><strong>gameId:</strong> {{ lobby.gameId }}</p>
+        <ion-button size="small" fill="outline" (click)="copyToClipboard(lobby.gameId, 'gameId')">Copiar</ion-button>
+      </div>
+      <div class="share-row">
+        <p><strong>link:</strong> {{ lobby.joinLink }}</p>
+        <ion-button size="small" fill="outline" (click)="copyToClipboard(lobby.joinLink, 'link')">Copiar</ion-button>
+      </div>
       <ion-button expand="block" fill="outline" (click)="goToLobby()">Ir al lobby</ion-button>
     </ion-card-content>
   </ion-card>

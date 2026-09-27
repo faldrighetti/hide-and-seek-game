@@ -1,3 +1,19 @@
 ion-segment {
   width: 100%;
 }
+
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.share-row p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.share-row ion-button {
+  flex: 0 0 auto;
+}

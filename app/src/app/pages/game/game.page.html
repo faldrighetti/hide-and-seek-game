@@ -180,7 +180,7 @@
                   (ionInput)="onBaseStationSearch($event)"
                 ></ion-searchbar>
 
-                <ion-list lines="full">
+                <ion-list *ngIf="hasBaseStationSearch()" lines="full">
                   <ion-item
                     button
                     *ngFor="let station of visibleBaseStationList(vm)"
@@ -193,10 +193,7 @@
                   </ion-item>
                 </ion-list>
 
-                <ion-note *ngIf="!visibleBaseStationList(vm).length && !stationFilter" color="medium">
-                  No hay estaciones disponibles. Podés tocar una estación en el mapa como objetivo.
-                </ion-note>
-                <ion-note *ngIf="!visibleBaseStationList(vm).length && stationFilter" color="medium">
+                <ion-note *ngIf="!visibleBaseStationList(vm).length && hasBaseStationSearch()" color="medium">
                   No hay estaciones que coincidan con la búsqueda.
                 </ion-note>
               </div>
@@ -769,15 +766,15 @@
       <ion-col size="12">
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Scoreboard</ion-card-title>
+            <ion-card-title>Posiciones</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <ion-list>
               <ion-item *ngFor="let team of vm.standings">
                 <ion-label>
                   <h2>{{ team.name }}</h2>
-                  <p>totalTime: {{ formatTime(team.totalTimeSeconds) }}</p>
-                  <p>bestSingleRun: {{ formatTime(team.bestSingleRunSeconds) }}</p>
+                  <p>Tiempo total: {{ formatTime(team.totalTimeSeconds) }}</p>
+                  <p>Mejor turno: {{ formatTime(team.bestSingleRunSeconds) }}</p>
                 </ion-label>
               </ion-item>
             </ion-list>
@@ -789,4 +786,3 @@
     </ng-container>
   </ion-grid>
 </ion-content>
-

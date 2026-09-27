@@ -19,17 +19,27 @@ export class CreatePage {
   hostDisplayName = '';
   creating = false;
   errorMessage = '';
+  copiedMessage = '';
 
   createdLobby: LobbyState | null = null;
+
+  onTurnsPerTeamChange(turnsPerTeam: 1 | 2 | 3): void {
+    this.turnsPerTeam = turnsPerTeam;
+    if (turnsPerTeam === 1) {
+      this.winCondition = 'TOTAL_TIME';
+    }
+  }
 
   async create(): Promise<void> {
     this.creating = true;
     this.errorMessage = '';
+    this.copiedMessage = '';
     try {
+      const winCondition = this.turnsPerTeam === 1 ? 'TOTAL_TIME' : this.winCondition;
       this.createdLobby = await this.gameFacade.createGame(
         this.mode,
         this.turnsPerTeam,
-        this.winCondition,
+        winCondition,
         false,
         this.hostDisplayName,
       );
@@ -37,6 +47,17 @@ export class CreatePage {
       this.errorMessage = error instanceof Error ? error.message : 'No se pudo crear la partida.';
     } finally {
       this.creating = false;
+    }
+  }
+
+  async copyToClipboard(value: string, label: 'gameId' | 'link'): Promise<void> {
+    this.errorMessage = '';
+    this.copiedMessage = '';
+    try {
+      await navigator.clipboard.writeText(value);
+      this.copiedMessage = label === 'gameId' ? 'gameId copiado.' : 'Link copiado.';
+    } catch (error) {
+      this.errorMessage = 'No se pudo copiar al portapapeles.';
     }
   }
 

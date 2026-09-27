@@ -50,6 +50,11 @@ export class FirebaseGameClientService {
     await firebaseSignOut(this.auth);
   }
 
+  async currentUserAfterAuthReady(): Promise<User | null> {
+    await this.auth.authStateReady();
+    return this.auth.currentUser;
+  }
+
   requireCurrentUser(): User {
     if (this.auth.currentUser) {
       return this.auth.currentUser;

@@ -335,19 +335,25 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return this.stations.filter(station => ids.has(station.id));
   }
 
+  hasBaseStationSearch(): boolean {
+    return this.normalizeText(this.stationFilter).length > 0;
+  }
+
   visibleBaseStationList(vm: GameBlueprint): Station[] {
+    const normalizedFilter = this.normalizeText(this.stationFilter);
+    if (!normalizedFilter) {
+      return [];
+    }
+
     const source = vm.currentTurn.baseStationSelectionRequired
       ? this.pendingBaseStationCandidates(vm)
       : this.stations;
-    const normalizedFilter = this.normalizeText(this.stationFilter);
-    const stations = normalizedFilter
-      ? this.stations.filter(station =>
-        this.normalizeText(station.name).includes(normalizedFilter)
-        || this.normalizeText(station.line).includes(normalizedFilter)
-        || this.normalizeText(station.mode).includes(normalizedFilter),
-      )
-      : source;
-    return stations.slice(0, normalizedFilter ? 12 : 8);
+    const stations = source.filter(station =>
+      this.normalizeText(station.name).includes(normalizedFilter)
+      || this.normalizeText(station.line).includes(normalizedFilter)
+      || this.normalizeText(station.mode).includes(normalizedFilter),
+    );
+    return stations.slice(0, 12);
   }
 
   selectBaseStation(station: Station, vm?: GameBlueprint): void {
@@ -886,11 +892,11 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.lootErrorMessage = '';
     const vm = this.latestBlueprint();
     if (vm?.currentTurn.lootOffer && this.selectedLootCardIds.length === 0) {
-      this.lootErrorMessage = 'Primero elegí una carta del loot; después podés descartar de tu mano si hace falta.';
+      this.lootErrorMessage = 'Primero elegí una carta del mazo; después podés descartar de tu mano si hace falta.';
       return;
     }
     if (this.baseCardId(cardId).startsWith('powerup_')) {
-      this.lootErrorMessage = 'Las cartas de poder se juegan desde su accion, no como descarte de loot.';
+      this.lootErrorMessage = 'Las cartas de poder se juegan desde su acción, no como descarte de mazo.';
       return;
     }
     if (this.discardFromHandIds.includes(cardId)) {
@@ -1038,15 +1044,15 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     if (result.resolution === 'ANSWER') {
-      return result.answerText || 'El hider registró la respuesta.';
+      return result.answerText || 'El escondido registró la respuesta.';
     }
     if (result.resolution === 'VETO') {
-      return 'El hider usó Veto. La pregunta queda resuelta sin respuesta.';
+      return 'El escondido usó Veto. La pregunta queda resuelta sin respuesta.';
     }
     if (result.resolution === 'TIMEOUT') {
-      return 'El hider no respondió a tiempo. La pregunta queda resuelta y los seekers reciben 30 minutos de bonus.';
+      return 'El escondido no respondió a tiempo. La pregunta queda resuelta y los buscadores reciben 30 minutos de bonus.';
     }
-    return 'El hider usó Randomizar. La pregunta original queda resuelta.';
+    return 'El escondido usó Randomizar. La pregunta original queda resuelta.';
   }
 
   questionHistoryAnswerText(question: TurnQuestionHistoryItem): string {
@@ -1057,10 +1063,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return question.answerText || 'Respuesta registrada sin texto.';
     }
     if (question.resolution === 'VETO') {
-      return 'Vetada por el hider.';
+      return 'Vetada por el escondido.';
     }
     if (question.resolution === 'RANDOMIZE') {
-      return 'Randomizada por el hider.';
+      return 'Randomizada por el escondido.';
     }
     if (question.resolution === 'TIMEOUT' || question.status === 'EXPIRED') {
       return 'Vencida sin respuesta.';
@@ -1130,7 +1136,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   async resolveEndgameConsultation(confirmed: boolean, role: PlayerRole): Promise<void> {
     if (!role.isHider) {
-      this.endgameConsultationErrorMessage = 'Solo el hider puede responder la consulta de endgame.';
+      this.endgameConsultationErrorMessage = 'Solo el escondido puede responder la consulta de endgame.';
       return;
     }
 
@@ -1146,7 +1152,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
   async startCaptureAttempt(role: PlayerRole): Promise<void> {
     if (!role.isSeeker || !role.teamId) {
-      this.foundErrorMessage = 'Solo los seekers pueden iniciar captura.';
+      this.foundErrorMessage = 'Solo los buscadores pueden iniciar captura.';
       return;
     }
 
@@ -1163,7 +1169,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   async resolveCaptureAttempt(confirmed: boolean, role: PlayerRole): Promise<void> {
     if (!role.isHider) {
-      this.foundErrorMessage = 'Solo el hider puede responder el intento.';
+      this.foundErrorMessage = 'Solo el escondido puede responder el intento.';
       return;
     }
 
@@ -1180,7 +1186,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   async confirmCaptureBySeeker(role: PlayerRole): Promise<void> {
     if (!role.isSeeker) {
-      this.foundErrorMessage = 'Solo seekers pueden confirmar captura.';
+      this.foundErrorMessage = 'Solo los buscadores pueden confirmar captura.';
       return;
     }
 
@@ -1201,10 +1207,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return 'Sin intento activo';
     }
     if (attempt.status === 'PENDING_HIDER') {
-      return `Pendiente del hider. Iniciado por Equipo ${attempt.createdByTeamId}.`;
+      return `Pendiente del escondido. Iniciado por Equipo ${attempt.createdByTeamId}.`;
     }
     if (attempt.status === 'REJECTED') {
-      return 'Rechazado por el hider. Seekers pueden ratificar.';
+      return 'Rechazado por el escondido. Buscadores pueden ratificar.';
     }
     return 'Captura confirmada.';
   }
@@ -1318,15 +1324,15 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   roleLabel(role: PlayerRole): string {
     if (role.isHider) {
-      return 'Hider';
+      return 'Escondido';
     }
     if (role.isSeeker) {
-      return 'Seeker';
+      return 'Buscador';
     }
     if (role.isHost) {
-      return 'Host';
+      return 'Anfitrión';
     }
-    return 'Sin seat';
+    return 'Sin lugar asignado';
   }
 
   baseStationSummary(vm: GameBlueprint): string {
@@ -1355,7 +1361,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     if (vm.status === 'FINISHED') {
       return {
         title: 'Partida finalizada',
-        detail: 'Revisen el resultado final.',
+        detail: 'Revisen la tabla de posiciones antes de pasar al siguiente turno.',
         color: 'success',
       };
     }
@@ -1363,7 +1369,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     if (!role.isParticipant) {
       return {
         title: 'Sin asiento en esta partida',
-        detail: 'Unite desde el lobby con tu cuenta de Google para poder actuar.',
+        detail: 'Unite desde el lobby con tu cuenta de Google para jugar.',
         color: 'medium',
       };
     }
@@ -1371,7 +1377,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     if (vm.currentTurn.phase === 'INTERMISSION') {
       return {
         title: 'Intervalo',
-        detail: 'El proximo escape empieza cuando termine el contador.',
+        detail: 'El próximo escape empieza cuando termine el contador.',
         color: 'tertiary',
       };
     }
@@ -1393,7 +1399,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     if (vm.currentTurn.phase === 'ENDED') {
       return {
         title: 'Turno cerrado',
-        detail: 'Revisen el scoreboard antes de pasar al siguiente turno.',
+        detail: 'Revisen la tabla de posiciones antes de pasar al siguiente turno.',
         color: 'medium',
       };
     }
@@ -1445,12 +1451,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return role.isSeeker
         ? {
           title: 'Captura rechazada',
-          detail: 'Si corresponde, otro seeker puede ratificar la captura.',
+          detail: 'Si corresponde, otro buscador puede ratificar la captura.',
           color: 'warning',
         }
         : {
           title: 'Captura rechazada',
-          detail: 'El intento queda visible para que los seekers lo ratifiquen si hace falta.',
+          detail: 'El intento queda visible para que los buscadores lo ratifiquen si hace falta.',
           color: 'medium',
         };
     }
@@ -1459,20 +1465,20 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return role.isHider
         ? {
           title: 'Tenes una pregunta pendiente',
-          detail: 'Responde, veta o randomiza antes de que venza el timer.',
+          detail: 'Respondé, vetá o randomizá antes de que venza el timer.',
           color: 'warning',
         }
         : {
           title: 'Esperando respuesta',
-          detail: 'El hider esta resolviendo la pregunta pendiente.',
+          detail: 'El escondido está resolviendo la pregunta pendiente.',
           color: 'warning',
         };
     }
 
     if (role.isHider && vm.currentTurn.lootOffer) {
       return {
-        title: 'Loot pendiente',
-        detail: 'Elegi cartas nuevas y descarta de tu mano si hace falta.',
+        title: 'Mazo pendiente',
+        detail: 'Elegí cartas nuevas y descartá de tu mano si hace falta.',
         color: 'success',
       };
     }
@@ -1480,22 +1486,22 @@ export class GamePage implements AfterViewInit, OnDestroy {
     if (role.isSeeker && this.hasQuestionBlockingEffect(vm.currentTurn.activeEffects)) {
       return {
         title: 'Pregunta bloqueada',
-        detail: 'Completen la condicion de la maldicion activa para volver a preguntar.',
+        detail: 'Completen la condición de la maldición activa para volver a preguntar.',
         color: 'warning',
       };
     }
 
     if (role.isSeeker) {
       return {
-        title: 'Elegi una pregunta',
-        detail: 'Selecciona una categoria y envia una pregunta al hider.',
+        title: 'Elegí una pregunta',
+        detail: 'Seleccioná una categoria y enviá una pregunta al escondido.',
         color: 'primary',
       };
     }
 
     return {
       title: 'Sin acción pendiente',
-      detail: 'Espera la proxima pregunta de los seekers.',
+      detail: 'Esperá a la proxima pregunta de los buscadores.',
       color: 'medium',
     };
   }
@@ -1557,8 +1563,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
 
     return resolution === 'VETO'
-      ? 'Necesitas una carta Veto en mano.'
-      : 'Necesitas una carta Randomizar en mano.';
+      ? 'Necesitás una carta Veto en mano.'
+      : 'Necesitás una carta Randomizar en mano.';
   }
 
   onPendingAnswerInput(event: Event): void {
@@ -1632,7 +1638,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
   private toggleDiscardDrawSelection(cardId: string): void {
     this.powerupErrorMessage = '';
     if (cardId === this.activeDiscardDrawPowerupId) {
-      this.powerupErrorMessage = 'Esa carta se descarta automaticamente al jugarla. Elegí otras cartas.';
+      this.powerupErrorMessage = 'Esa carta se descarta automáticamente al jugarla. Elegí otras cartas.';
       return;
     }
 
