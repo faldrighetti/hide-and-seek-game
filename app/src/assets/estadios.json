@@ -1,0 +1,269 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "River Plate",
+        "lat": -34.545320,
+        "lng": -58.449740
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.449740, -34.545320]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Vélez Sarsfield",
+        "lat": -34.635350,
+        "lng": -58.520690
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.520690, -34.635350]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Boca Juniors",
+        "lat": -34.635630,
+        "lng": -58.364800
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.364800, -34.635630]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Huracán",
+        "lat": -34.643480,
+        "lng": -58.396520
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.396520, -34.643480]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "San Lorenzo",
+        "lat": -34.652080,
+        "lng": -58.440100
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.440100, -34.652080]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Deportivo Español",
+        "lat": -34.657900,
+        "lng": -58.464500
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.464500, -34.657900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Nueva Chicago",
+        "lat": -34.667920,
+        "lng": -58.499600
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.499600, -34.667920]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Argentinos Juniors",
+        "lat": -34.606030,
+        "lng": -58.472580
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.472580, -34.606030]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Ferro Carril Oeste",
+        "lat": -34.618670,
+        "lng": -58.447830
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.447830, -34.618670]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Atlanta",
+        "lat": -34.594970,
+        "lng": -58.449260
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.449260, -34.594970]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "All Boys",
+        "lat": -34.616510,
+        "lng": -58.497750
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.497750, -34.616510]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Defensores de Belgrano",
+        "lat": -34.541210,
+        "lng": -58.461850
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.461850, -34.541210]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Excursionistas",
+        "lat": -34.558900,
+        "lng": -58.443770
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.443770, -34.558900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Sacachispas",
+        "lat": -34.664660,
+        "lng": -58.451900
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.451900, -34.664660]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Barracas Central",
+        "lat": -34.647530,
+        "lng": -58.396800
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.396800, -34.647530]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Comunicaciones",
+        "lat": -34.593830,
+        "lng": -58.488490
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.488490, -34.593830]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "General Lamadrid",
+        "lat": -34.613280,
+        "lng": -58.515720
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.515720, -34.613280]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Platense",
+        "lat": -34.540190,
+        "lng": -58.481660
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.481660, -34.540190]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Independiente",
+        "lat": -34.670220,
+        "lng": -58.371050
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.371050, -34.670220]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Racing Club",
+        "lat": -34.667556,
+        "lng": -58.368583
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.368583, -34.667556]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Almagro",
+        "lat": -34.614167,
+        "lng": -58.535000
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.535000, -34.614167]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "UAI Urquiza",
+        "lat": -34.596010,
+        "lng": -58.525470
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.525470, -34.596010]
+      }
+    }
+  ]
+}
