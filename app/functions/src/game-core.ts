@@ -12,15 +12,19 @@ import {
   appendGameNotificationsForEventInTx,
 } from "./notifications";
 
+const INTERVAL_PHASE_MINUTES = 5;
+const ESCAPE_PHASE_MINUTES = 8;
+const MOVE_DURATION_MINUTES = 20;
+
 export const GAME_ID_LENGTH = 6;
 export const SEAT_OFFLINE_SECONDS = 90;
 export const HIDING_ZONE_RADIUS_M = 600;
-export const INTERVAL_PHASE_SECONDS = 300;
-export const ESCAPE_PHASE_SECONDS = 480;
+export const INTERVAL_PHASE_SECONDS = INTERVAL_PHASE_MINUTES * 60;
+export const ESCAPE_PHASE_SECONDS = ESCAPE_PHASE_MINUTES * 60;
 export const CHASE_MAX_SECONDS = 18000;
 export const ENDGAME_DWELL_SECONDS = 60;
 export const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
-export const MOVE_DURATION_SECONDS = 20 * 60;
+export const MOVE_DURATION_SECONDS = MOVE_DURATION_MINUTES * 60;
 export const FINISHED_GAME_RETENTION_SECONDS = 24 * 60 * 60;
 
 export type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";

@@ -465,7 +465,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
     if (vm?.currentTurn.lootOffer) {
-      this.questionErrorMessage = 'El hider todavía tiene loot pendiente.';
+      this.questionErrorMessage = 'El escondido aún tiene que sacar una carta del mazo.';
       return;
     }
     if (vm?.currentTurn.baseStationSelectionRequired) {
