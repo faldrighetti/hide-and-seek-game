@@ -573,6 +573,25 @@
             <ion-note *ngIf="vm.currentTurn.baseStationSelectionRequired" color="warning">
               Falta confirmar estación base.
             </ion-note>
+            <ion-card *ngIf="vm.currentTurn.thermometerState as thermometer" class="question-result-card">
+              <ion-card-header>
+                <ion-card-title>Termómetro activo</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <p>Recorran {{ thermometer.targetDistanceM }} m en línea recta. Al llegar se hará una sola lectura de ubicación para validar el recorrido.</p>
+                <ion-button
+                  size="small"
+                  [disabled]="thermometerActionInFlight || vm.currentTurn.phase !== 'CHASE'"
+                  (click)="completeThermometer(role)"
+                >
+                  {{ thermometerActionInFlight ? 'Verificando ubicación...' : 'Llegamos' }}
+                </ion-button>
+                <ion-note *ngIf="thermometerMessage" color="medium">{{ thermometerMessage }}</ion-note>
+              </ion-card-content>
+            </ion-card>
+            <ion-note *ngIf="thermometerMessage && !vm.currentTurn.thermometerState" color="success">
+              {{ thermometerMessage }}
+            </ion-note>
             <div class="endgame-question-actions">
               <ion-button
                 size="small"
@@ -624,7 +643,7 @@
                     <ion-item
                       button
                       detail
-                      [disabled]="isQuestionCategoryOnCooldown(category, vm) || isQuestionAlreadyAsked(category, question, vm)"
+                      [disabled]="!!vm.currentTurn.thermometerState || isQuestionCategoryOnCooldown(category, vm) || isQuestionAlreadyAsked(category, question, vm)"
                       [class.asked-question]="isQuestionAlreadyAsked(category, question, vm)"
                       *ngFor="let question of category.items; let index = index; trackBy: trackByQuestionItem"
                       (click)="selectSeekerQuestion(category, question, role)"

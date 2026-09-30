@@ -82,6 +82,7 @@ const buildBlueprint = (
       endgameQuestionsUnlocked: false,
       lastQuestionResult: null,
       moveState: null,
+      thermometerState: null,
     },
     standings: createSeedStandings(mode),
     questionPolicy: {
@@ -372,6 +373,27 @@ export class GameFacadeService {
     );
   }
 
+  activateThermometer(
+    gameId: string,
+    targetDistanceM: number,
+    origin: { lat: number; lng: number; accuracyM: number },
+  ): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; targetDistanceM: number; origin: { lat: number; lng: number; accuracyM: number } },
+      { ok: boolean }
+    >('activateThermometer', { gameId, targetDistanceM, origin });
+  }
+
+  completeThermometer(
+    gameId: string,
+    destination: { lat: number; lng: number; accuracyM: number },
+  ): Promise<{ ok: boolean; actualDistanceM: number }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; destination: { lat: number; lng: number; accuracyM: number } },
+      { ok: boolean; actualDistanceM: number }
+    >('completeThermometer', { gameId, destination });
+  }
+
   selectLoot(
     gameId: string,
     selectedCardIds: string[],
@@ -577,6 +599,7 @@ export class GameFacadeService {
         endgameQuestionsUnlocked: Boolean(currentTurn?.['endgameQuestionsUnlocked']),
         lastQuestionResult: this.mapLastQuestionResult(currentTurn?.['lastQuestionResult']),
         moveState: this.mapMoveState(currentTurn?.['moveState']),
+        thermometerState: this.mapThermometerState(currentTurn?.['thermometerState']),
       },
     };
   }
@@ -613,6 +636,22 @@ export class GameFacadeService {
       targetStationId: typeof move['targetStationId'] === 'string' ? move['targetStationId'] : null,
       completedAtIso: this.timestampToIso(move['completedAt']),
       remainingPhaseSeconds: Number(move['remainingPhaseSeconds'] ?? 0),
+    };
+  }
+
+  private mapThermometerState(value: unknown): GameBlueprint['currentTurn']['thermometerState'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    const thermometer = value as Record<string, unknown>;
+    if (thermometer['status'] !== 'ACTIVE') {
+      return null;
+    }
+    return {
+      status: 'ACTIVE',
+      targetDistanceM: Number(thermometer['targetDistanceM'] ?? 0),
+      startedByTeamId: String(thermometer['startedByTeamId'] ?? ''),
+      startedAtIso: this.timestampToIso(thermometer['startedAt']),
     };
   }
   private mapEndgameConsultation(value: unknown): GameBlueprint['currentTurn']['endgameConsultation'] {

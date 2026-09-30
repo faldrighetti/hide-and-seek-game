@@ -158,23 +158,9 @@
       "name": "Termómetros",
       "cost": null,
       "time": null,
-      "prompt": "Acabo de viajar (al menos) [Distancia]. ¿Estoy más “caliente” (más cerca) o más “frío” (más lejos)?",
+      "prompt": "Activen el termómetro y desplácense [Distancia] en línea recta.",
       "placeholder": "[Distancia]",
       "items": [
-        {
-          "label": "100 m",
-          "availability": "Todos los tamaños",
-          "distance": "100 m",
-          "distanceM": 100,
-          "resolutionMode": "AUTOMATIC"
-        },
-        {
-          "label": "200 m",
-          "availability": "Todos los tamaños",
-          "distance": "200 m",
-          "distanceM": 200,
-          "resolutionMode": "AUTOMATIC"
-        },
         {
           "label": "500 m",
           "availability": "Todos los tamaños",
@@ -190,10 +176,25 @@
           "resolutionMode": "AUTOMATIC"
         },
         {
+          "label": "1,5 km",
+          "availability": "Todos los tamaños",
+          "distance": "1,5 km",
+          "distanceM": 1500,
+          "resolutionMode": "AUTOMATIC"
+        },
+        {
           "label": "2 km",
           "availability": "Todos los tamaños",
           "distance": "2 km",
           "distanceM": 2000,
+          "resolutionMode": "AUTOMATIC"
+        },
+        {
+          "label": "Elegir distancia",
+          "availability": "Todos los tamaños",
+          "distance": null,
+          "distanceM": null,
+          "customDistance": true,
           "resolutionMode": "AUTOMATIC"
         }
       ],

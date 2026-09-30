@@ -121,6 +121,15 @@ export interface MoveState {
   remainingPhaseSeconds: number;
 }
 
+export interface ThermometerState {
+  status: "ACTIVE";
+  targetDistanceM: number;
+  startedByUid: string;
+  startedByTeamId: string;
+  startedAt: Timestamp;
+  sessionId: string;
+}
+
 export interface EndgameConsultation {
   status: "PENDING_HIDER" | "CONFIRMED" | "REJECTED";
   requestedByUid: string;
@@ -167,6 +176,7 @@ export interface TurnState {
   foundVotes: string[];
   captureAttempt?: CaptureAttempt | null;
   moveState?: MoveState | null;
+  thermometerState?: ThermometerState | null;
 }
 
 export interface GameDoc {
@@ -712,6 +722,7 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
       lastEndgameQuestionsConsultAt: null,
       foundVotes: [],
       captureAttempt: null,
+      thermometerState: null,
     };
     game.winnerTeamIds = findWinnerIds(game);
     return game;
@@ -745,6 +756,7 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     expirations: 0,
     foundVotes: [],
     captureAttempt: null,
+    thermometerState: null,
   };
   return game;
 };

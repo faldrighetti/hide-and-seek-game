@@ -24,6 +24,7 @@ import {
   WinCondition,
 
   appendGameEventInTx,
+  assertValidCoordinate,
   assertGlobalPlayEnabled,
   assertRateLimitInTx,
   assertUserRateLimit,
@@ -33,6 +34,7 @@ import {
   createInitialDeckState,
 
   drawFromDeck,
+  distanceMeters,
   endTurnInTx,
 
   getNextHiderTeamId,
@@ -653,6 +655,167 @@ export const resolveEndgameConsultation = onCall(async (request) => {
   return {ok: true};
 });
 
+interface LocationSample {
+  lat: number;
+  lng: number;
+  accuracyM: number;
+}
+
+const readLocationSample = (value: unknown): LocationSample => {
+  const sample = value as Record<string, unknown> | null;
+  const lat = Number(sample?.lat);
+  const lng = Number(sample?.lng);
+  const accuracyM = Number(sample?.accuracyM);
+  assertValidCoordinate(lat, lng);
+  if (!Number.isFinite(accuracyM) || accuracyM < 0 || accuracyM > 50) {
+    throw new HttpsError("failed-precondition", "La ubicación debe tener una precisión de 50 metros o mejor.");
+  }
+  return {lat, lng, accuracyM};
+};
+
+const isValidThermometerDistance = (distanceM: number): boolean =>
+  [500, 1000, 1500, 2000].includes(distanceM) || (distanceM >= 500 && distanceM <= 4000);
+
+export const activateThermometer = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const targetDistanceM = Number(request.data?.targetDistanceM);
+  const origin = readLocationSample(request.data?.origin);
+  if (!gameId || !Number.isInteger(targetDistanceM) || !isValidThermometerDistance(targetDistanceM)) {
+    throw new HttpsError("invalid-argument", "La distancia del termómetro es inválida.");
+  }
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const turn = game.currentTurn;
+    if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE") {
+      throw new HttpsError("failed-precondition", "Solo se puede activar el termómetro durante CHASE.");
+    }
+    assertOperationalPlayAllowed(game);
+    if (!turn.hidingZone || turn.baseStationSelectionRequired || turn.pendingQuestionId || turn.lootOffer || turn.moveState?.status === "ACTIVE") {
+      throw new HttpsError("failed-precondition", "No se puede activar el termómetro en este momento.");
+    }
+    if (turn.thermometerState) {
+      throw new HttpsError("already-exists", "THERMOMETER_ALREADY_ACTIVE");
+    }
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
+      throw new HttpsError("permission-denied", "Solo los seekers pueden activar el termómetro.");
+    }
+    const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "activate_thermometer", now, 10);
+    const sessionRef = gameRef.collection("thermometerSessions").doc();
+    tx.set(sessionRef, {
+      origin: {lat: origin.lat, lng: origin.lng},
+      originAccuracyM: origin.accuracyM,
+      createdAt: now,
+    });
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        thermometerState: {
+          status: "ACTIVE",
+          targetDistanceM,
+          startedByUid: uid,
+          startedByTeamId: seatTeamId,
+          startedAt: now,
+          sessionId: sessionRef.id,
+        },
+      },
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "THERMOMETER_ACTIVATED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {targetDistanceM},
+    });
+  });
+  return {ok: true};
+});
+
+export const completeThermometer = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const destination = readLocationSample(request.data?.destination);
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await requireGameMembership(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  let actualDistanceM = 0;
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snap.data() as GameDoc;
+    const turn = game.currentTurn;
+    const thermometer = turn?.thermometerState;
+    if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE" || !thermometer) {
+      throw new HttpsError("failed-precondition", "No hay un termómetro activo.");
+    }
+    assertOperationalPlayAllowed(game);
+    const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (!seatTeamId || seatTeamId !== thermometer.startedByTeamId) {
+      throw new HttpsError("permission-denied", "Debe completarlo el equipo que activó el termómetro.");
+    }
+    const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "complete_thermometer", now, 5);
+    const sessionRef = gameRef.collection("thermometerSessions").doc(thermometer.sessionId);
+    const sessionSnap = await tx.get(sessionRef);
+    const originData = sessionSnap.data()?.origin as {lat?: unknown; lng?: unknown} | undefined;
+    const origin = {lat: Number(originData?.lat), lng: Number(originData?.lng)};
+    assertValidCoordinate(origin.lat, origin.lng);
+    actualDistanceM = distanceMeters(origin, destination);
+    const toleranceM = Math.max(20, thermometer.targetDistanceM * 0.1);
+    if (Math.abs(actualDistanceM - thermometer.targetDistanceM) > toleranceM) {
+      throw new HttpsError("failed-precondition", "THERMOMETER_DISTANCE_OUT_OF_RANGE");
+    }
+    if (turn.pendingQuestionId || turn.lootOffer) {
+      throw new HttpsError("failed-precondition", "No se puede completar el termómetro en este momento.");
+    }
+    const questionRef = gameRef.collection("questions").doc();
+    const expiresAt = Timestamp.fromMillis(now.toMillis() + 300 * 1000);
+    const prompt = `Los seekers se desplazaron ${thermometer.targetDistanceM} m en línea recta. ¿Ahora están más cerca o más lejos?`;
+    tx.set(questionRef, {
+      askedByUid: uid,
+      prompt,
+      isPhoto: false,
+      categoryId: "thermometer",
+      distanceM: thermometer.targetDistanceM,
+      customDistanceM: [500, 1000, 1500, 2000].includes(thermometer.targetDistanceM) ? null : thermometer.targetDistanceM,
+      status: "PENDING",
+      randomizePool: [],
+      runNumber: turn.runNumber,
+      createdAt: now,
+      expiresAt,
+    });
+    tx.update(gameRef, {
+      currentTurn: {
+        ...turn,
+        thermometerState: null,
+        pendingQuestionId: questionRef.id,
+        pendingQuestionEndsAt: expiresAt,
+      },
+      updatedAt: now,
+    });
+    tx.delete(sessionRef);
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "THERMOMETER_COMPLETED",
+      createdAt: now,
+      actorUid: uid,
+      actorTeamId: seatTeamId,
+      payload: {questionId: questionRef.id, targetDistanceM: thermometer.targetDistanceM},
+    });
+  });
+  return {ok: true, actualDistanceM: Math.round(actualDistanceM)};
+});
+
 export const sendQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
@@ -672,11 +835,11 @@ export const sendQuestion = onCall(async (request) => {
   if (!gameId || !prompt || !categoryId) {
     throw new HttpsError("invalid-argument", "gameId, prompt y categoryId son obligatorios.");
   }
+  if (categoryId === "thermometer") {
+    throw new HttpsError("failed-precondition", "THERMOMETER_REQUIRES_GEOLOCATION");
+  }
   if (distanceM !== null && (!Number.isFinite(distanceM) || distanceM <= 0 || distanceM > 10000)) {
     throw new HttpsError("invalid-argument", "distanceM invalida.");
-  }
-  if (categoryId === "thermometer" && ![100, 200, 500, 1000, 2000].includes(distanceM ?? -1)) {
-    throw new HttpsError("invalid-argument", "distanceM invalida para termometro.");
   }
   if (
     customDistanceM !== null &&
@@ -704,6 +867,9 @@ export const sendQuestion = onCall(async (request) => {
     }
     if (game.currentTurn.pendingQuestionId) {
       throw new HttpsError("failed-precondition", "Ya existe una pregunta pendiente.");
+    }
+    if (game.currentTurn.thermometerState) {
+      throw new HttpsError("failed-precondition", "THERMOMETER_ALREADY_ACTIVE");
     }
     if (game.currentTurn.moveState?.status === "ACTIVE") {
       throw new HttpsError("failed-precondition", "No se pueden hacer preguntas durante Move.");

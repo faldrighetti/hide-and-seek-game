@@ -108,6 +108,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
   questionCategories: QuestionCategory[] = [];
   selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem } | null = null;
   sendingQuestion = false;
+  thermometerActionInFlight = false;
+  thermometerMessage = '';
   resolvingQuestion: QuestionResolution | null = null;
   selectingLoot = false;
   playingDiscardDrawPowerup = false;
@@ -456,6 +458,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.questionErrorMessage = 'Ya hay una pregunta pendiente.';
       return;
     }
+    if (vm?.currentTurn.thermometerState) {
+      this.questionErrorMessage = 'Ya hay un termómetro activo. Lleguen al destino antes de enviar otra pregunta.';
+      return;
+    }
     if (vm && vm.currentTurn.phase !== 'CHASE') {
       this.questionErrorMessage = 'Solo se pueden enviar preguntas durante CHASE.';
       return;
@@ -484,8 +490,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const customDistanceM = await this.customRadarDistanceM(category, question);
-    if (customDistanceM === null && this.isCustomRadarQuestion(category, question)) {
+    const customDistanceM = await this.customQuestionDistanceM(category, question);
+    if (customDistanceM === null && this.isCustomDistanceQuestion(category, question)) {
       return;
     }
 
@@ -495,6 +501,15 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
     const distanceM = this.selectedQuestionDistanceM(question, customDistanceM);
+
+    if (category.key === 'thermometer') {
+      if (!distanceM) {
+        this.questionErrorMessage = 'Elegí una distancia para el termómetro.';
+        return;
+      }
+      await this.activateThermometer(role, distanceM);
+      return;
+    }
 
 
     const confirmed = await this.confirmQuestionSend(prompt);
@@ -516,6 +531,21 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.questionErrorMessage = this.friendlyFunctionError(error, 'No se pudo enviar la pregunta.');
     } finally {
       this.sendingQuestion = false;
+    }
+  }
+
+  async completeThermometer(role: PlayerRole): Promise<void> {
+    if (!role.isSeeker || this.thermometerActionInFlight) return;
+    this.thermometerActionInFlight = true;
+    this.thermometerMessage = '';
+    try {
+      const destination = await this.getCurrentPositionOnce();
+      const result = await this.gameFacade.completeThermometer(this.gameId, destination);
+      this.thermometerMessage = `Recorrido validado: ${result.actualDistanceM} m. Se envió la pregunta al escondido.`;
+    } catch (error) {
+      this.thermometerMessage = this.friendlyFunctionError(error, 'No se pudo completar el termómetro.');
+    } finally {
+      this.thermometerActionInFlight = false;
     }
   }
 
@@ -1593,7 +1623,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return ['Sí', 'No'];
     }
     if (question.categoryId === 'thermometer') {
-      return ['Frío', 'Caliente'];
+      return ['Más cerca', 'Más lejos'];
     }
     return [];
   }
@@ -1745,8 +1775,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return this.latestGameBlueprint ?? undefined;
   }
 
-  private isCustomRadarQuestion(category: QuestionCategory, question: QuestionItem): boolean {
-    return category.key === 'radar' && question.customDistance === true;
+  private isCustomDistanceQuestion(category: QuestionCategory, question: QuestionItem): boolean {
+    return (category.key === 'radar' || category.key === 'thermometer') && question.customDistance === true;
   }
 
   private selectedQuestionDistanceM(question: QuestionItem, customDistanceM?: number | null): number | undefined {
@@ -1770,24 +1800,27 @@ export class GamePage implements AfterViewInit, OnDestroy {
       .slice(0, 100);
   }
 
-  private async customRadarDistanceM(
+  private async customQuestionDistanceM(
     category: QuestionCategory,
     question: QuestionItem,
   ): Promise<number | null | undefined> {
-    if (!this.isCustomRadarQuestion(category, question)) {
+    if (!this.isCustomDistanceQuestion(category, question)) {
       return undefined;
     }
 
+    const minM = category.key === 'thermometer' ? 500 : 200;
+    const name = category.key === 'thermometer' ? 'Termómetro' : 'Radar';
+
     let distanceM: number | null = null;
     const alert = await this.alertController.create({
-      header: 'Radar personalizado',
-      message: 'Ingresá una distancia entre 200 y 4000 metros.',
+      header: `${name} personalizado`,
+      message: `Ingresá una distancia entre ${minM} y 4000 metros.`,
       inputs: [
         {
           name: 'distanceM',
           type: 'number',
           placeholder: 'Metros',
-          min: 200,
+          min: minM,
           max: 4000,
           attributes: {
             inputmode: 'numeric',
@@ -1805,8 +1838,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
           role: 'confirm',
           handler: data => {
             const parsed = Number(data?.distanceM);
-            if (!Number.isFinite(parsed) || parsed < 200 || parsed > 4000) {
-              this.questionErrorMessage = 'La distancia del radar personalizado debe estar entre 200 y 4000 metros.';
+            if (!Number.isFinite(parsed) || parsed < minM || parsed > 4000) {
+              this.questionErrorMessage = `La distancia debe estar entre ${minM} y 4000 metros.`;
               return false;
             }
 
@@ -1841,6 +1874,61 @@ export class GamePage implements AfterViewInit, OnDestroy {
     await alert.present();
     const result = await alert.onDidDismiss();
     return result.role === 'confirm';
+  }
+
+  private async activateThermometer(role: PlayerRole, targetDistanceM: number): Promise<void> {
+    if (!role.isSeeker || this.thermometerActionInFlight) return;
+    if (!(await this.confirmThermometerActivation(targetDistanceM))) {
+      this.selectedSeekerQuestion = null;
+      return;
+    }
+    this.thermometerActionInFlight = true;
+    this.questionErrorMessage = '';
+    this.thermometerMessage = '';
+    try {
+      const origin = await this.getCurrentPositionOnce();
+      await this.gameFacade.activateThermometer(this.gameId, targetDistanceM, origin);
+      this.selectedSeekerQuestion = null;
+      this.thermometerMessage = `Termómetro activado para ${targetDistanceM} m. Cuando lleguen, toquen “Llegamos”.`;
+    } catch (error) {
+      this.questionErrorMessage = this.friendlyFunctionError(error, 'No se pudo activar el termómetro.');
+    } finally {
+      this.thermometerActionInFlight = false;
+    }
+  }
+
+  private async confirmThermometerActivation(targetDistanceM: number): Promise<boolean> {
+    const alert = await this.alertController.create({
+      header: 'Activar termómetro',
+      message: `Se tomará una única ubicación ahora. Recorran ${targetDistanceM} m en línea recta y luego confirmen al llegar.`,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Activar', role: 'confirm' }],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm';
+  }
+
+  private getCurrentPositionOnce(): Promise<{ lat: number; lng: number; accuracyM: number }> {
+    if (!navigator.geolocation) {
+      return Promise.reject(new Error('Este dispositivo no permite obtener la ubicación.'));
+    }
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        position => resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracyM: position.coords.accuracy,
+        }),
+        error => reject(new Error(this.geolocationErrorMessage(error.code))),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    });
+  }
+
+  private geolocationErrorMessage(code: number): string {
+    if (code === 1) return 'Permití el acceso a la ubicación para usar el termómetro.';
+    if (code === 2) return 'No se pudo determinar una ubicación con precisión suficiente.';
+    return 'La ubicación tardó demasiado. Intenten nuevamente.';
   }
   private async confirmPowerResolution(resolution: Extract<QuestionResolution, 'VETO' | 'RANDOMIZE'>): Promise<boolean> {
     const copy: Record<Extract<QuestionResolution, 'VETO' | 'RANDOMIZE'>, { header: string; message: string; confirm: string }> = {
@@ -2087,6 +2175,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
       BASE_STATION_REQUIRED: 'Falta confirmar la estación base del hider.',
       ENDGAME_QUESTIONS_LOCKED: 'Las preguntas de endgame todavía no están desbloqueadas.',
       CURSE_QUESTIONS_BLOCKED: 'Hay una maldición activa que bloquea preguntas.',
+      THERMOMETER_ALREADY_ACTIVE: 'Ya hay un termómetro activo. Lleguen al destino antes de iniciar otro.',
+      THERMOMETER_DISTANCE_OUT_OF_RANGE: 'La distancia recorrida no está dentro de la tolerancia del 10%. Sigan moviéndose y vuelvan a intentar.',
+      THERMOMETER_REQUIRES_GEOLOCATION: 'El termómetro requiere activar y validar las dos ubicaciones.',
     };
 
     for (const [code, friendly] of Object.entries(knownMessages)) {

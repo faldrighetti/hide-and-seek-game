@@ -55,6 +55,14 @@ export interface TurnStatus {
   endgameQuestionsUnlocked: boolean;
   lastQuestionResult: LastQuestionResult | null;
   moveState: MoveState | null;
+  thermometerState: ThermometerState | null;
+}
+
+export interface ThermometerState {
+  status: 'ACTIVE';
+  targetDistanceM: number;
+  startedByTeamId: string;
+  startedAtIso: string | null;
 }
 
 export interface MoveState {
