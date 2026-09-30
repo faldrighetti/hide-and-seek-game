@@ -41,7 +41,6 @@
         {
           "label": "Estadio de fútbol profesional",
           "prompt": "¿El estadio de fútbol profesional más cercano a tu estación base es el mismo que mi estadio de fútbol profesional más cercano?",
-          "venueSelector": "stadiums",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
@@ -118,11 +117,6 @@
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
-          "label": "Museo",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un museo?",
-          "resolutionMode": "MANUAL_CIRCLE"
-        },
-        {
           "label": "Cine",
           "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
           "resolutionMode": "MANUAL_CIRCLE"
@@ -159,9 +153,23 @@
       "name": "Termómetros",
       "cost": null,
       "time": null,
-      "prompt": "Activen el termómetro y desplácense [Distancia] en línea recta.",
+      "prompt": "Acabo de viajar (al menos) [Distancia]. ¿Estoy más “caliente” (más cerca) o más “frío” (más lejos)?",
       "placeholder": "[Distancia]",
       "items": [
+        {
+          "label": "100 m",
+          "availability": "Todos los tamaños",
+          "distance": "100 m",
+          "distanceM": 100,
+          "resolutionMode": "AUTOMATIC"
+        },
+        {
+          "label": "200 m",
+          "availability": "Todos los tamaños",
+          "distance": "200 m",
+          "distanceM": 200,
+          "resolutionMode": "AUTOMATIC"
+        },
         {
           "label": "500 m",
           "availability": "Todos los tamaños",
@@ -177,25 +185,10 @@
           "resolutionMode": "AUTOMATIC"
         },
         {
-          "label": "1,5 km",
-          "availability": "Todos los tamaños",
-          "distance": "1,5 km",
-          "distanceM": 1500,
-          "resolutionMode": "AUTOMATIC"
-        },
-        {
           "label": "2 km",
           "availability": "Todos los tamaños",
           "distance": "2 km",
           "distanceM": 2000,
-          "resolutionMode": "AUTOMATIC"
-        },
-        {
-          "label": "Elegir distancia",
-          "availability": "Todos los tamaños",
-          "distance": null,
-          "distanceM": null,
-          "customDistance": true,
           "resolutionMode": "AUTOMATIC"
         }
       ],
@@ -434,7 +427,7 @@
           "storesUrls": false
         },
         {
-          "asunto": "La calle/avenida/autopista más ancha en un radio de 500 m",
+          "asunto": "La calle más ancha",
           "requisito": "Debe incluir ambos lados de la calle.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
