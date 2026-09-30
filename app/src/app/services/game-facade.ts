@@ -146,6 +146,8 @@ interface SendQuestionOptions {
   distanceM?: number;
   customDistanceM?: number;
   randomizePool?: string[];
+  venueType?: string;
+  venueSelection?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -333,6 +335,8 @@ export class GameFacadeService {
         isPhoto: boolean;
         distanceM?: number;
         customDistanceM?: number;
+        venueType?: string;
+        venueSelection?: string;
         randomizePool?: string[];
       },
       { ok: boolean }
@@ -370,6 +374,12 @@ export class GameFacadeService {
     >(
       'resolveQuestion',
       { gameId, resolution, answerText },
+    );
+  }
+
+  getQuestionHint(gameId: string, questionId: string): Promise<{ hint: string }> {
+    return this.firebaseClient.callFunction<{ gameId: string; questionId: string }, { hint: string }>(
+      'getQuestionHint', { gameId, questionId },
     );
   }
 
@@ -819,6 +829,8 @@ export class GameFacadeService {
       createdAtIso: this.timestampToIso(question['createdAt']),
       resolvedAtIso: this.timestampToIso(question['resolvedAt']),
       expiresAtIso: this.timestampToIso(question['expiresAt']),
+      venueType: typeof question['venueType'] === 'string' ? question['venueType'] : null,
+      venueSelection: typeof question['venueSelection'] === 'string' ? question['venueSelection'] : null,
     };
   }
   private mapQuestionDoc(question: Record<string, unknown> & { id: string }): PendingQuestion {
@@ -833,6 +845,8 @@ export class GameFacadeService {
       status: (question['status'] as PendingQuestion['status'] | undefined) ?? 'PENDING',
       createdAtIso: this.timestampToIso(question['createdAt']),
       expiresAtIso: this.timestampToIso(question['expiresAt']),
+      venueType: typeof question['venueType'] === 'string' ? question['venueType'] : null,
+      venueSelection: typeof question['venueSelection'] === 'string' ? question['venueSelection'] : null,
     };
   }
 

@@ -41,6 +41,7 @@
         {
           "label": "Estadio de fútbol profesional",
           "prompt": "¿El estadio de fútbol profesional más cercano a tu estación base es el mismo que mi estadio de fútbol profesional más cercano?",
+          "venueSelector": "stadiums",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {

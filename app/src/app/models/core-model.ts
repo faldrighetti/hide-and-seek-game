@@ -133,6 +133,8 @@ export interface TurnQuestionHistoryItem {
   createdAtIso: string | null;
   resolvedAtIso: string | null;
   expiresAtIso: string | null;
+  venueType: string | null;
+  venueSelection: string | null;
 }
 
 export interface PendingQuestion {
@@ -146,6 +148,8 @@ export interface PendingQuestion {
   status: 'PENDING' | 'RESOLVED' | 'EXPIRED';
   createdAtIso: string | null;
   expiresAtIso: string | null;
+  venueType: string | null;
+  venueSelection: string | null;
 }
 
 export interface LootOffer {

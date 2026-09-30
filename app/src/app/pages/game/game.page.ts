@@ -35,6 +35,7 @@ interface QuestionItem {
   distance?: string;
   distanceM?: number | null;
   customDistance?: boolean;
+  venueSelector?: 'stadiums';
   availability?: string;
   answerGroups?: AnswerGroup[];
   endgameOnly?: boolean;
@@ -106,7 +107,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
   cardById = new Map<string, HiderCardData>();
   fallbackCardByBaseId = new Map<string, HiderCardData>();
   questionCategories: QuestionCategory[] = [];
-  selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem } | null = null;
+  selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem; venueSelection?: string } | null = null;
+  stadiumNames: string[] = [];
+  stadiumHint = '';
   sendingQuestion = false;
   thermometerActionInFlight = false;
   thermometerMessage = '';
@@ -149,6 +152,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }, 1000);
   private readonly blueprintSubscription: Subscription;
   private readonly playerRoleSubscription: Subscription;
+  private readonly pendingQuestionSubscription: Subscription;
+  private currentPendingQuestion: PendingQuestion | null = null;
+  private loadedHintQuestionId: string | null = null;
   private latestGameBlueprint: GameBlueprint | null = null;
   private latestPlayerRole: PlayerRole | null = null;
   private tickInFlight = false;
@@ -177,9 +183,15 @@ export class GamePage implements AfterViewInit, OnDestroy {
     });
     this.playerRoleSubscription = this.playerRole$.subscribe(role => {
       this.latestPlayerRole = role;
+      void this.syncStadiumHint();
+    });
+    this.pendingQuestionSubscription = this.pendingQuestion$.subscribe(question => {
+      this.currentPendingQuestion = question;
+      void this.syncStadiumHint();
     });
     void this.loadCardsFromCatalog();
     void this.loadQuestionsCatalog();
+    void this.loadStadiumNames();
     void this.loadBaseStationMapData();
   }
 
@@ -191,6 +203,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     window.clearInterval(this.timerId);
     this.blueprintSubscription.unsubscribe();
     this.playerRoleSubscription.unsubscribe();
+    this.pendingQuestionSubscription.unsubscribe();
     this.baseStationMap?.remove();
     this.confirmedBaseStationMap?.remove();
   }
@@ -276,6 +289,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
         };
       });
 
+  }
+
+  async loadStadiumNames(): Promise<void> {
+    const response = await fetch('assets/estadios.json', {cache: 'force-cache'});
+    const data = await response.json() as {features?: Array<{properties?: {nombre?: string}}>};
+    this.stadiumNames = (data.features ?? []).map(feature => feature.properties?.nombre ?? '').filter(Boolean).sort();
   }
 
   parseDrawTakeFromCost(cost: string | null): { draw: number; take: number } {
@@ -410,7 +429,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.selectedSeekerQuestion = { category, question };
+    const venueSelection = question.venueSelector === 'stadiums' ? await this.chooseStadium() : undefined;
+    if (question.venueSelector === 'stadiums' && !venueSelection) return;
+    this.selectedSeekerQuestion = { category, question, venueSelection: venueSelection ?? undefined };
     this.questionErrorMessage = '';
     await this.sendSelectedQuestion(role);
   }
@@ -452,7 +473,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const { category, question } = this.selectedSeekerQuestion;
+    const { category, question, venueSelection } = this.selectedSeekerQuestion;
     const vm = this.latestBlueprint();
     if (vm?.currentTurn.pendingQuestion) {
       this.questionErrorMessage = 'Ya hay una pregunta pendiente.';
@@ -495,7 +516,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const prompt = this.questionPromptText(category, question, customDistanceM ?? undefined);
+    const prompt = venueSelection
+      ? `¿El estadio de fútbol profesional más cercano a tu estación base es ${venueSelection}?`
+      : this.questionPromptText(category, question, customDistanceM ?? undefined);
     if (!prompt.trim()) {
       this.questionErrorMessage = 'La pregunta seleccionada no tiene texto.';
       return;
@@ -524,6 +547,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
       await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos', {
         distanceM,
         customDistanceM: customDistanceM ?? undefined,
+        venueType: venueSelection ? 'stadium' : undefined,
+        venueSelection,
         randomizePool: this.randomizePoolForQuestion(category, question, customDistanceM ?? undefined),
       });
       this.selectedSeekerQuestion = null;
@@ -531,6 +556,43 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.questionErrorMessage = this.friendlyFunctionError(error, 'No se pudo enviar la pregunta.');
     } finally {
       this.sendingQuestion = false;
+    }
+  }
+
+  private async chooseStadium(): Promise<string | null> {
+    if (!this.stadiumNames.length) {
+      this.questionErrorMessage = 'La lista de estadios todavía no está disponible.';
+      return null;
+    }
+    let selection: string | null = null;
+    const alert = await this.alertController.create({
+      header: 'Tu estadio más cercano',
+      message: 'Elegilo según la regla de honestidad del juego.',
+      inputs: this.stadiumNames.map(name => ({name, type: 'radio' as const, label: name, value: name})),
+      buttons: [
+        {text: 'Cancelar', role: 'cancel'},
+        {text: 'Elegir', role: 'confirm', handler: value => { selection = String(value ?? ''); return Boolean(selection); }},
+      ],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm' ? selection : null;
+  }
+
+  private async syncStadiumHint(): Promise<void> {
+    const question = this.currentPendingQuestion;
+    const role = this.latestPlayerRole;
+    if (!question || question.venueType !== 'stadium' || !role?.isHider) {
+      this.stadiumHint = '';
+      this.loadedHintQuestionId = null;
+      return;
+    }
+    if (this.loadedHintQuestionId === question.id) return;
+    this.loadedHintQuestionId = question.id;
+    try {
+      this.stadiumHint = (await this.gameFacade.getQuestionHint(this.gameId, question.id)).hint;
+    } catch {
+      this.stadiumHint = '';
     }
   }
 

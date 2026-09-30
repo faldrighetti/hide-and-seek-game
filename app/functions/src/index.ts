@@ -6,6 +6,7 @@ import {
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "./firebase";
+import {STADIUMS} from "./venue-data";
 import {
   ActiveEffect,
   CaptureAttempt,
@@ -820,7 +821,7 @@ export const sendQuestion = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
-  const prompt = String(request.data?.prompt ?? "").trim();
+  let prompt = String(request.data?.prompt ?? "").trim();
   const categoryId = String(request.data?.categoryId ?? "").trim();
   const isPhoto = Boolean(request.data?.isPhoto);
   const distanceMRaw = request.data?.distanceM;
@@ -831,6 +832,15 @@ export const sendQuestion = onCall(async (request) => {
   const customDistanceM = customDistanceMRaw === undefined || customDistanceMRaw === null ?
     null :
     Number(customDistanceMRaw);
+  const venueType = String(request.data?.venueType ?? "").trim();
+  const requestedVenue = String(request.data?.venueSelection ?? "").trim();
+  const selectedStadium = venueType === "stadium" ? STADIUMS.find((stadium) => stadium.name === requestedVenue) : undefined;
+  if (venueType === "stadium" && !selectedStadium) {
+    throw new HttpsError("invalid-argument", "Estadio inválido.");
+  }
+  if (selectedStadium) {
+    prompt = `¿El estadio de fútbol profesional más cercano a tu estación base es ${selectedStadium.name}?`;
+  }
 
   if (!gameId || !prompt || !categoryId) {
     throw new HttpsError("invalid-argument", "gameId, prompt y categoryId son obligatorios.");
@@ -905,6 +915,8 @@ export const sendQuestion = onCall(async (request) => {
       categoryId,
       distanceM,
       customDistanceM,
+      venueType: selectedStadium ? "stadium" : null,
+      venueSelection: selectedStadium?.name ?? null,
       status: "PENDING",
       randomizePool: Array.isArray(request.data?.randomizePool) ?
         request.data.randomizePool.filter((value: unknown) => typeof value === "string" && value.trim() && value !== prompt).slice(0, 100) : [],
@@ -1420,6 +1432,26 @@ export const playDiscardDrawPowerup = onCall(async (request) => {
   });
 
   return {ok: true};
+});
+
+export const getQuestionHint = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const questionId = String(request.data?.questionId ?? "").trim();
+  await requireGameMembership(db, gameId, uid);
+  const gameRef = db.collection("games").doc(gameId);
+  return db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    const game = gameSnap.data() as GameDoc | undefined;
+    const turn = game?.currentTurn;
+    if (!game || !turn || turn.pendingQuestionId !== questionId) throw new HttpsError("failed-precondition", "La pregunta ya no está pendiente.");
+    const teamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (teamId !== turn.hiderTeamId) throw new HttpsError("permission-denied", "Solo el hider puede ver esta pista.");
+    const question = (await tx.get(gameRef.collection("questions").doc(questionId))).data() ?? {};
+    if (question.venueType !== "stadium" || !turn.hidingZone) throw new HttpsError("not-found", "No hay pista para esta pregunta.");
+    const nearest = [...STADIUMS].sort((a, b) => distanceMeters(turn.hidingZone!.center, a) - distanceMeters(turn.hidingZone!.center, b))[0];
+    return {hint: `Pista privada: el estadio más cercano a tu estación base es ${nearest.name}.`};
+  });
 });
 
 export const playDuplicatePowerup = onCall(async (request) => {

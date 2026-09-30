@@ -491,6 +491,7 @@
               <div class="pending-question-detail">
                 <ion-chip color="warning">{{ pendingQuestion.isPhoto ? 'Foto' : pendingQuestion.categoryId }}</ion-chip>
                 <h3>{{ pendingQuestion.prompt }}</h3>
+                <ion-note *ngIf="role.isHider && stadiumHint" color="primary">{{ stadiumHint }}</ion-note>
                 <p *ngIf="pendingQuestion.expiresAtIso">
                   Quedan {{ formatTime(pendingQuestionRemainingSeconds(vm, pendingQuestion)) }}.
                 </p>
