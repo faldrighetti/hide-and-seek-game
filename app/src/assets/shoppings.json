@@ -1,0 +1,149 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Abasto Shopping",
+        "lat": -34.603090,
+        "lng": -58.410750
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.410750, -34.603090]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Alto Palermo",
+        "lat": -34.587960,
+        "lng": -58.410130
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.410130, -34.587960]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "DOT",
+        "lat": -34.546505,
+        "lng": -58.488064
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.488064, -34.546505]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Patio Bullrich",
+        "lat": -34.588690,
+        "lng": -58.383810
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.383810, -34.588690]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Alto Avellaneda",
+        "lat": -34.675330,
+        "lng": -58.367470
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.367470, -34.675330]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Alcorta Shopping",
+        "lat": -34.574550,
+        "lng": -58.403930
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.403930, -34.574550]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Galerías Pacífico",
+        "lat": -34.599240,
+        "lng": -58.374740
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.374740, -34.599240]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Distrito Arcos",
+        "lat": -34.581240,
+        "lng": -58.428510
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.428510, -34.581240]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Devoto Shopping",
+        "lat": -34.611262,
+        "lng": -58.517032
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.517032, -34.611262]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Solar Shopping",
+        "lat": -34.567938,
+        "lng": -58.437076
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.437076, -34.567938]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Recoleta Urban Mall",
+        "lat": -34.589210,
+        "lng": -58.393880
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.393880, -34.589210]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Caballito Shopping",
+        "lat": -34.619410,
+        "lng": -58.437810
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.437810, -34.619410]
+      }
+    }
+  ]
+}

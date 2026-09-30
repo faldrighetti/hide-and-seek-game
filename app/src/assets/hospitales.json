@@ -1,0 +1,627 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Álvarez",
+        "lat": -34.624102,
+        "lng": -58.469484
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.469484,
+          -34.624102
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Argerich",
+        "lat": -34.628345,
+        "lng": -58.365985
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.365985,
+          -34.628345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Cecilia Grierson",
+        "lat": -34.672027,
+        "lng": -58.456792
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.456792,
+          -34.672027
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Durand",
+        "lat": -34.608973,
+        "lng": -58.437981
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.437981,
+          -34.608973
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Fernández",
+        "lat": -34.581142,
+        "lng": -58.406894
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.406894,
+          -34.581142
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Penna",
+        "lat": -34.643459,
+        "lng": -58.410887
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.410887,
+          -34.643459
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Piñero",
+        "lat": -34.644018,
+        "lng": -58.454107
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.454107,
+          -34.644018
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Pirovano",
+        "lat": -34.564629,
+        "lng": -58.471076
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.471076,
+          -34.564629
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Ramos Mejía",
+        "lat": -34.617859,
+        "lng": -58.409627
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.409627,
+          -34.617859
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Rivadavia",
+        "lat": -34.584822,
+        "lng": -58.400516
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.400516,
+          -34.584822
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Santojanni",
+        "lat": -34.64905,
+        "lng": -58.515562
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.515562,
+          -34.64905
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Tornú",
+        "lat": -34.5871,
+        "lng": -58.471109
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.471109,
+          -34.5871
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Vélez Sarsfield",
+        "lat": -34.625096,
+        "lng": -58.507573
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.507573,
+          -34.625096
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Zubizarreta",
+        "lat": -34.599575,
+        "lng": -58.511027
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.511027,
+          -34.599575
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Pedro de Elizalde",
+        "lat": -34.629288,
+        "lng": -58.377594
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.377594,
+          -34.629288
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Ricardo Gutiérrez",
+        "lat": -34.594241,
+        "lng": -58.412075
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.412075,
+          -34.594241
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Torcuato de Alvear",
+        "lat": -34.596956,
+        "lng": -58.475246
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.475246,
+          -34.596956
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Braulio Moyano",
+        "lat": -34.639865,
+        "lng": -58.385202
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.385202,
+          -34.639865
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital José T. Borda",
+        "lat": -34.636895,
+        "lng": -58.382175
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.382175,
+          -34.636895
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Carolina Tobar García",
+        "lat": -34.636157,
+        "lng": -58.382374
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.382374,
+          -34.636157
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital José Dueñas",
+        "lat": -34.614721,
+        "lng": -58.427666
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.427666,
+          -34.614721
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Odontológico Dr. Ramón Carrillo",
+        "lat": -34.584503,
+        "lng": -58.402649
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.402649,
+          -34.584503
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Odontológico Infantil Don Benito Quinquela Martín",
+        "lat": -34.639473,
+        "lng": -58.360186
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.360186,
+          -34.639473
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Santa Lucía",
+        "lat": -34.623094,
+        "lng": -58.394485
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.394485,
+          -34.623094
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Pedro Lagleyze",
+        "lat": -34.605302,
+        "lng": -58.460176
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.460176,
+          -34.605302
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Bonorino Udaondo",
+        "lat": -34.634549,
+        "lng": -58.391349
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.391349,
+          -34.634549
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital María Curie",
+        "lat": -34.60708,
+        "lng": -58.433074
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.433074,
+          -34.60708
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital María Ferrer",
+        "lat": -34.63067,
+        "lng": -58.375889
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.375889,
+          -34.63067
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Francisco Muñiz",
+        "lat": -34.637917,
+        "lng": -58.393767
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.393767,
+          -34.637917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Instituto de Zoonosis Luis Pasteur",
+        "lat": -34.608485,
+        "lng": -58.434945
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.434945,
+          -34.608485
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "IREP",
+        "lat": -34.553558,
+        "lng": -58.440982
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.440982,
+          -34.553558
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Manuel Rocca",
+        "lat": -34.617723,
+        "lng": -58.502111
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.502111,
+          -34.617723
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital de Quemados Arturo Illia",
+        "lat": -34.625629,
+        "lng": -58.432402
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.432402,
+          -34.625629
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Maternidad Sardá",
+        "lat": -34.635194,
+        "lng": -58.40278
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.40278,
+          -34.635194
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Municipal Dr. Bernardo Houssay",
+        "localidad": "Florida",
+        "lat": -34.52226,
+        "lng": -58.48969
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.48969,
+          -34.52226
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital del Tórax Dr. Antonio Cetrángolo",
+        "localidad": "Florida",
+        "lat": -34.52185,
+        "lng": -58.48996
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.48996,
+          -34.52185
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Maternidad Santa Rosa",
+        "localidad": "Florida Oeste",
+        "lat": -34.54405,
+        "lng": -58.51243
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.51243,
+          -34.54405
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Municipal Dr. Diego Thompson",
+        "localidad": "Villa Lynch",
+        "lat": -34.58092,
+        "lng": -58.54431
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.54431,
+          -34.58092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Zonal General de Agudos Dr. Ramón Carrillo",
+        "localidad": "Ciudadela",
+        "lat": -34.63285,
+        "lng": -58.5353
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.5353,
+          -34.63285
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Interzonal General de Agudos Dr. Pedro Fiorito",
+        "localidad": "Avellaneda",
+        "lat": -34.66671,
+        "lng": -58.36589
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.36589,
+          -34.66671
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hospital Materno Infantil Ana Goitía",
+        "localidad": "Avellaneda",
+        "lat": -34.66628,
+        "lng": -58.35116
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -58.35116,
+          -34.66628
+        ]
+      }
+    }
+  ]
+}

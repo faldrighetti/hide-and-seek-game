@@ -1,0 +1,258 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinemark Abasto",
+        "lat": -34.603087,
+        "lng": -58.410761
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.410761, -34.603087]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinemark Caballito",
+        "lat": -34.616330,
+        "lng": -58.428710
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.428710, -34.616330]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinemark DOT",
+        "lat": -34.546505,
+        "lng": -58.488064
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.488064, -34.546505]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinemark Palermo",
+        "lat": -34.586510,
+        "lng": -58.410190
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.410190, -34.586510]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinemark Puerto Madero",
+        "lat": -34.621050,
+        "lng": -58.364920
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.364920, -34.621050]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Atlas Alcorta",
+        "lat": -34.574550,
+        "lng": -58.403930
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.403930, -34.574550]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Atlas Caballito",
+        "lat": -34.618300,
+        "lng": -58.437470
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.437470, -34.618300]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Atlas Flores",
+        "lat": -34.629335,
+        "lng": -58.462382
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.462382, -34.629335]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Atlas Liniers",
+        "lat": -34.640000,
+        "lng": -58.526830
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.526830, -34.640000]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Atlas Patio Bullrich",
+        "lat": -34.588101,
+        "lng": -58.383464
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.383464, -34.588101]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Multiplex Belgrano",
+        "lat": -34.561186,
+        "lng": -58.455822
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.455822, -34.561186]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Multiplex Lavalle",
+        "lat": -34.602420,
+        "lng": -58.377790
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.377790, -34.602420]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Showcase Belgrano",
+        "lat": -34.553800,
+        "lng": -58.453300
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.453300, -34.553800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinema Devoto",
+        "lat": -34.611690,
+        "lng": -58.517130
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.517130, -34.611690]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinépolis Recoleta",
+        "lat": -34.589120,
+        "lng": -58.393900
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.393900, -34.589120]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinépolis Plaza Houssay",
+        "lat": -34.599537,
+        "lng": -58.399103
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.399103, -34.599537]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cine Gaumont",
+        "lat": -34.608890,
+        "lng": -58.389630
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.389630, -34.608890]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cine Lorca",
+        "lat": -34.604150,
+        "lng": -58.386990
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.386990, -34.604150]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cine Cosmos UBA",
+        "lat": -34.604660,
+        "lng": -58.396070
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.396070, -34.604660]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cine Arte Cacodelphia",
+        "lat": -34.607149,
+        "lng": -58.384653
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.384653, -34.607149]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cinemark Alto Avellaneda",
+        "localidad": "Avellaneda",
+        "lat": -34.677084,
+        "lng": -58.368818
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.368818, -34.677084]
+      }
+    }
+  ]
+}
