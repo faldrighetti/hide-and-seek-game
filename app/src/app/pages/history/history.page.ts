@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { GameEvent, GameNotification, SerializedTimestamp } from '../../models/core-model';
+import { TurnQuestionHistoryItem } from '../../models/core-model';
 import { GameFacadeService } from '../../services/game-facade';
 
 @Component({
@@ -14,11 +14,9 @@ export class HistoryPage {
   private readonly gameFacade = inject(GameFacadeService);
 
   readonly gameId = (this.route.snapshot.paramMap.get('gameId') ?? '').toUpperCase();
-  events: GameEvent[] = [];
-  notifications: GameNotification[] = [];
+  questions: TurnQuestionHistoryItem[] = [];
   loading = false;
   errorMessage = '';
-  segment: 'events' | 'notifications' = 'events';
 
   constructor() {
     void this.refresh();
@@ -33,12 +31,7 @@ export class HistoryPage {
     this.loading = true;
     this.errorMessage = '';
     try {
-      const [events, notifications] = await Promise.all([
-        this.gameFacade.listGameEvents(this.gameId, 100),
-        this.gameFacade.listGameNotifications(this.gameId, 100),
-      ]);
-      this.events = events;
-      this.notifications = notifications;
+      this.questions = await this.gameFacade.listQuestionHistory(this.gameId, 100);
     } catch (error) {
       this.errorMessage = error instanceof Error ? error.message : 'No se pudo cargar el historial.';
     } finally {
@@ -46,13 +39,69 @@ export class HistoryPage {
     }
   }
 
-  formatDate(value: SerializedTimestamp): string {
-    const iso = typeof value === 'string' ? value : value?.iso;
-    return iso ? new Date(iso).toLocaleString() : '-';
+  formatDate(value: string | null): string {
+    return value ? new Date(value).toLocaleString() : '-';
   }
 
-  payloadText(payload: Record<string, unknown>): string {
-    const text = JSON.stringify(payload);
-    return text === '{}' ? '' : text;
+  questionMeta(question: TurnQuestionHistoryItem): string {
+    const parts = [this.formatDate(question.createdAtIso)];
+    if (question.runNumber !== null) {
+      parts.push(`Turno ${question.runNumber}`);
+    }
+    if (question.categoryId) {
+      parts.push(question.categoryId);
+    }
+    if (question.isPhoto) {
+      parts.push('Foto');
+    }
+    return parts.join(' · ');
+  }
+
+  statusColor(question: TurnQuestionHistoryItem): string {
+    if (question.status === 'PENDING') {
+      return 'warning';
+    }
+    if (question.status === 'EXPIRED' || question.resolution === 'TIMEOUT') {
+      return 'danger';
+    }
+    return 'success';
+  }
+
+  statusLabel(question: TurnQuestionHistoryItem): string {
+    if (question.status === 'PENDING') {
+      return 'Pendiente';
+    }
+    if (question.resolution === 'ANSWER') {
+      return 'Respondida';
+    }
+    if (question.resolution === 'VETO') {
+      return 'Vetada';
+    }
+    if (question.resolution === 'RANDOMIZE') {
+      return 'Randomizada';
+    }
+    if (question.resolution === 'TIMEOUT' || question.status === 'EXPIRED') {
+      return 'Vencida';
+    }
+    return 'Resuelta';
+  }
+
+  answerLabel(question: TurnQuestionHistoryItem): string {
+    if (question.status === 'PENDING') {
+      return 'Todavía no respondida.';
+    }
+    if (question.resolution === 'ANSWER') {
+      return question.answerText?.trim() || 'Respuesta registrada sin texto.';
+    }
+    if (question.resolution === 'VETO') {
+      return 'El escondido usó Veto.';
+    }
+    if (question.resolution === 'RANDOMIZE') {
+      return 'El escondido usó Randomizar.';
+    }
+    if (question.resolution === 'TIMEOUT' || question.status === 'EXPIRED') {
+      return 'Se venció sin respuesta.';
+    }
+    return 'Sin respuesta registrada.';
   }
 }

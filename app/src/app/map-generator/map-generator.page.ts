@@ -274,6 +274,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   get canRestoreSelected(): boolean {
     return this.getSelectedStationsByStatus('ELIMINATED').length > 0;
   }
+  get canSaveManualDirection(): boolean {
+    return this.isValidLatLng(this.directionOriginLat, this.directionOriginLng) || this.selectedStationIds.size === 1;
+  }
+
 
   get canRestoreAll(): boolean {
     return this.eliminatedCount > 0;
@@ -341,6 +345,12 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.renderRestrictionOverlays();
   }
 
+  selectSingleSeekerStation(station: Station): void {
+    this.selectedStationIds.clear();
+    this.selectedStationIds.add(station.id);
+    this.renderStations();
+    this.renderRestrictionOverlays();
+  }
   clearSeekerSelection(): void {
     this.selectedStationIds.clear();
     this.refreshSelectionDerivedState();
@@ -911,7 +921,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       if (this.mode === 'HIDER') {
         this.selectHiderStation(station);
       } else {
-        this.toggleSeekerStation(station);
+        this.selectSingleSeekerStation(station);
       }
     });
     marker.addTo(this.stationsLayer);
@@ -1393,4 +1403,3 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
       .map(([lng, lat]) => ({ lat, lng }));
   }
 }
-

@@ -267,7 +267,7 @@
           "requirement_en": "Selfie mode, arm parallel to the ground, fully extended"
         },
         {
-          "subject_es": "La calle más ancha",
+          "subject_es": "La calle/avenida/autopista más ancha en un radio de 500 m",
           "subject_en": "Widest Street",
           "requirement_es": "Debe incluir ambos lados de la calle.",
           "requirement_en": "Must include both sides of the street"

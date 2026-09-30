@@ -12,7 +12,6 @@ import {
   PlayerRole,
   QuestionResolution,
   TeamStanding,
-  TurnQuestionHistoryItem,
 } from '../../models/core-model';
 import { HiderCardData } from 'src/app/models/hider-card-data';
 import { CardCatalogService } from '../../cards/card-catalog.service';
@@ -101,7 +100,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
   readonly blueprint$: Observable<GameBlueprint> = this.gameFacade.blueprint$;
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$;
   readonly pendingQuestion$: Observable<PendingQuestion | null> = this.gameFacade.pendingQuestion$;
-  readonly turnQuestionHistory$: Observable<TurnQuestionHistoryItem[]> = this.gameFacade.turnQuestionHistory$;
   readonly playerRole$: Observable<PlayerRole> = this.gameFacade.playerRole$;
 
   drawRulesByCategory: DrawRule[] = [];
@@ -399,7 +397,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
   }
 
-  selectSeekerQuestion(category: QuestionCategory, question: QuestionItem): void {
+  async selectSeekerQuestion(category: QuestionCategory, question: QuestionItem, role: PlayerRole): Promise<void> {
     const vm = this.latestBlueprint();
     if (vm && this.isQuestionAlreadyAsked(category, question, vm)) {
       this.questionErrorMessage = 'Esa pregunta ya fue hecha en este turno.';
@@ -412,6 +410,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
     this.selectedSeekerQuestion = { category, question };
     this.questionErrorMessage = '';
+    await this.sendSelectedQuestion(role);
   }
 
   visibleQuestionCategories(vm: GameBlueprint): QuestionCategory[] {
@@ -453,6 +452,29 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
     const { category, question } = this.selectedSeekerQuestion;
     const vm = this.latestBlueprint();
+    if (vm?.currentTurn.pendingQuestion) {
+      this.questionErrorMessage = 'Ya hay una pregunta pendiente.';
+      return;
+    }
+    if (vm && vm.currentTurn.phase !== 'CHASE') {
+      this.questionErrorMessage = 'Solo se pueden enviar preguntas durante CHASE.';
+      return;
+    }
+    if (vm && this.hasQuestionBlockingEffect(vm.currentTurn.activeEffects)) {
+      this.questionErrorMessage = 'Hay una maldición activa que bloquea preguntas.';
+      return;
+    }
+    if (vm?.currentTurn.lootOffer) {
+      this.questionErrorMessage = 'El hider todavía tiene loot pendiente.';
+      return;
+    }
+    if (vm?.currentTurn.baseStationSelectionRequired) {
+      this.questionErrorMessage = 'Falta confirmar estación base.';
+      return;
+    }
+    if (this.sendingQuestion) {
+      return;
+    }
     if (vm && this.isQuestionAlreadyAsked(category, question, vm)) {
       this.questionErrorMessage = 'Esa pregunta ya fue hecha en este turno.';
       return;
@@ -473,6 +495,13 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
     const distanceM = this.selectedQuestionDistanceM(question, customDistanceM);
+
+
+    const confirmed = await this.confirmQuestionSend(prompt);
+    if (!confirmed) {
+      this.selectedSeekerQuestion = null;
+      return;
+    }
 
     this.sendingQuestion = true;
     this.questionErrorMessage = '';
@@ -643,6 +672,35 @@ export class GamePage implements AfterViewInit, OnDestroy {
       const baseId = this.baseCardId(card.id);
       return baseId === 'powerup_discard1_draw2' || baseId === 'powerup_discard2_draw3';
     });
+  }
+
+  playingDuplicate = false;
+
+  duplicatePowerupCards(handIds: string[]): HiderCardData[] {
+    return this.cardsForIds(handIds).filter(card => this.baseCardId(card.id) === 'powerup_duplicate');
+  }
+
+  async playDuplicatePowerup(card: HiderCardData, vm: GameBlueprint): Promise<void> {
+    if (this.playingDuplicate || vm.currentTurn.pendingQuestion || vm.currentTurn.lootOffer) return;
+    const choices = this.cardsForIds(vm.currentTurn.hiderHandIds).filter(candidate => candidate.id !== card.id);
+    const alert = await this.alertController.create({
+      header: 'Duplicar una carta',
+      message: 'Duplicar será reemplazada por una copia de la carta que elijas.',
+      inputs: choices.map(candidate => ({type: 'radio' as const, label: candidate.title, value: candidate.id})),
+      buttons: [{text: 'Cancelar', role: 'cancel'}, {text: 'Duplicar', role: 'confirm'}],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    if (result.role !== 'confirm' || !result.data?.values) return;
+    this.playingDuplicate = true;
+    this.powerupErrorMessage = '';
+    try {
+      await this.gameFacade.playDuplicatePowerup(this.gameId, card.id, result.data.values);
+    } catch (error) {
+      this.powerupErrorMessage = this.friendlyFunctionError(error, 'No se pudo duplicar la carta.');
+    } finally {
+      this.playingDuplicate = false;
+    }
   }
 
   startDiscardDrawPowerup(cardId: string, vm: GameBlueprint): void {
@@ -822,22 +880,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   curseCompletionHint(curseIdWithCopy: string): string {
-    const curseId = this.baseCardId(curseIdWithCopy);
-    const specific: Record<string, string> = {
-      curse_2: 'Completar cuando una foto del lugar real sea aceptada por hider o seekers.',
-      curse_5: 'Completar manualmente después de resolver 3 preguntas bajo este modificador.',
-      curse_8: 'Completar cuando los seekers informen que bajaron o que no había alternativa válida.',
-      curse_19: 'Completar cuando el video seeker iguale o supere la duración objetivo.',
-      curse_26: 'Completar cuando al menos un lado confirme el cambio de barrio por WhatsApp.',
-      curse_29: 'Completar cuando al menos un lado confirme llegada a una avenida por WhatsApp.',
-      curse_34: 'Completar después de 5 preguntas con audios/lista de animales aceptados.',
-      curse_39: 'Se completa solo por tiempo o manualmente si ambas partes lo dan por terminado.',
-    };
-
-    if (specific[curseId]) {
-      return specific[curseId];
-    }
-    return 'Completar cuando la evidencia enviada por WhatsApp quede aceptada por al menos un lado.';
+    return this.cardForId(curseIdWithCopy).description ?? '';
   }
 
   activeCurseProgressLabel(effect: ActiveEffect): string {
@@ -1055,38 +1098,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return 'El escondido usó Randomizar. La pregunta original queda resuelta.';
   }
 
-  questionHistoryAnswerText(question: TurnQuestionHistoryItem): string {
-    if (question.status === 'PENDING') {
-      return 'Pendiente de respuesta';
-    }
-    if (question.resolution === 'ANSWER') {
-      return question.answerText || 'Respuesta registrada sin texto.';
-    }
-    if (question.resolution === 'VETO') {
-      return 'Vetada por el escondido.';
-    }
-    if (question.resolution === 'RANDOMIZE') {
-      return 'Randomizada por el escondido.';
-    }
-    if (question.resolution === 'TIMEOUT' || question.status === 'EXPIRED') {
-      return 'Vencida sin respuesta.';
-    }
-    return question.answerText || 'Sin respuesta registrada.';
-  }
-
-  questionHistoryMeta(question: TurnQuestionHistoryItem): string {
-    const parts = [question.isPhoto ? 'Foto' : question.categoryId];
-    if (question.resolvedAtIso) {
-      parts.push(new Date(question.resolvedAtIso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }));
-    } else if (question.createdAtIso) {
-      parts.push(new Date(question.createdAtIso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }));
-    }
-    return parts.filter(Boolean).join(' · ');
-  }
-
-  trackByQuestionHistoryItem(_: number, question: TurnQuestionHistoryItem): string {
-    return question.id;
-  }
   randomizedQuestionText(pendingQuestion: PendingQuestion | null): string {
     return pendingQuestion?.prompt ?? '';
   }
@@ -1572,6 +1583,25 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.resolveQuestionErrorMessage = '';
   }
 
+  setPendingAnswer(value: string): void {
+    this.pendingAnswerText = value;
+    this.resolveQuestionErrorMessage = '';
+  }
+
+  fixedAnswerOptions(question: PendingQuestion): string[] {
+    if (question.categoryId === 'radar') {
+      return ['Sí', 'No'];
+    }
+    if (question.categoryId === 'thermometer') {
+      return ['Frío', 'Caliente'];
+    }
+    return [];
+  }
+
+  hasFixedAnswerOptions(question: PendingQuestion): boolean {
+    return this.fixedAnswerOptions(question).length > 0;
+  }
+
   stationLabel(station: Station): string {
     return formatStationCompact(station);
   }
@@ -1792,6 +1822,26 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return result.role === 'confirm' ? distanceM : null;
   }
 
+  private async confirmQuestionSend(prompt: string): Promise<boolean> {
+    const alert = await this.alertController.create({
+      header: 'Confirmar pregunta',
+      message: prompt,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
+        {
+          text: 'Confirmar',
+          role: 'confirm',
+        },
+      ],
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm';
+  }
   private async confirmPowerResolution(resolution: Extract<QuestionResolution, 'VETO' | 'RANDOMIZE'>): Promise<boolean> {
     const copy: Record<Extract<QuestionResolution, 'VETO' | 'RANDOMIZE'>, { header: string; message: string; confirm: string }> = {
       VETO: {
@@ -1945,6 +1995,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.confirmedBaseStationMap = L.map('confirmed-base-station-map', {
       preferCanvas: true,
       zoomControl: false,
+      zoomSnap: 0,
       dragging: false,
       scrollWheelZoom: false,
       doubleClickZoom: false,
@@ -1960,6 +2011,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       minZoom: 11,
       maxZoom: 18,
+      // Use denser tiles to retain street labels in the compact mobile map.
+      tileSize: 128,
+      zoomOffset: 1,
+      maxNativeZoom: 18,
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.confirmedBaseStationMap);
     this.confirmedBaseStationLayer.addTo(this.confirmedBaseStationMap);
@@ -1995,9 +2050,13 @@ export class GamePage implements AfterViewInit, OnDestroy {
       interactive: false,
     }).addTo(this.confirmedBaseStationLayer);
 
-    const bounds = L.latLng(station.lat, station.lng).toBounds(GAME_CONFIG.hidingZoneRadiusM * 1.35);
+    const bounds = L.latLng(station.lat, station.lng).toBounds(GAME_CONFIG.hidingZoneRadiusM * 2);
+    this.confirmedBaseStationMap.invalidateSize();
     this.confirmedBaseStationMap.fitBounds(bounds, { padding: [12, 12], animate: false });
-    setTimeout(() => this.confirmedBaseStationMap?.invalidateSize(), 0);
+    setTimeout(() => {
+      this.confirmedBaseStationMap?.invalidateSize();
+      this.confirmedBaseStationMap?.fitBounds(bounds, { padding: [12, 12], animate: false });
+    }, 0);
   }
 
   private stationById(stationId: string): Station | undefined {
@@ -2039,4 +2098,3 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return message || fallback;
   }
 }
-

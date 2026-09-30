@@ -34,6 +34,7 @@ export class LobbyPage implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
+  copiedMessage = '';
   starting = false;
   assigningSeatId: string | null = null;
   randomizing = false;
@@ -70,6 +71,17 @@ export class LobbyPage implements OnDestroy {
       filter((lobby): lobby is LobbyState => lobby?.status === 'LIVE'),
       takeUntil(this.destroy$),
     ).subscribe(() => this.router.navigate(['/game', this.gameId]));
+  }
+
+  async copyToClipboard(value: string, label: 'gameId' | 'link'): Promise<void> {
+    this.errorMessage = '';
+    this.copiedMessage = '';
+    try {
+      await navigator.clipboard.writeText(value);
+      this.copiedMessage = label === 'gameId' ? 'gameId copiado.' : 'Link copiado.';
+    } catch (error) {
+      this.errorMessage = 'No se pudo copiar al portapapeles.';
+    }
   }
 
   ngOnDestroy(): void {

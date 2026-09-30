@@ -48,21 +48,12 @@
     {{ creating ? 'Creando...' : 'Crear' }}
   </ion-button>
   <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
-  <ion-note *ngIf="copiedMessage" color="success">{{ copiedMessage }}</ion-note>
 
   <ion-card *ngIf="createdLobby as lobby">
     <ion-card-header>
       <ion-card-title>Partida creada</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <div class="share-row">
-        <p><strong>gameId:</strong> {{ lobby.gameId }}</p>
-        <ion-button size="small" fill="outline" (click)="copyToClipboard(lobby.gameId, 'gameId')">Copiar</ion-button>
-      </div>
-      <div class="share-row">
-        <p><strong>link:</strong> {{ lobby.joinLink }}</p>
-        <ion-button size="small" fill="outline" (click)="copyToClipboard(lobby.joinLink, 'link')">Copiar</ion-button>
-      </div>
       <ion-button expand="block" fill="outline" (click)="goToLobby()">Ir al lobby</ion-button>
     </ion-card-content>
   </ion-card>

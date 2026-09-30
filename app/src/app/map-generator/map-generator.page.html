@@ -162,10 +162,10 @@
         <div class="manual-direction">
           <h2>Eliminar por dirección</h2>
           <div class="direction-actions">
-            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('NORTH')">Eliminar Norte</ion-button>
-            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('SOUTH')">Eliminar Sur</ion-button>
-            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('EAST')">Eliminar Este</ion-button>
-            <ion-button size="small" color="danger" fill="outline" [disabled]="!canEliminateSelected" (click)="saveManualDirection('WEST')">Eliminar Oeste</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canSaveManualDirection" (click)="saveManualDirection('NORTH')">Eliminar Norte</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canSaveManualDirection" (click)="saveManualDirection('SOUTH')">Eliminar Sur</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canSaveManualDirection" (click)="saveManualDirection('EAST')">Eliminar Este</ion-button>
+            <ion-button size="small" color="danger" fill="outline" [disabled]="!canSaveManualDirection" (click)="saveManualDirection('WEST')">Eliminar Oeste</ion-button>
           </div>
           <ion-note color="danger" *ngIf="directionValidationError">{{ directionValidationError }}</ion-note>
         </div>
@@ -361,4 +361,3 @@
     </main>
   </div>
 </ion-content>
-

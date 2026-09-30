@@ -130,6 +130,12 @@ interface ListGameEventsResponse {
   events: GameEvent[];
 }
 
+
+interface ListQuestionHistoryResponse {
+  ok: boolean;
+  questions: TurnQuestionHistoryItem[];
+}
+
 interface ListGameNotificationsResponse {
   ok: boolean;
   notifications: GameNotification[];
@@ -391,6 +397,12 @@ export class GameFacadeService {
     >('playDiscardDrawPowerup', { gameId, cardId, discardCardIds });
   }
 
+  playDuplicatePowerup(gameId: string, cardId: string, targetCardId: string): Promise<{ ok: boolean }> {
+    return this.firebaseClient.callFunction<{ gameId: string; cardId: string; targetCardId: string }, { ok: boolean }>(
+      'playDuplicatePowerup', { gameId, cardId, targetCardId },
+    );
+  }
+
   playCurse(
     gameId: string,
     cardId: string,
@@ -451,6 +463,14 @@ export class GameFacadeService {
 
   clearTemporaryDisconnect(gameId: string): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('clearTemporaryDisconnect', { gameId });
+  }
+
+  async listQuestionHistory(gameId: string, limit = 100): Promise<TurnQuestionHistoryItem[]> {
+    const response = await this.firebaseClient.callFunction<
+      { gameId: string; limit: number },
+      ListQuestionHistoryResponse
+    >('listQuestionHistory', { gameId, limit });
+    return response.questions;
   }
 
   async listGameEvents(gameId: string, limit = 100): Promise<GameEvent[]> {
@@ -884,4 +904,5 @@ export class GameFacadeService {
     };
   }
 }
+
 

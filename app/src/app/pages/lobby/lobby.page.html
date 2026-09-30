@@ -9,6 +9,23 @@
 
 <ion-content [fullscreen]="true" class="ion-padding">
   <ng-container *ngIf="vm$ | async as vm; else emptyState">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Invitar jugadores</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+      <div class="share-row">
+        <p><strong>gameId:</strong> {{ vm.lobby.gameId }}</p>
+        <ion-button size="small" fill="outline" (click)="copyToClipboard(vm.lobby.gameId, 'gameId')">Copiar</ion-button>
+      </div>
+      <div class="share-row">
+        <p><strong>link:</strong> {{ vm.lobby.joinLink }}</p>
+        <ion-button size="small" fill="outline" (click)="copyToClipboard(vm.lobby.joinLink, 'link')">Copiar</ion-button>
+      </div>
+        <ion-note *ngIf="copiedMessage" color="success">{{ copiedMessage }}</ion-note>
+        <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
+      </ion-card-content>
+    </ion-card>
     <ion-card class="lobby-card">
       <ion-card-header>
         <ion-card-title>Participantes y equipos</ion-card-title>

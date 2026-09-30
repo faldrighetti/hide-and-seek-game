@@ -432,7 +432,7 @@
           "storesUrls": false
         },
         {
-          "asunto": "La calle más ancha",
+          "asunto": "La calle/avenida/autopista más ancha en un radio de 500 m",
           "requisito": "Debe incluir ambos lados de la calle.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,

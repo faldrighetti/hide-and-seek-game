@@ -1,6 +1,6 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-buttons slot="start">
+    <ion-buttons slot="start" *ngIf="(blueprint$ | async)?.status !== 'LIVE'">
       <ion-back-button [defaultHref]="'/lobby/' + gameId"></ion-back-button>
     </ion-buttons>
     <ion-title>Game {{ gameId }}</ion-title>
@@ -382,6 +382,17 @@
           </ion-card-content>
         </ion-card>
 
+        <ion-card *ngIf="duplicatePowerupCards(vm.currentTurn.hiderHandIds).length">
+          <ion-card-header><ion-card-title>Duplicar</ion-card-title></ion-card-header>
+          <ion-card-content>
+            <p>Duplica cualquier carta que tengas en el mazo.</p>
+            <ion-button *ngFor="let card of duplicatePowerupCards(vm.currentTurn.hiderHandIds)"
+              [disabled]="playingDuplicate || vm.currentTurn.phase !== 'CHASE' || !!vm.currentTurn.pendingQuestion || !!vm.currentTurn.lootOffer || vm.currentTurn.moveState?.status === 'ACTIVE' || vm.currentTurn.hiderHandIds.length < 2"
+              (click)="playDuplicatePowerup(card, vm)">Elegir carta para duplicar</ion-button>
+            <ion-note *ngIf="powerupErrorMessage" color="danger">{{ powerupErrorMessage }}</ion-note>
+          </ion-card-content>
+        </ion-card>
+
         <app-hider-hand
           [title]="handTitle(vm)"
           [cards]="cardsForIds(vm.currentTurn.hiderHandIds)"
@@ -438,7 +449,7 @@
             </ion-note>
             <ion-list lines="full">
               <ion-item *ngFor="let effect of vm.currentTurn.activeEffects">
-                <ion-label>
+                <ion-label class="ion-text-wrap">
                   <h3>{{ effectTitle(effect.curseId) }}</h3>
                   <p>
                     <ng-container *ngIf="effect.blocksQuestions">Bloquea preguntas</ng-container>
@@ -469,7 +480,7 @@
     </ion-row>
 
     <ion-row>
-      <ion-col size="12" size-md="6">
+      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || vm.currentTurn.pendingQuestion">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Pregunta pendiente</ion-card-title>
@@ -487,12 +498,26 @@
                 <ion-note *ngIf="pendingQuestion.isPhoto" color="medium">
                   La foto se envia por fuera de la app; aca solo registren el estado de la respuesta.
                 </ion-note>
-                <ion-item *ngIf="role.isHider" lines="full">
+                <ion-item *ngIf="role.isHider && hasFixedAnswerOptions(pendingQuestion)" lines="full">
+                  <ion-label>
+                    <h3>Respuesta</h3>
+                    <ion-segment [value]="pendingAnswerText" [disabled]="resolvingQuestion !== null">
+                      <ion-segment-button
+                        *ngFor="let option of fixedAnswerOptions(pendingQuestion)"
+                        [value]="option"
+                        (click)="setPendingAnswer(option)"
+                      >
+                        <ion-label>{{ option }}</ion-label>
+                      </ion-segment-button>
+                    </ion-segment>
+                  </ion-label>
+                </ion-item>
+                <ion-item *ngIf="role.isHider && !hasFixedAnswerOptions(pendingQuestion)" lines="full">
                   <ion-textarea
                     label="Respuesta"
                     labelPlacement="stacked"
                     autoGrow="true"
-                    placeholder="Escribí Sí, No, más cerca, más lejos o la respuesta que corresponda."
+                    placeholder="Escribí la respuesta."
                     [value]="pendingAnswerText"
                     [disabled]="resolvingQuestion !== null"
                     (ionInput)="onPendingAnswerInput($event)"
@@ -539,27 +564,6 @@
               </div>
             </ng-container>
             <ng-container *ngIf="role.isSeeker">
-            <ion-note *ngIf="selectedSeekerQuestion" color="primary">
-              Seleccionada: {{ selectedSeekerQuestion.category.name }} / {{ questionTitle(selectedSeekerQuestion.question) }}
-            </ion-note>
-            <ion-button
-              *ngIf="selectedSeekerQuestion"
-              expand="block"
-              size="small"
-              [disabled]="
-                vm.currentTurn.pendingQuestion
-                || vm.currentTurn.phase !== 'CHASE'
-                || sendingQuestion
-                || hasQuestionBlockingEffect(vm.currentTurn.activeEffects)
-                || vm.currentTurn.lootOffer !== null
-                || vm.currentTurn.baseStationSelectionRequired
-                || isQuestionCategoryOnCooldown(selectedSeekerQuestion.category, vm)
-                || isQuestionAlreadyAsked(selectedSeekerQuestion.category, selectedSeekerQuestion.question, vm)
-              "
-              (click)="sendSelectedQuestion(role)"
-            >
-              {{ sendingQuestion ? 'Enviando...' : 'Enviar pregunta' }}
-            </ion-button>
             <ion-note *ngIf="hasQuestionBlockingEffect(vm.currentTurn.activeEffects)" color="warning">
               Hay una maldicion activa que bloquea preguntas.
             </ion-note>
@@ -595,23 +599,6 @@
                 </ng-container>
               </ion-card-content>
             </ion-card>
-            <ion-card *ngIf="turnQuestionHistory$ | async as turnQuestionHistory" class="question-history-card">
-              <ion-card-header>
-                <ion-card-title>Historial del turno</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <p *ngIf="turnQuestionHistory.length === 0">Sin preguntas en este turno.</p>
-                <ion-list *ngIf="turnQuestionHistory.length > 0" lines="full">
-                  <ion-item *ngFor="let question of turnQuestionHistory; trackBy: trackByQuestionHistoryItem">
-                    <ion-label class="ion-text-wrap">
-                      <p class="question-history-meta">{{ questionHistoryMeta(question) }}</p>
-                      <h3>{{ question.prompt }}</h3>
-                      <p><strong>Respuesta:</strong> {{ questionHistoryAnswerText(question) }}</p>
-                    </ion-label>
-                  </ion-item>
-                </ion-list>
-              </ion-card-content>
-            </ion-card>
             <ion-accordion-group class="question-menu">
               <ion-accordion
                 *ngFor="let category of visibleQuestionCategories(vm); trackBy: trackByQuestionCategory"
@@ -640,7 +627,7 @@
                       [disabled]="isQuestionCategoryOnCooldown(category, vm) || isQuestionAlreadyAsked(category, question, vm)"
                       [class.asked-question]="isQuestionAlreadyAsked(category, question, vm)"
                       *ngFor="let question of category.items; let index = index; trackBy: trackByQuestionItem"
-                      (click)="selectSeekerQuestion(category, question)"
+                      (click)="selectSeekerQuestion(category, question, role)"
                     >
                       <ion-label class="ion-text-wrap">
                         <h3>{{ questionTitle(question) }}</h3>
@@ -666,7 +653,7 @@
         </ion-card>
       </ion-col>
 
-      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHider || role.isHost">
+      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHost || (role.isHider && (vm.currentTurn.endgameActive || vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER' || vm.currentTurn.captureAttempt))">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Captura</ion-card-title>

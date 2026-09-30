@@ -13,6 +13,12 @@ import {
   requireHost,
   serializeEventValue,
 } from "./game-core";
+const serializedTimestampIso = (value: unknown): string | null => {
+  const serialized = serializeEventValue(value);
+  return serialized && typeof serialized === "object" && "iso" in serialized
+    ? String((serialized as {iso?: unknown}).iso ?? "") || null
+    : null;
+};
 
 export const scoring = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
@@ -31,6 +37,44 @@ export const scoring = onCall(async (request) => {
   };
 });
 
+export const listQuestionHistory = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const limitRaw = Number(request.data?.limit ?? 100);
+  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.floor(limitRaw))) : 100;
+
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+  await assertUserRateLimit(db, uid, "list_question_history", 5);
+  await requireGameMembership(db, gameId, uid);
+
+  const questionsSnap = await db.collection("games").doc(gameId).collection("questions")
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .get();
+
+  return {
+    ok: true,
+    questions: questionsSnap.docs.map((questionDoc) => {
+      const question = questionDoc.data();
+      const resolution = String(question.resolution ?? "");
+      return {
+        id: questionDoc.id,
+        categoryId: String(question.categoryId ?? ""),
+        prompt: String(question.prompt ?? ""),
+        isPhoto: Boolean(question.isPhoto),
+        distanceM: typeof question.distanceM === "number" ? question.distanceM : null,
+        customDistanceM: typeof question.customDistanceM === "number" ? question.customDistanceM : null,
+        status: String(question.status ?? "PENDING"),
+        resolution: resolution || null,
+        answerText: typeof question.answerText === "string" ? question.answerText : null,
+        runNumber: typeof question.runNumber === "number" ? question.runNumber : null,
+        createdAtIso: serializedTimestampIso(question.createdAt),
+        resolvedAtIso: serializedTimestampIso(question.resolvedAt),
+        expiresAtIso: serializedTimestampIso(question.expiresAt),
+      };
+    }),
+  };
+});
 export const listGameEvents = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
@@ -46,20 +90,39 @@ export const listGameEvents = onCall(async (request) => {
     .limit(limit)
     .get();
 
+  const safeQuestionEvents = eventsSnap.docs.filter((eventDoc) => {
+    const type = String(eventDoc.data().type ?? "");
+    return type === "QUESTION_SENT" || type === "QUESTION_RESOLVED";
+  });
+
   return {
     ok: true,
-    events: eventsSnap.docs.map((eventDoc) => {
+    events: safeQuestionEvents.map((eventDoc) => {
       const event = eventDoc.data();
+      const type = String(event.type ?? "");
+      const payload = event.payload && typeof event.payload === "object" ? event.payload as Record<string, unknown> : {};
       return {
         id: eventDoc.id,
-        type: String(event.type ?? ""),
+        type,
         createdAt: serializeEventValue(event.createdAt),
         actorUid: event.actorUid ?? null,
         actorTeamId: event.actorTeamId ?? null,
         runNumber: event.runNumber ?? null,
         phase: event.phase ?? null,
-        hiderTeamId: event.hiderTeamId ?? null,
-        payload: serializeEventValue(event.payload ?? {}),
+        hiderTeamId: null,
+        payload: serializeEventValue(type === "QUESTION_SENT" ? {
+          questionId: payload.questionId ?? null,
+          categoryId: payload.categoryId ?? null,
+          isPhoto: payload.isPhoto ?? false,
+          prompt: payload.prompt ?? "",
+          distanceM: payload.distanceM ?? null,
+          customDistanceM: payload.customDistanceM ?? null,
+          expiresAt: payload.expiresAt ?? null,
+        } : {
+          questionId: payload.questionId ?? null,
+          categoryId: payload.categoryId ?? null,
+          resolution: payload.resolution ?? null,
+        }),
       };
     }),
   };
@@ -191,5 +254,7 @@ export const finishGame = onCall(async (request) => {
 
   return {ok: true};
 });
+
+
 
 

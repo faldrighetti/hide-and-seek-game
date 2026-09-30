@@ -45,6 +45,7 @@
         {
           "id": "duplicate",
           "nombre": "Duplicar",
+          "pista_reglas": "Duplica cualquier carta que tengas en el mazo. Solo se puede usar sin una pregunta pendiente.",
           "cantidad": 2
         },
         {
@@ -595,14 +596,14 @@
         "condiciones": [
           {
             "tipo": "distancia_a_avenida",
-            "debe_ser_menor_o_igual_metros": 1200
+            "debe_ser_menor_o_igual_metros": 200
           }
         ],
         "acciones": [],
         "se_anula_si": null
       },
       "texto_ui": {
-        "costo_lanzamiento": "Debe existir una avenida a menos de 1200 metros de los buscadores.",
+        "costo_lanzamiento": "Debe existir una avenida a menos de 200 metros de los buscadores.",
         "efecto": "Los buscadores deben llegar a cualquier avenida antes de poder hacer otra pregunta. Pueden desplazarse y usar transporte normalmente."
       },
       "motor": {

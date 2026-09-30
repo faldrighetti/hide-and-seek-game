@@ -740,6 +740,8 @@ export const sendQuestion = onCall(async (request) => {
       distanceM,
       customDistanceM,
       status: "PENDING",
+      randomizePool: Array.isArray(request.data?.randomizePool) ?
+        request.data.randomizePool.filter((value: unknown) => typeof value === "string" && value.trim() && value !== prompt).slice(0, 100) : [],
       runNumber: game.currentTurn.runNumber,
       createdAt: now,
       expiresAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
@@ -814,7 +816,36 @@ export const resolveQuestion = onCall(async (request) => {
     const prompt = String(questionData.prompt ?? "");
     const answerText = typeof request.data?.answerText === "string" ? String(request.data.answerText).trim() : "";
     const drawRule = QUESTION_DRAW_RULES[categoryId] ?? {draw: 1, take: 1};
-    const deckDraw = drawFromDeck(turn, drawRule.draw);
+    const hand = [...(turn.hiderHand ?? [])];
+    const powerupId = resolution === "ANSWER" ? undefined :
+      hand.find((id) => id.split("#")[0] === (resolution === "VETO" ? "powerup_veto" : "powerup_randomize"));
+    if (resolution !== "ANSWER" && !powerupId) {
+      throw new HttpsError("failed-precondition", "No tenés la carta necesaria en la mano.");
+    }
+    const pool: string[] = Array.isArray(questionData.randomizePool) ?
+      questionData.randomizePool.filter((value: unknown) => typeof value === "string" && value !== prompt) : [];
+    if (resolution === "RANDOMIZE" && !pool.length) {
+      throw new HttpsError("failed-precondition", "Esta pregunta no tiene alternativas para randomizar. Volvé a enviarla con la versión actualizada.");
+    }
+    const replacementRef = resolution === "RANDOMIZE" ? gameRef.collection("questions").doc() : null;
+    const replacementExpiry = Timestamp.fromMillis(now.toMillis() + (questionData.isPhoto ? 600 : 300) * 1000);
+    if (replacementRef) {
+      const replacementPrompt = pool[Math.floor(Math.random() * pool.length)];
+      tx.set(replacementRef, {
+        askedByUid: questionData.askedByUid,
+        prompt: replacementPrompt,
+        categoryId,
+        isPhoto: Boolean(questionData.isPhoto),
+        distanceM: null,
+        customDistanceM: null,
+        randomizePool: [...pool.filter((value) => value !== replacementPrompt), prompt],
+        status: "PENDING",
+        runNumber: turn.runNumber,
+        createdAt: now,
+        expiresAt: replacementExpiry,
+      });
+    }
+    const deckDraw = drawFromDeck(turn, resolution === "ANSWER" ? drawRule.draw : 0);
 
     tx.update(qRef, {
       status: "RESOLVED",
@@ -832,11 +863,12 @@ export const resolveQuestion = onCall(async (request) => {
     tx.update(gameRef, {
       currentTurn: {
         ...turn,
-        pendingQuestionId: null,
-        pendingQuestionEndsAt: null,
+        pendingQuestionId: replacementRef?.id ?? null,
+        pendingQuestionEndsAt: replacementRef ? replacementExpiry : null,
+        hiderHand: hand.filter((id) => id !== powerupId),
         categoryCooldowns,
         drawPile: deckDraw.drawPile,
-        discardPile: deckDraw.discardPile,
+        discardPile: [...deckDraw.discardPile, ...(powerupId ? [powerupId] : [])],
         lastQuestionResult: {
           questionId: qRef.id,
           categoryId,
@@ -845,13 +877,13 @@ export const resolveQuestion = onCall(async (request) => {
           answerText: resolution === "ANSWER" ? answerText : null,
           resolvedAt: now,
         },
-        lootOffer: {
+        lootOffer: resolution === "ANSWER" ? {
           questionId: qRef.id,
           categoryId,
           drawnCardIds: deckDraw.drawnCardIds,
           takeLimit: drawRule.take,
           createdAt: now,
-        },
+        } : null,
       },
       updatedAt: now,
     });
@@ -1191,15 +1223,8 @@ export const playDiscardDrawPowerup = onCall(async (request) => {
       throw new HttpsError("invalid-argument", "Selección de descarte invalida.");
     }
 
-    const drawResult = drawFromDeck({
-      ...turn,
-      hiderHand: handAfterDiscard,
-      discardPile: [
-        ...(turn.discardPile ?? []),
-        cardId,
-        ...discardCardIds,
-      ],
-    }, rule.draw);
+    // Keep this play's discards out of the reshuffle until the draw finishes.
+    const drawResult = drawFromDeck(turn, rule.draw);
     const now = nowTs();
     await assertRateLimitInTx(tx, gameRef, uid, "play_discard_draw_powerup", now, 5);
 
@@ -1211,7 +1236,7 @@ export const playDiscardDrawPowerup = onCall(async (request) => {
           ...drawResult.drawnCardIds,
         ],
         drawPile: drawResult.drawPile,
-        discardPile: drawResult.discardPile,
+        discardPile: [...drawResult.discardPile, cardId, ...discardCardIds],
       },
       updatedAt: now,
     });
@@ -1228,6 +1253,46 @@ export const playDiscardDrawPowerup = onCall(async (request) => {
     });
   });
 
+  return {ok: true};
+});
+
+export const playDuplicatePowerup = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  await assertGlobalPlayEnabled(db);
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  const cardId = String(request.data?.cardId ?? "").trim();
+  const targetCardId = String(request.data?.targetCardId ?? "").trim();
+  if (!gameId || cardId.split("#")[0] !== "powerup_duplicate" || !targetCardId || cardId === targetCardId) {
+    throw new HttpsError("invalid-argument", "Elegí Duplicar y otra carta de tu mano.");
+  }
+  await requireGameMembership(db, gameId, uid);
+  const gameRef = db.collection("games").doc(gameId);
+  const copyId = `${targetCardId.split("#")[0]}#${gameRef.collection("events").doc().id}`;
+  await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(gameRef);
+    if (!snapshot.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = snapshot.data() as GameDoc;
+    const turn = game.currentTurn;
+    assertOperationalPlayAllowed(game);
+    if (game.status !== "LIVE" || !turn || turn.phase !== "CHASE" || turn.pendingQuestionId || turn.lootOffer || turn.moveState?.status === "ACTIVE") {
+      throw new HttpsError("failed-precondition", "Duplicar requiere estar en persecución, sin pregunta ni loot pendiente.");
+    }
+    const teamId = await resolveSeatTeamId(tx, gameRef, uid);
+    if (teamId !== turn.hiderTeamId) throw new HttpsError("permission-denied", "Solo el hider puede duplicar.");
+    const hand = turn.hiderHand ?? [];
+    if (!hand.includes(cardId) || !hand.includes(targetCardId)) {
+      throw new HttpsError("failed-precondition", "Ambas cartas deben estar en tu mano.");
+    }
+    const now = nowTs();
+    tx.update(gameRef, {
+      currentTurn: {...turn, hiderHand: hand.map((id) => id === cardId ? copyId : id), discardPile: [...(turn.discardPile ?? []), cardId]},
+      updatedAt: now,
+    });
+    appendGameEventInTx(tx, gameRef, game, {
+      type: "DUPLICATE_POWERUP_PLAYED", createdAt: now, actorUid: uid, actorTeamId: teamId,
+      payload: {cardId, targetCardId, copyId},
+    });
+  });
   return {ok: true};
 });
 
@@ -1703,6 +1768,7 @@ export {
 
 export {
   scoring,
+  listQuestionHistory,
   listGameEvents,
   listGameNotifications,
   getNotificationPreferences,
@@ -2003,3 +2069,5 @@ export const cleanupFinishedGames = onSchedule({schedule: "every 24 hours", maxI
   const finishedDocs = expiredGames.docs.filter((docSnap) => (docSnap.data() as GameDoc).status === "FINISHED");
   await Promise.all(finishedDocs.map((docSnap) => db.recursiveDelete(docSnap.ref)));
 });
+
+

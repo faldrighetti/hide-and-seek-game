@@ -4,11 +4,17 @@
   }
 }
 
-ion-segment {
-  margin-bottom: 1rem;
+.question-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.payload {
-  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
-  overflow-wrap: anywhere;
+.question-heading h2 {
+  margin: 0;
+}
+
+.question-heading ion-badge {
+  flex: 0 0 auto;
 }
