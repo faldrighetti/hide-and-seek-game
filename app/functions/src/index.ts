@@ -5,6 +5,7 @@ import {
 } from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
+export {deliverGameNotification, registerPushToken, unregisterPushToken} from "./push-notifications";
 import {db} from "./firebase";
 import {STADIUMS} from "./venue-data";
 import {
@@ -147,13 +148,19 @@ export const joinGame = onCall(async (request) => {
     const gameSnap = await tx.get(gameRef);
     if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = gameSnap.data() as GameDoc;
+    const seatsRef = gameRef.collection("seats");
+    const existingSeat = await tx.get(seatsRef.doc(uid));
+    const now = nowTs();
+    if (existingSeat.exists) {
+      tx.update(existingSeat.ref, {online: true, lastSeenAt: now, updatedAt: now});
+      tx.update(gameRef, {updatedAt: now});
+      return;
+    }
+
     if (game.status !== "LOBBY") throw new HttpsError("failed-precondition", "La partida ya empezó.");
 
-    const seatsRef = gameRef.collection("seats");
     const exactNameQuery = seatsRef.where("displayNameLower", "==", displayNameRaw.toLowerCase()).limit(1);
     const matchingName = await tx.get(exactNameQuery);
-
-    const now = nowTs();
 
     if (!matchingName.empty) {
       const seatDoc = matchingName.docs[0];

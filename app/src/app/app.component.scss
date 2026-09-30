@@ -1,0 +1,57 @@
+.connection-status {
+  position: fixed;
+  z-index: 10000;
+  top: env(safe-area-inset-top, 0);
+  width: 100%;
+  padding: 0.55rem 1rem;
+  background: #9f1239;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.install-guide {
+  position: fixed;
+  z-index: 10000;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  left: 1rem;
+  display: grid;
+  gap: 0.55rem;
+  max-width: 32rem;
+  margin: auto;
+  padding: 1rem 2.75rem 1rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1rem;
+  background: #134e4a;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  color: #fff;
+
+  span {
+    color: #d1fae5;
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+}
+
+.install-guide__close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.install-guide__action {
+  width: fit-content;
+  padding: 0.55rem 0.95rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: #fbbf24;
+  color: #172554;
+  font-weight: 700;
+}

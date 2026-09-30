@@ -1,0 +1,20 @@
+{
+  "name": "Escondidas en la ciudad",
+  "short_name": "Escondidas",
+  "description": "Juego urbano de escondidas por equipos.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f766e",
+  "lang": "es-AR",
+  "icons": [
+    {
+      "src": "/assets/icon/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,3 +1,26 @@
 <ion-app>
+  <div *ngIf="!isOnline" class="connection-status" role="status">
+    Sin conexión. Cuando vuelva la señal, el juego se reconectará.
+  </div>
   <ion-router-outlet></ion-router-outlet>
+
+  <aside *ngIf="showInstallGuide" class="install-guide" aria-label="Instalar juego">
+    <button class="install-guide__close" type="button" aria-label="Cerrar" (click)="dismissInstallGuide()">×</button>
+    <ng-container *ngIf="isIos; else androidInstall">
+      <strong>Agregá el juego a Inicio</strong>
+      <span>En Safari, tocá Compartir y elegí “Añadir a pantalla de inicio”. Así podrás recibir avisos de la partida.</span>
+    </ng-container>
+    <ng-template #androidInstall>
+      <strong>Instalá el juego</strong>
+      <span>Tenelo a mano durante la partida y recibí avisos aunque cierres el navegador.</span>
+      <button type="button" class="install-guide__action" (click)="install()">Instalar</button>
+    </ng-template>
+  </aside>
+  <aside *ngIf="pushStatus === 'prompt' && !showInstallGuide" class="install-guide" aria-label="Activar notificaciones">
+    <button class="install-guide__close" type="button" aria-label="Cerrar" (click)="pushStatus = 'unsupported'">×</button>
+    <strong>Activá los avisos de partida</strong>
+    <span>Recibí alertas aunque el juego esté cerrado.</span>
+    <span *ngIf="pushError">{{ pushError }}</span>
+    <button type="button" class="install-guide__action" (click)="enablePush()">Activar notificaciones</button>
+  </aside>
 </ion-app>
