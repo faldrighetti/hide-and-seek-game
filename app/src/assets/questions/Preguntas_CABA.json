@@ -34,7 +34,7 @@
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
-          "label": "3.ª división administrativa (localidad/comuna)",
+          "label": "Comuna",
           "prompt": "¿La localidad o comuna de tu estación base es la misma que mi localidad o comuna?",
           "resolutionMode": "AUTOMATIC"
         },
@@ -46,11 +46,6 @@
         {
           "label": "Parque",
           "prompt": "¿El parque más cercano a tu estación base es el mismo que mi parque más cercano?",
-          "resolutionMode": "MANUAL_CIRCLE"
-        },
-        {
-          "label": "Museo",
-          "prompt": "¿El museo más cercano a tu estación base es el mismo que mi museo más cercano?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
@@ -87,22 +82,12 @@
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
-          "label": "1.ª división administrativa (provincia)",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de la provincia ____?",
-          "resolutionMode": "MANUAL_STATIONS"
-        },
-        {
-          "label": "2.ª división administrativa (partido)",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del partido de ____?",
-          "resolutionMode": "MANUAL_STATIONS"
-        },
-        {
-          "label": "3.ª división administrativa (localidad/comuna)",
+          "label": "Comuna",
           "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos la localidad/comuna de ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
-          "label": "4.ª división administrativa (barrio)",
+          "label": "Barrio",
           "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
           "resolutionMode": "AUTOMATIC"
         },
@@ -280,22 +265,6 @@
           "availability": "Mediano o más",
           "distanceM": 1000,
           "resolutionMode": "MANUAL_STATIONS"
-        },
-        {
-          "label": "Heladerías",
-          "places": "Heladerías",
-          "distance": "1 km",
-          "availability": "Mediano o más",
-          "distanceM": 1000,
-          "resolutionMode": "MANUAL_STATIONS"
-        },
-        {
-          "label": "Pizzerías",
-          "places": "Pizzerías",
-          "distance": "1 km",
-          "availability": "Mediano o más",
-          "distanceM": 1000,
-          "resolutionMode": "MANUAL_STATIONS"
         }
       ],
       "resolutionMode": "MANUAL_STATIONS"
@@ -389,7 +358,7 @@
         },
         {
           "label": "Barrio",
-          "prompt": "¿Tu estación base está en el mismo barrio en el que estoy parado?",
+          "prompt": "¿Estás en el mismo barrio que yo ahora?",
           "availability": "Solo endgame",
           "endgameOnly": true,
           "resolutionMode": "AUTOMATIC"
@@ -469,13 +438,6 @@
           "storesUrls": false
         },
         {
-          "asunto": "Interior de un restaurante",
-          "requisito": "Sin zoom. Sacá la foto desde afuera, a través de una ventana.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
           "asunto": "Andén de tren",
           "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
           "resolutionMode": "EXTERNAL_PHOTO",
@@ -490,36 +452,8 @@
           "storesUrls": false
         },
         {
-          "asunto": "Pasillo de supermercado",
-          "requisito": "Sin zoom. Parate al final del pasillo y sacá la foto apuntando directo por el pasillo.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "Lugar de culto",
-          "requisito": "Debe incluir una sección de 1,5 m x 1,5 m con tres elementos distintos.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
           "asunto": "500 metros de calles trazadas",
           "requisito": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "La montaña más alta visible desde la estación",
-          "requisito": "La más alta desde tu perspectiva / línea de visión. Debe ser con 3x zoom. La cima debe quedar en el tercio superior del encuadre.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "El cuerpo de agua más grande en tu zona",
-          "requisito": "Máximo 3x zoom. Debe incluir ambos lados del agua o el horizonte.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
