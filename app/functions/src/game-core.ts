@@ -12,8 +12,8 @@ import {
   appendGameNotificationsForEventInTx,
 } from "./notifications";
 
-const INTERVAL_PHASE_MINUTES = 5;
-const ESCAPE_PHASE_MINUTES = 8;
+const INTERVAL_PHASE_MINUTES = 2;
+const ESCAPE_PHASE_MINUTES = 2;
 const MOVE_DURATION_MINUTES = 20;
 
 export const GAME_ID_LENGTH = 6;
