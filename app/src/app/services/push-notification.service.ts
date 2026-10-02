@@ -33,10 +33,21 @@ export class PushNotificationService {
 
     const registration = await navigator.serviceWorker.ready;
     const messaging = getMessaging(getApp());
-    const token = await getToken(messaging, {
-      vapidKey: environment.firebase.webPushVapidKey,
-      serviceWorkerRegistration: registration,
-    });
+    let token: string;
+    try {
+      token = await getToken(messaging, {
+        vapidKey: environment.firebase.webPushVapidKey,
+        serviceWorkerRegistration: registration,
+      });
+    } catch (error) {
+      const firebaseError = error as { code?: unknown; message?: unknown };
+      const detail = typeof firebaseError.code === 'string'
+        ? firebaseError.code
+        : typeof firebaseError.message === 'string'
+          ? firebaseError.message
+          : 'sin detalle del navegador';
+      throw new Error(`No se pudo registrar este dispositivo para notificaciones: ${detail}`);
+    }
     if (!token) throw new Error('El navegador no devolvió un identificador para notificaciones.');
 
     await this.firebaseClient.callFunction<{ token: string }, { ok: boolean }>('registerPushToken', { token });
