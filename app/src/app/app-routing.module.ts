@@ -22,7 +22,7 @@ const routes: Routes = [
   },
   {
     path: 'settings',
-    loadChildren: () => import('../app/pages/settings/settings.module').then(m => m.SettingsPageModule),
+    loadChildren: () => import('../app/pages/notifications/notifications.module').then(m => m.NotificationsPageModule),
   },
   { 
     path: 'join/:gameId', 
