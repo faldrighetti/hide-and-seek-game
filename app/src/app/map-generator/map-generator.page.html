@@ -3,13 +3,26 @@
     <ion-buttons slot="start">
       <ion-back-button [defaultHref]="backHref"></ion-back-button>
     </ion-buttons>
-    <ion-title>Map generator</ion-title>
+    <ion-title>Mapa de partida</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <div class="map-layout">
     <aside class="control-panel">
+      <div class="mobile-map-summary">
+        <button type="button" class="mobile-map-summary__main" (click)="toggleMobilePanel()" [attr.aria-expanded]="mobilePanelExpanded">
+          <span>
+            <small>{{ mapPhaseLabel }}</small>
+            <strong>{{ mapRemainingTime }}</strong>
+          </span>
+          <span class="mobile-map-summary__status">{{ mapStatusLabel }}</span>
+          <ion-icon [name]="mobilePanelExpanded ? 'chevron-down-outline' : 'chevron-up-outline'"></ion-icon>
+        </button>
+        <ion-button size="small" fill="clear" [routerLink]="backHref">Ir a la partida</ion-button>
+      </div>
+
+      <div class="panel-body" [class.panel-body--expanded]="mobilePanelExpanded">
       <ion-segment *ngIf="!isModeLocked" [value]="mode" (ionChange)="setMode($any($event.detail.value))">
         <ion-segment-button value="HIDER">
           <ion-label>Hider</ion-label>
@@ -354,10 +367,15 @@
           </ion-accordion>
         </ion-accordion-group>
       </section>
+      </div>
     </aside>
 
     <main class="map-panel">
       <div id="map-generator-leaflet"></div>
+      <ion-button class="center-map-button" size="small" (click)="centerMap()">
+        <ion-icon slot="start" name="locate-outline"></ion-icon>
+        Centrarme
+      </ion-button>
     </main>
   </div>
 </ion-content>

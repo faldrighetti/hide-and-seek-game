@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import * as L from 'leaflet';
 import { FeatureCollection, Geometry } from 'geojson';
 import { Subscription } from 'rxjs';
-import { PendingQuestion } from '../models/core-model';
+import { GameBlueprint, PendingQuestion } from '../models/core-model';
 import { formatStationCompact, getStationComparisonKey, Station, StationsProcessedFile } from '../models/station.model';
 import { groupStationsByLine, StationLineGroup } from '../data/station-groups';
 import {
@@ -158,6 +158,9 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   questionCatalogLoaded = false;
   seekerLocationState: SeekerLocationReferenceState | null = null;
   seekerLocationClassification: CabaLocationClassification = { barrio: null, comuna: null };
+  gameBlueprint: GameBlueprint | null = null;
+  mobilePanelExpanded = false;
+  nowMs = Date.now();
   referenceLines: Record<'GENERAL_PAZ' | 'RIACHUELO', Array<{ lat: number; lng: number }>> = {
     GENERAL_PAZ: [],
     RIACHUELO: [],
@@ -171,6 +174,8 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   private stationMarkers = new Map<string, L.CircleMarker>();
   private seekerLocationSubscription?: Subscription;
   private pendingQuestionSubscription?: Subscription;
+  private blueprintSubscription?: Subscription;
+  private summaryTimer?: ReturnType<typeof setInterval>;
   private barrios: FeatureCollection<Geometry> | null = null;
   private readonly minZoom = 11;
   private readonly maxZoom = 18;
@@ -185,6 +190,8 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
+    this.syncGameContextFromRoute();
+    this.startGameSummary();
     this.startSeekerLocationReference();
     await this.loadMapData();
   }
@@ -192,6 +199,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.seekerLocationSubscription?.unsubscribe();
     this.pendingQuestionSubscription?.unsubscribe();
+    this.blueprintSubscription?.unsubscribe();
+    if (this.summaryTimer) {
+      clearInterval(this.summaryTimer);
+    }
     this.map?.remove();
   }
 
@@ -206,6 +217,66 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
 
   get visibleRecords(): ConstraintRecord[] {
     return this.seekerState.records.slice(0, this.seekerState.cursor);
+  }
+
+  get mapPhaseLabel(): string {
+    const phase = this.gameBlueprint?.currentTurn.phase;
+    const labels: Record<GameBlueprint['currentTurn']['phase'], string> = {
+      INTERMISSION: 'Intervalo',
+      ESCAPE: 'Escape',
+      CHASE: 'Búsqueda',
+      ENDED: 'Partida terminada',
+    };
+    return phase ? labels[phase] : 'Mapa de partida';
+  }
+
+  get mapStatusLabel(): string {
+    if (!this.gameBlueprint) return 'Mapa activo';
+    if (this.gameBlueprint.operational.mode === 'PAUSED') return 'Pausada';
+    if (this.gameBlueprint.operational.mode === 'EMERGENCY') return 'Emergencia';
+    return this.pendingGameQuestion ? 'Pregunta activa' : 'En curso';
+  }
+
+  get mapRemainingTime(): string {
+    const blueprint = this.gameBlueprint;
+    if (!blueprint || blueprint.currentTurn.phase === 'ENDED') return '--:--';
+    const pausedSeconds = blueprint.operational.phaseRemainingSeconds;
+    const seconds = blueprint.operational.mode !== 'NORMAL' && pausedSeconds !== null
+      ? pausedSeconds
+      : Math.max(0, Math.ceil((new Date(blueprint.currentTurn.endsAtIso).getTime() - this.nowMs) / 1000));
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+
+  toggleMobilePanel(): void {
+    this.mobilePanelExpanded = !this.mobilePanelExpanded;
+    setTimeout(() => this.map?.invalidateSize({ animate: false }), 250);
+  }
+
+  centerMap(): void {
+    if (!this.map) return;
+    const lat = this.seekerLocationState?.lastLat;
+    const lng = this.seekerLocationState?.lastLng;
+    if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
+      this.map.setView([lat, lng], Math.max(this.map.getZoom(), 15), { animate: true });
+      return;
+    }
+    if (this.selectedStation) {
+      this.map.setView([this.selectedStation.lat, this.selectedStation.lng], Math.max(this.map.getZoom(), 15), { animate: true });
+      return;
+    }
+    this.fitMapToPlayableStations();
+  }
+
+  private startGameSummary(): void {
+    this.blueprintSubscription?.unsubscribe();
+    this.blueprintSubscription = this.gameFacade.blueprint$.subscribe(blueprint => {
+      this.gameBlueprint = blueprint;
+      this.nowMs = Date.now();
+    });
+    this.summaryTimer = setInterval(() => {
+      this.nowMs = Date.now();
+    }, 1000);
   }
 
   private buildEliminationHistoryGroups(): EliminationHistoryGroup[] {
