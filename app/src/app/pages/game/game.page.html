@@ -101,7 +101,7 @@
 
     <ion-row *ngIf="role.isSeeker" class="seeker-map-link">
       <ion-col size="12">
-        <ion-button expand="block" fill="outline" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId, role: 'seeker' }">
+        <ion-button expand="block" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId, role: 'seeker' }">
           Abrir mapa de partida
         </ion-button>
       </ion-col>
@@ -622,7 +622,6 @@
               <ion-button
                 expand="block"
                 size="small"
-                fill="outline"
                 [disabled]="consultingEndgameQuestions || vm.currentTurn.phase !== 'CHASE' || vm.currentTurn.endgameQuestionsUnlocked"
                 (click)="consultEndgameQuestions(role)"
               >
@@ -745,7 +744,6 @@
             *ngIf="role.isParticipant && vm.operational.mode === 'NORMAL'"
             class="pause-game-button"
             size="small"
-            fill="outline"
             [disabled]="operationalActionInFlight"
             (click)="pauseGame(role)"
           >
