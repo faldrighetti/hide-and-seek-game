@@ -41,9 +41,13 @@ app-hider-hand {
 
 .turn-metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
   margin-bottom: 0.875rem;
+}
+
+.turn-metrics--three-columns {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .turn-metrics div {
@@ -67,6 +71,10 @@ app-hider-hand {
   overflow-wrap: anywhere;
   font-size: 0.95rem;
   line-height: 1.2;
+}
+
+.turn-metrics__base-station {
+  grid-column: 1 / -1;
 }
 
 .turn-summary-title-row {
@@ -339,7 +347,6 @@ app-hider-hand {
     display: grid;
   }
 
-  .turn-metrics,
   .loot-steps {
     grid-template-columns: 1fr;
   }

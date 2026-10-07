@@ -71,20 +71,20 @@
               </div>
             </ion-card-header>
             <ion-card-content>
-              <div class="turn-metrics">
+              <div class="turn-metrics" [class.turn-metrics--three-columns]="showChaseRemainingTime(vm)">
                 <div>
                   <span>Fase</span>
                   <strong>{{ phaseLabel(vm.currentTurn.phase) }}</strong>
                 </div>
-                <div>
+                <div *ngIf="vm.currentTurn.phase === 'CHASE'">
                   <span>Tiempo fase</span>
                   <strong>{{ formatTime(phaseElapsedSeconds(vm)) }}</strong>
                 </div>
-                <div>
+                <div *ngIf="vm.currentTurn.phase !== 'CHASE' || showChaseRemainingTime(vm)">
                   <span>Tiempo restante</span>
                   <strong>{{ formatTime(phaseRemainingSeconds(vm)) }}</strong>
                 </div>
-                <div>
+                <div class="turn-metrics__base-station">
                   <span>Estación base elegida</span>
                   <strong>{{ baseStationSummary(vm) }}</strong>
                 </div>

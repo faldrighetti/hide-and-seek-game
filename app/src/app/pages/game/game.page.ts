@@ -1467,6 +1467,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return this.secondsUntil(vm.currentTurn.endsAtIso);
   }
 
+  showChaseRemainingTime(vm: GameBlueprint): boolean {
+    return vm.currentTurn.phase === 'CHASE' && this.phaseRemainingSeconds(vm) <= 60 * 60;
+  }
+
   phaseElapsedSeconds(vm: GameBlueprint): number {
     if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
       return 0;
