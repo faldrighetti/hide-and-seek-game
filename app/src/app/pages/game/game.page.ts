@@ -1147,7 +1147,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     const availableAt = cooldownIso
       ? new Date(cooldownIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '';
-    return `No disponible por ${this.formatTime(remainingSeconds)}${availableAt ? `. Disponible a las ${availableAt}` : ''}.`;
+    return `No disponible por ${this.formatTime(remainingSeconds)}${availableAt ? `. Disponible a las ${availableAt}` : ''}`;
   }
 
   private categoryCooldownRemainingSeconds(category: QuestionCategory, vm: GameBlueprint): number {

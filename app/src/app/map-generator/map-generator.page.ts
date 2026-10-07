@@ -798,7 +798,7 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     this.questionValidationError = '';
     const option = this.selectedQuestionOption;
     if (!option) {
-      this.questionValidationError = 'Elegi una pregunta del catalogo.';
+      this.questionValidationError = 'Elegí una pregunta del catálogo.';
       return;
     }
 

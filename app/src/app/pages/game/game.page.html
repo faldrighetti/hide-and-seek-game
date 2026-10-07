@@ -267,15 +267,15 @@
               <div class="loot-steps">
                 <div [class.done]="selectedLootCardIds.length > 0 || lootOffer.takeLimit === 0">
                   <span>1</span>
-                  <p>Elegi hasta {{ lootOffer.takeLimit }} carta{{ lootOffer.takeLimit === 1 ? '' : 's' }} nueva{{ lootOffer.takeLimit === 1 ? '' : 's' }}.</p>
+                  <p>Elegí hasta {{ lootOffer.takeLimit }} carta{{ lootOffer.takeLimit === 1 ? '' : 's' }} nueva{{ lootOffer.takeLimit === 1 ? '' : 's' }}.</p>
                 </div>
                 <div [class.done]="projectedHandSize(vm.currentTurn.hiderHandIds.length) <= vm.deckPolicy.maxSize">
                   <span>2</span>
-                  <p>Si la mano supera {{ vm.deckPolicy.maxSize }}, marca cartas actuales para descartar.</p>
+                  <p>Si la mano supera {{ vm.deckPolicy.maxSize }}, marcá cartas actuales para descartar.</p>
                 </div>
                 <div [class.done]="canConfirmLoot(vm)">
                   <span>3</span>
-                  <p>Confirma para guardar la mano y descartar lo no elegido.</p>
+                  <p>Confirmá para guardar la mano y descartar el resto.</p>
                 </div>
               </div>
             </ion-card-content>
