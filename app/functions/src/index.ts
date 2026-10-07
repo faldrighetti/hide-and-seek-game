@@ -349,6 +349,8 @@ export const startGame = onCall(async (request) => {
       pendingQuestionId: null,
       pendingQuestionEndsAt: null,
       categoryCooldowns: {},
+      askedQuestionPrompts: [],
+      askedQuestionKeys: [],
       activeEffects: [],
       ...createInitialDeckState(),
       hidingZone: null,
@@ -689,8 +691,10 @@ export const activateThermometer = onCall(async (request) => {
   await assertGlobalPlayEnabled(db);
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   const targetDistanceM = Number(request.data?.targetDistanceM);
+  const requestedQuestionKey = String(request.data?.questionKey ?? "").trim().toLocaleLowerCase("es-AR");
+  const questionKey = requestedQuestionKey || `thermometer:${targetDistanceM}`;
   const origin = readLocationSample(request.data?.origin);
-  if (!gameId || !Number.isInteger(targetDistanceM) || !isValidThermometerDistance(targetDistanceM)) {
+  if (!gameId || questionKey.length > 300 || !Number.isInteger(targetDistanceM) || !isValidThermometerDistance(targetDistanceM)) {
     throw new HttpsError("invalid-argument", "La distancia del termómetro es inválida.");
   }
   await requireGameMembership(db, gameId, uid);
@@ -710,6 +714,9 @@ export const activateThermometer = onCall(async (request) => {
     }
     if (turn.thermometerState) {
       throw new HttpsError("already-exists", "THERMOMETER_ALREADY_ACTIVE");
+    }
+    if ((turn.askedQuestionKeys ?? []).includes(questionKey)) {
+      throw new HttpsError("already-exists", "QUESTION_ALREADY_ASKED");
     }
     const seatTeamId = await resolveSeatTeamId(tx, gameRef, uid);
     if (!seatTeamId || seatTeamId === turn.hiderTeamId) {
@@ -733,6 +740,7 @@ export const activateThermometer = onCall(async (request) => {
           startedByTeamId: seatTeamId,
           startedAt: now,
           sessionId: sessionRef.id,
+          questionKey,
         },
       },
       updatedAt: now,
@@ -809,6 +817,8 @@ export const completeThermometer = onCall(async (request) => {
         thermometerState: null,
         pendingQuestionId: questionRef.id,
         pendingQuestionEndsAt: expiresAt,
+        askedQuestionPrompts: [...new Set([...(turn.askedQuestionPrompts ?? []), prompt])],
+        askedQuestionKeys: [...new Set([...(turn.askedQuestionKeys ?? []), thermometer.questionKey])],
       },
       updatedAt: now,
     });
@@ -830,6 +840,7 @@ export const sendQuestion = onCall(async (request) => {
   const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
   let prompt = String(request.data?.prompt ?? "").trim();
   const categoryId = String(request.data?.categoryId ?? "").trim();
+  const requestedQuestionKey = String(request.data?.questionKey ?? "").trim().toLocaleLowerCase("es-AR");
   const isPhoto = Boolean(request.data?.isPhoto);
   const distanceMRaw = request.data?.distanceM;
   const distanceM = distanceMRaw === undefined || distanceMRaw === null ?
@@ -849,7 +860,8 @@ export const sendQuestion = onCall(async (request) => {
     prompt = `¿El estadio de fútbol profesional más cercano a tu estación base es ${selectedStadium.name}?`;
   }
 
-  if (!gameId || !prompt || !categoryId) {
+  const questionKey = requestedQuestionKey || `${categoryId}:${prompt}`.toLocaleLowerCase("es-AR");
+  if (!gameId || !prompt || !categoryId || questionKey.length > 300) {
     throw new HttpsError("invalid-argument", "gameId, prompt y categoryId son obligatorios.");
   }
   if (categoryId === "thermometer") {
@@ -894,6 +906,12 @@ export const sendQuestion = onCall(async (request) => {
     if (game.currentTurn.lootOffer) {
       throw new HttpsError("failed-precondition", "Hay loot pendiente de resolver.");
     }
+    if (
+      (game.currentTurn.askedQuestionKeys ?? []).includes(questionKey) ||
+      (game.currentTurn.askedQuestionPrompts ?? []).includes(prompt)
+    ) {
+      throw new HttpsError("already-exists", "QUESTION_ALREADY_ASKED");
+    }
     if (categoryId === "endgame" && (!game.currentTurn.endgameActive || !game.currentTurn.endgameQuestionsUnlocked)) {
       throw new HttpsError("failed-precondition", "ENDGAME_QUESTIONS_LOCKED");
     }
@@ -937,6 +955,8 @@ export const sendQuestion = onCall(async (request) => {
         ...game.currentTurn,
         pendingQuestionId: questionRef.id,
         pendingQuestionEndsAt: Timestamp.fromMillis(now.toMillis() + timeoutSeconds * 1000),
+        askedQuestionPrompts: [...new Set([...(game.currentTurn.askedQuestionPrompts ?? []), prompt])],
+        askedQuestionKeys: [...new Set([...(game.currentTurn.askedQuestionKeys ?? []), questionKey])],
       },
       updatedAt: now,
     });
@@ -1013,9 +1033,9 @@ export const resolveQuestion = onCall(async (request) => {
       throw new HttpsError("failed-precondition", "Esta pregunta no tiene alternativas para randomizar. Volvé a enviarla con la versión actualizada.");
     }
     const replacementRef = resolution === "RANDOMIZE" ? gameRef.collection("questions").doc() : null;
+    const replacementPrompt = replacementRef ? pool[Math.floor(Math.random() * pool.length)] : null;
     const replacementExpiry = Timestamp.fromMillis(now.toMillis() + (questionData.isPhoto ? 600 : 300) * 1000);
-    if (replacementRef) {
-      const replacementPrompt = pool[Math.floor(Math.random() * pool.length)];
+    if (replacementRef && replacementPrompt) {
       tx.set(replacementRef, {
         askedByUid: questionData.askedByUid,
         prompt: replacementPrompt,
@@ -1050,6 +1070,9 @@ export const resolveQuestion = onCall(async (request) => {
         ...turn,
         pendingQuestionId: replacementRef?.id ?? null,
         pendingQuestionEndsAt: replacementRef ? replacementExpiry : null,
+        askedQuestionPrompts: replacementPrompt
+          ? [...new Set([...(turn.askedQuestionPrompts ?? []), replacementPrompt])]
+          : turn.askedQuestionPrompts ?? [],
         hiderHand: hand.filter((id) => id !== powerupId),
         categoryCooldowns,
         drawPile: deckDraw.drawPile,
@@ -1928,6 +1951,8 @@ export const nextTurn = onCall(async (request) => {
       pendingQuestionId: null,
       pendingQuestionEndsAt: null,
       categoryCooldowns: {},
+      askedQuestionPrompts: [],
+      askedQuestionKeys: [],
       activeEffects: [],
       ...createInitialDeckState(),
       hidingZone: null,

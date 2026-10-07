@@ -84,7 +84,7 @@
                   <span>Tiempo restante</span>
                   <strong>{{ formatTime(phaseRemainingSeconds(vm)) }}</strong>
                 </div>
-                <div class="turn-metrics__base-station">
+                <div *ngIf="role.isHider" class="turn-metrics__base-station">
                   <span>Estación base elegida</span>
                   <strong>{{ baseStationSummary(vm) }}</strong>
                 </div>

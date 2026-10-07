@@ -41,6 +41,7 @@ export interface TurnStatus {
   lootOffer: LootOffer | null;
   categoryCooldowns: Record<string, string | null>;
   askedQuestionPrompts: string[];
+  askedQuestionKeys: string[];
   hidingZone: HidingZone | null;
   baseStationCandidateIds: string[];
   baseStationSelectionRequired: boolean;

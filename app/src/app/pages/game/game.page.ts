@@ -535,7 +535,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
         this.questionErrorMessage = 'Elegí una distancia para el termómetro.';
         return;
       }
-      await this.activateThermometer(role, distanceM);
+      await this.activateThermometer(role, distanceM, this.questionKey(category, question));
       return;
     }
 
@@ -550,6 +550,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.questionErrorMessage = '';
     try {
       await this.gameFacade.sendQuestion(this.gameId, category.key, prompt, category.key === 'photos', {
+        questionKey: this.questionKey(category, question),
         distanceM,
         customDistanceM: customDistanceM ?? undefined,
         venueType: venueSelection ? 'stadium' : undefined,
@@ -1129,8 +1130,18 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   isQuestionAlreadyAsked(category: QuestionCategory, question: QuestionItem, vm: GameBlueprint): boolean {
+    const questionKey = this.questionKey(category, question);
     const prompt = this.questionPromptText(category, question).trim();
-    return prompt.length > 0 && vm.currentTurn.askedQuestionPrompts.includes(prompt);
+    return vm.currentTurn.askedQuestionKeys.includes(questionKey)
+      || (prompt.length > 0 && vm.currentTurn.askedQuestionPrompts.includes(prompt));
+  }
+
+  private questionKey(category: QuestionCategory, question: QuestionItem): string {
+    const identity = question.label
+      ?? question.asunto
+      ?? question.prompt
+      ?? [question.places, question.distance, question.distanceM, question.customDistance ? 'custom' : ''].filter(Boolean).join('|');
+    return `${category.key}:${identity}`.trim().toLocaleLowerCase('es-AR');
   }
 
   availableQuestionCount(category: QuestionCategory, vm: GameBlueprint): number {
@@ -1999,7 +2010,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return result.role === 'confirm';
   }
 
-  private async activateThermometer(role: PlayerRole, targetDistanceM: number): Promise<void> {
+  private async activateThermometer(role: PlayerRole, targetDistanceM: number, questionKey: string): Promise<void> {
     if (!role.isSeeker || this.thermometerActionInFlight) return;
     if (!(await this.confirmThermometerActivation(targetDistanceM))) {
       this.selectedSeekerQuestion = null;
@@ -2010,7 +2021,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.thermometerMessage = '';
     try {
       const origin = await this.getCurrentPositionOnce();
-      await this.gameFacade.activateThermometer(this.gameId, targetDistanceM, origin);
+      await this.gameFacade.activateThermometer(this.gameId, targetDistanceM, origin, questionKey);
       this.selectedSeekerQuestion = null;
       this.thermometerMessage = `Termómetro activado para ${targetDistanceM} m. Cuando lleguen, toquen “Llegamos”.`;
     } catch (error) {
@@ -2301,6 +2312,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       THERMOMETER_ALREADY_ACTIVE: 'Ya hay un termómetro activo. Lleguen al destino antes de iniciar otro.',
       THERMOMETER_DISTANCE_OUT_OF_RANGE: 'La distancia recorrida no está dentro de la tolerancia del 10%. Sigan moviéndose y vuelvan a intentar.',
       THERMOMETER_REQUIRES_GEOLOCATION: 'El termómetro requiere activar y validar las dos ubicaciones.',
+      QUESTION_ALREADY_ASKED: 'Esa pregunta ya fue hecha en este turno.',
     };
 
     for (const [code, friendly] of Object.entries(knownMessages)) {

@@ -128,6 +128,7 @@ export interface ThermometerState {
   startedByTeamId: string;
   startedAt: Timestamp;
   sessionId: string;
+  questionKey: string;
 }
 
 export interface EndgameConsultation {
@@ -149,6 +150,8 @@ export interface TurnState {
   pendingQuestionId?: string | null;
   pendingQuestionEndsAt?: Timestamp | null;
   categoryCooldowns?: Record<string, Timestamp>;
+  askedQuestionPrompts?: string[];
+  askedQuestionKeys?: string[];
   activeEffects?: ActiveEffect[];
   hiderHand?: string[];
   drawPile?: string[];

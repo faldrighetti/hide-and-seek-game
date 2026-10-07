@@ -70,6 +70,7 @@ const buildBlueprint = (
       lootOffer: null,
       categoryCooldowns: {},
       askedQuestionPrompts: [],
+      askedQuestionKeys: [],
       hidingZone: null,
       baseStationCandidateIds: [],
       baseStationSelectionRequired: false,
@@ -145,6 +146,7 @@ interface ListGameNotificationsResponse {
 }
 
 interface SendQuestionOptions {
+  questionKey?: string;
   distanceM?: number;
   customDistanceM?: number;
   randomizePool?: string[];
@@ -362,6 +364,7 @@ export class GameFacadeService {
         categoryId: string;
         prompt: string;
         isPhoto: boolean;
+        questionKey?: string;
         distanceM?: number;
         customDistanceM?: number;
         venueType?: string;
@@ -416,11 +419,12 @@ export class GameFacadeService {
     gameId: string,
     targetDistanceM: number,
     origin: { lat: number; lng: number; accuracyM: number },
+    questionKey: string,
   ): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<
-      { gameId: string; targetDistanceM: number; origin: { lat: number; lng: number; accuracyM: number } },
+      { gameId: string; targetDistanceM: number; origin: { lat: number; lng: number; accuracyM: number }; questionKey: string },
       { ok: boolean }
-    >('activateThermometer', { gameId, targetDistanceM, origin });
+    >('activateThermometer', { gameId, targetDistanceM, origin, questionKey });
   }
 
   completeThermometer(
@@ -632,6 +636,7 @@ export class GameFacadeService {
         lootOffer: this.mapLootOffer(currentTurn?.['lootOffer']),
         categoryCooldowns: this.mapCategoryCooldowns(currentTurn?.['categoryCooldowns']),
         askedQuestionPrompts: this.stringArray(currentTurn?.['askedQuestionPrompts']),
+        askedQuestionKeys: this.stringArray(currentTurn?.['askedQuestionKeys']),
         hidingZone: this.mapHidingZone(currentTurn?.['hidingZone']),
         baseStationCandidateIds: this.stringArray(currentTurn?.['baseStationCandidateIds']),
         baseStationSelectionRequired: Boolean(currentTurn?.['baseStationSelectionRequired']),
