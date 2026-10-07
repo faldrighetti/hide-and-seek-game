@@ -1983,6 +1983,7 @@ export {
 
 export {getMyActiveGame} from "./active-game-callable";
 export {listOperationalHistory} from "./operational-history-callable";
+export {previewGame} from "./game-preview-callable";
 
 const completeMoveIfDueInTx = (
   tx: Transaction,

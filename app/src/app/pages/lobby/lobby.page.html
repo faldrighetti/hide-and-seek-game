@@ -3,12 +3,20 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/"></ion-back-button>
     </ion-buttons>
-    <ion-title>Lobby {{ gameId }}</ion-title>
+    <ion-title>{{ (lobby$ | async)?.gameName || 'Lobby' }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
   <ng-container *ngIf="vm$ | async as vm; else emptyState">
+    <ion-card *ngIf="!vm.role.isParticipant" color="warning">
+      <ion-card-header><ion-card-title>No tenés un lugar en esta partida</ion-card-title></ion-card-header>
+      <ion-card-content>
+        <p>Podés volver a validar la invitación para unirte o recuperar tu lugar con la misma cuenta.</p>
+        <ion-button [routerLink]="['/join', vm.lobby.gameId]">Revisar invitación</ion-button>
+        <ion-button fill="clear" routerLink="/">Ir al inicio</ion-button>
+      </ion-card-content>
+    </ion-card>
     <ion-card>
       <ion-card-header>
         <ion-card-title>Invitar jugadores</ion-card-title>
@@ -121,7 +129,11 @@
   <ng-template #emptyState>
     <ion-card>
       <ion-card-content>
-        <p>No hay estado de lobby cargado para este gameId.</p>
+        <h2>No pudimos cargar el lobby</h2>
+        <p>Puede ser un problema de conexión, un código incorrecto o que tu cuenta todavía no tenga acceso.</p>
+        <ion-button (click)="retryLoad()">Reintentar</ion-button>
+        <ion-button fill="outline" [routerLink]="['/join', gameId]">Revisar invitación</ion-button>
+        <ion-button fill="clear" routerLink="/">Ir al inicio</ion-button>
       </ion-card-content>
     </ion-card>
   </ng-template>

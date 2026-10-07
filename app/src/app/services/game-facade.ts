@@ -5,6 +5,7 @@ import {
   ActiveGameSummary,
   DEFAULT_SETTINGS,
   GameEvent,
+  GamePreview,
   GameNotification,
   GameBlueprint,
   GameMode,
@@ -161,6 +162,11 @@ interface GetMyActiveGameResponse {
   activeGame: ActiveGameSummary | null;
 }
 
+interface GamePreviewResponse {
+  ok: boolean;
+  preview: GamePreview;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GameFacadeService {
   constructor(private readonly firebaseClient: FirebaseGameClientService) {}
@@ -202,10 +208,11 @@ export class GameFacadeService {
     winCondition: WinCondition,
     ukMode: boolean,
     hostDisplayName: string,
+    gameName: string,
   ): Promise<LobbyState> {
     const currentUser = this.firebaseClient.requireCurrentUser();
     const response = await this.firebaseClient.callFunction<
-      { mode: GameMode; turnsPerTeam: 1 | 2 | 3; winCondition: WinCondition; ukMode: boolean; displayName: string },
+      { mode: GameMode; turnsPerTeam: 1 | 2 | 3; winCondition: WinCondition; ukMode: boolean; displayName: string; gameName: string },
       CreateGameResponse
     >('createGame', {
       mode,
@@ -213,11 +220,14 @@ export class GameFacadeService {
       winCondition,
       ukMode,
       displayName: hostDisplayName.trim() || this.firstNameFromGoogleUser(currentUser) || 'Host',
+      gameName: gameName.trim() || 'Hide & Seek',
     });
 
     this.loadGame(response.gameId);
     return {
       gameId: response.gameId,
+      gameName: gameName.trim() || 'Hide & Seek',
+      mode,
       status: 'LOBBY',
       hostUid: currentUser.uid,
       joinLink: response.joinUrl || `${window.location.origin}/join/${response.gameId}`,
@@ -236,8 +246,16 @@ export class GameFacadeService {
     this.loadGame(gameId);
   }
 
-  loadGame(gameId: string): void {
-    if (this.loadedGameId === gameId) {
+  async previewGame(gameId: string): Promise<GamePreview> {
+    const response = await this.firebaseClient.callFunction<{ gameId: string }, GamePreviewResponse>(
+      'previewGame',
+      { gameId },
+    );
+    return response.preview;
+  }
+
+  loadGame(gameId: string, force = false): void {
+    if (this.loadedGameId === gameId && !force) {
       return;
     }
     this.loadedGameId = gameId;
@@ -550,6 +568,8 @@ export class GameFacadeService {
   ): LobbyState {
     return {
       gameId,
+      gameName: String(game['gameName'] ?? 'Hide & Seek'),
+      mode: (game['mode'] as GameMode | undefined) ?? 'INDIVIDUAL_3',
       status: (game['status'] as LobbyState['status'] | undefined) ?? 'LOBBY',
       hostUid: typeof game['hostUid'] === 'string' ? game['hostUid'] : null,
       joinLink: `${window.location.origin}/join/${gameId}`,

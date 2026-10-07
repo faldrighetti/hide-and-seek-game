@@ -229,8 +229,20 @@ export interface ActiveGameSummary {
   isHost: boolean;
 }
 
+export interface GamePreview {
+  gameId: string;
+  gameName: string;
+  status: GameStatus;
+  mode: GameMode;
+  currentSeats: number;
+  maxSeats: number;
+  alreadyMember: boolean;
+}
+
 export interface LobbyState {
   gameId: string;
+  gameName: string;
+  mode: GameMode;
   hostUid: string | null;
   status: GameStatus;
   joinLink: string;

@@ -3,7 +3,7 @@
     <ion-buttons slot="start" *ngIf="(blueprint$ | async)?.status !== 'LIVE'">
       <ion-back-button [defaultHref]="'/lobby/' + gameId"></ion-back-button>
     </ion-buttons>
-    <ion-title>Game {{ gameId }}</ion-title>
+    <ion-title>{{ (blueprint$ | async)?.gameName || 'Partida' }}</ion-title>
     <ion-buttons slot="end">
       <ion-button [routerLink]="['/game', gameId, 'history']">Historial</ion-button>
       <ion-button routerLink="/settings">Notificaciones</ion-button>
@@ -89,6 +89,9 @@
                 </div>
               </div>
               <ion-progress-bar [value]="phaseProgress(vm)"></ion-progress-bar>
+              <ion-button *ngIf="!role.isParticipant" expand="block" fill="outline" [routerLink]="['/join', gameId]">
+                Revisar invitación y recuperar lugar
+              </ion-button>
               <ng-container *ngIf="primaryTurnAction(vm, role, questionContext.pendingQuestion) as primaryAction">
                 <div class="primary-action-bar">
                   <span>Tu acción ahora</span>

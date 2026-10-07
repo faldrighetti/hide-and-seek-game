@@ -10,15 +10,61 @@
 <ion-content [fullscreen]="true" class="ion-padding">
   <ion-list lines="inset">
     <ion-item>
-      <ion-input label="gameId" [(ngModel)]="gameId"></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-input label="displayName" placeholder="Opcional; usa Google si queda vacío" [(ngModel)]="displayName"></ion-input>
+      <ion-input label="Código de partida" [(ngModel)]="gameId" (ionInput)="clearPreview()"></ion-input>
     </ion-item>
   </ion-list>
 
-  <ion-button expand="block" [disabled]="joining" (click)="join()">
-    {{ joining ? 'Uniendo...' : 'Unirse' }}
+  <ion-button *ngIf="!preview && !needsSignIn" expand="block" [disabled]="previewLoading" (click)="lookupGame()">
+    {{ previewLoading ? 'Buscando...' : 'Buscar partida' }}
   </ion-button>
-  <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
+
+  <ion-card *ngIf="needsSignIn">
+    <ion-card-header><ion-card-title>Entrá para continuar</ion-card-title></ion-card-header>
+    <ion-card-content>
+      <p>Tu cuenta identifica tu lugar y permite retomar la partida si ya participás.</p>
+      <ion-button expand="block" [disabled]="signingIn" (click)="signIn()">
+        {{ signingIn ? 'Entrando...' : 'Entrar con Google' }}
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card *ngIf="preview as game" class="preview-card">
+    <ion-card-header>
+      <ion-card-subtitle>{{ modeLabel(game.mode) }}</ion-card-subtitle>
+      <ion-card-title>{{ game.gameName }}</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="preview-stats">
+        <span>{{ game.currentSeats }}/{{ game.maxSeats }} jugadores</span>
+        <ion-badge [color]="game.status === 'LOBBY' ? 'primary' : game.status === 'LIVE' ? 'success' : 'medium'">
+          {{ game.status === 'LOBBY' ? 'En el lobby' : game.status === 'LIVE' ? 'En juego' : 'Finalizada' }}
+        </ion-badge>
+      </div>
+
+      <ion-button *ngIf="game.alreadyMember" expand="block" (click)="continueToGame(game)">
+        {{ game.status === 'LOBBY' ? 'Volver al lobby' : 'Continuar a la partida' }}
+      </ion-button>
+
+      <ng-container *ngIf="!game.alreadyMember && game.status === 'LOBBY' && game.currentSeats < game.maxSeats">
+        <ion-item lines="full">
+          <ion-input label="Nombre visible" placeholder="Opcional; usa tu nombre de Google" [(ngModel)]="displayName"></ion-input>
+        </ion-item>
+        <ion-button expand="block" [disabled]="joining" (click)="join()">
+          {{ joining ? 'Uniendo...' : 'Unirme a esta partida' }}
+        </ion-button>
+      </ng-container>
+
+      <ion-note *ngIf="!game.alreadyMember && game.currentSeats >= game.maxSeats" color="warning">
+        La partida ya tiene todos sus jugadores. Pedile al host que revise los lugares del lobby.
+      </ion-note>
+      <ion-note *ngIf="!game.alreadyMember && game.status !== 'LOBBY'" color="warning">
+        La partida ya comenzó y no admite jugadores nuevos.
+      </ion-note>
+    </ion-card-content>
+  </ion-card>
+
+  <section *ngIf="errorMessage" class="actionable-error">
+    <ion-note color="danger">{{ errorMessage }}</ion-note>
+    <ion-button size="small" fill="outline" [disabled]="previewLoading" (click)="lookupGame()">Reintentar</ion-button>
+  </section>
 </ion-content>

@@ -14,6 +14,7 @@ export class CreatePage {
   private readonly router = inject(Router);
 
   mode: GameMode = 'INDIVIDUAL_3';
+  gameName = 'Hide & Seek';
   turnsPerTeam: 1 | 2 | 3 = 2;
   winCondition: WinCondition = 'TOTAL_TIME';
   hostDisplayName = '';
@@ -40,6 +41,7 @@ export class CreatePage {
         winCondition,
         false,
         this.hostDisplayName,
+        this.gameName,
       );
     } catch (error) {
       this.errorMessage = error instanceof Error ? error.message : 'No se pudo crear la partida.';

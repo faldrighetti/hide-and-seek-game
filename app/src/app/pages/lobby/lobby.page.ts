@@ -145,6 +145,11 @@ export class LobbyPage implements OnDestroy {
     }
   }
 
+  retryLoad(): void {
+    this.errorMessage = '';
+    this.gameFacade.loadGame(this.gameId, true);
+  }
+
   async randomizeTeams(isHost: boolean): Promise<void> {
     if (!isHost) {
       return;
