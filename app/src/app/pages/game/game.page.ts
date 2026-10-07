@@ -80,6 +80,12 @@ interface TurnActionState {
   color: string;
 }
 
+interface PrimaryTurnAction {
+  label: string;
+  targetId: string;
+  color: string;
+}
+
 interface MapNavigationBoundsAsset {
   southWest: { lat: number; lng: number };
   northEast: { lat: number; lng: number };
@@ -1477,6 +1483,16 @@ export class GamePage implements AfterViewInit, OnDestroy {
       };
     }
 
+    if (vm.operational.mode !== 'NORMAL') {
+      return {
+        title: vm.operational.mode === 'PAUSED' ? 'Partida pausada' : 'Modo emergencia',
+        detail: role.isHost
+          ? 'Revisá el estado operativo y reanudá cuando sea seguro continuar.'
+          : 'Las acciones quedan bloqueadas hasta que el host reanude la partida.',
+        color: vm.operational.mode === 'PAUSED' ? 'warning' : 'danger',
+      };
+    }
+
     if (vm.currentTurn.phase === 'INTERMISSION') {
       return {
         title: 'Intervalo',
@@ -1607,6 +1623,68 @@ export class GamePage implements AfterViewInit, OnDestroy {
       detail: 'Esperá a la proxima pregunta de los buscadores.',
       color: 'medium',
     };
+  }
+
+  primaryTurnAction(
+    vm: GameBlueprint,
+    role: PlayerRole,
+    pendingQuestion: PendingQuestion | null,
+  ): PrimaryTurnAction | null {
+    if (!role.isParticipant || vm.status !== 'LIVE') return null;
+
+    if (vm.operational.mode !== 'NORMAL') {
+      return role.isHost
+        ? { label: 'Revisar operación', targetId: 'operation-action', color: 'warning' }
+        : null;
+    }
+
+    if ((vm.currentTurn.phase === 'ESCAPE' || vm.currentTurn.baseStationSelectionRequired) && role.isHider) {
+      return { label: 'Elegir estación base', targetId: 'base-station-action', color: 'warning' };
+    }
+
+    if (vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER' && role.isHider) {
+      return { label: 'Responder consulta', targetId: 'capture-action', color: 'warning' };
+    }
+
+    if (vm.currentTurn.captureAttempt?.status === 'PENDING_HIDER' && role.isHider) {
+      return { label: 'Resolver captura', targetId: 'capture-action', color: 'danger' };
+    }
+
+    if (
+      vm.currentTurn.captureAttempt?.status === 'REJECTED'
+      && role.isSeeker
+      && !this.seekerAlreadyConfirmedCapture(vm, role)
+    ) {
+      return { label: 'Revisar captura', targetId: 'capture-action', color: 'warning' };
+    }
+
+    if (pendingQuestion && role.isHider) {
+      return { label: 'Responder pregunta', targetId: 'question-action', color: 'warning' };
+    }
+
+    if (vm.currentTurn.lootOffer && role.isHider) {
+      return { label: 'Elegir cartas', targetId: 'loot-action', color: 'success' };
+    }
+
+    if (role.isSeeker && this.hasQuestionBlockingEffect(vm.currentTurn.activeEffects)) {
+      return { label: 'Resolver maldición', targetId: 'effects-action', color: 'warning' };
+    }
+
+    if (
+      role.isSeeker
+      && vm.currentTurn.phase === 'CHASE'
+      && !pendingQuestion
+      && !vm.currentTurn.lootOffer
+      && !vm.currentTurn.baseStationSelectionRequired
+    ) {
+      return { label: 'Elegir pregunta', targetId: 'question-action', color: 'primary' };
+    }
+
+    return null;
+  }
+
+  scrollToAction(targetId: string): void {
+    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   phaseProgress(vm: GameBlueprint): number {

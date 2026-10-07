@@ -89,13 +89,24 @@
                 </div>
               </div>
               <ion-progress-bar [value]="phaseProgress(vm)"></ion-progress-bar>
+              <ng-container *ngIf="primaryTurnAction(vm, role, questionContext.pendingQuestion) as primaryAction">
+                <div class="primary-action-bar">
+                  <span>Tu acción ahora</span>
+                  <ion-button
+                    [color]="primaryAction.color"
+                    (click)="scrollToAction(primaryAction.targetId)"
+                  >
+                    {{ primaryAction.label }}
+                  </ion-button>
+                </div>
+              </ng-container>
             </ion-card-content>
           </ion-card>
         </ng-container>
       </ion-col>
     </ion-row>
 
-    <ion-row>
+    <ion-row id="operation-action">
       <ion-col size="12">
         <ion-card>
           <ion-card-header>
@@ -162,7 +173,7 @@
       </ion-col>
     </ion-row>
 
-    <ion-row *ngIf="baseStationFlowVisible(vm, role)">
+    <ion-row id="base-station-action" *ngIf="baseStationFlowVisible(vm, role)">
       <ion-col size="12">
         <ion-card class="base-station-card">
           <ion-card-header>
@@ -256,7 +267,7 @@
         </ion-card>
       </ion-col>
     </ion-row>
-    <ion-row>
+    <ion-row id="loot-action">
       <ion-col size="12" *ngIf="role.isHider">
 
         <ng-container *ngIf="vm.currentTurn.lootOffer as lootOffer">
@@ -437,7 +448,7 @@
       </ion-col>
     </ion-row>
 
-    <ion-row *ngIf="vm.currentTurn.activeEffects.length">
+    <ion-row id="effects-action" *ngIf="vm.currentTurn.activeEffects.length">
       <ion-col size="12">
         <ion-card>
           <ion-card-header>
@@ -479,7 +490,7 @@
       </ion-col>
     </ion-row>
 
-    <ion-row>
+    <ion-row id="question-action">
       <ion-col size="12" size-md="6" *ngIf="role.isSeeker || vm.currentTurn.pendingQuestion">
         <ion-card>
           <ion-card-header>
@@ -673,7 +684,7 @@
         </ion-card>
       </ion-col>
 
-      <ion-col size="12" size-md="6" *ngIf="role.isSeeker || role.isHost || (role.isHider && (vm.currentTurn.endgameActive || vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER' || vm.currentTurn.captureAttempt))">
+      <ion-col id="capture-action" size="12" size-md="6" *ngIf="role.isSeeker || role.isHost || (role.isHider && (vm.currentTurn.endgameActive || vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER' || vm.currentTurn.captureAttempt))">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Captura</ion-card-title>
