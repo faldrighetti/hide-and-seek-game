@@ -248,6 +248,10 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
   }
 
+  get showMapRemainingTime(): boolean {
+    return this.gameBlueprint?.currentTurn.phase !== 'CHASE';
+  }
+
   toggleMobilePanel(): void {
     this.mobilePanelExpanded = !this.mobilePanelExpanded;
     setTimeout(() => this.map?.invalidateSize({ animate: false }), 250);

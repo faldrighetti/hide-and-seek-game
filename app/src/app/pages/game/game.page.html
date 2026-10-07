@@ -210,6 +210,9 @@
               <ion-card-title>Elegir loot</ion-card-title>
             </ion-card-header>
             <ion-card-content>
+              <ion-note color="warning">
+                Tiempo para elegir: {{ lootRemainingLabel(lootOffer.expiresAtIso) }}. Si vence, se eligen 0 cartas.
+              </ion-note>
               <div class="loot-steps">
                 <div [class.done]="selectedLootCardIds.length > 0 || lootOffer.takeLimit === 0">
                   <span>1</span>

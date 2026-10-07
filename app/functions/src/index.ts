@@ -17,6 +17,7 @@ import {
   GameDoc,
   GameMode,
   GameSettings,
+  LOOT_SELECTION_SECONDS,
   MOVE_DURATION_SECONDS,
 
   QUESTION_DRAW_RULES,
@@ -363,6 +364,7 @@ export const startGame = onCall(async (request) => {
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
       expirations: 0,
+      timeoutPenaltyAppliedSeconds: 0,
       foundVotes: [],
       captureAttempt: null,
     };
@@ -1091,6 +1093,7 @@ export const resolveQuestion = onCall(async (request) => {
           drawnCardIds: deckDraw.drawnCardIds,
           takeLimit: drawRule.take,
           createdAt: now,
+          expiresAt: Timestamp.fromMillis(now.toMillis() + LOOT_SELECTION_SECONDS * 1000),
         } : null,
       },
       updatedAt: now,
@@ -1148,8 +1151,34 @@ export const selectLoot = onCall(async (request) => {
       throw new HttpsError("permission-denied", "Solo el hider puede elegir loot.");
     }
 
-    await assertRateLimitInTx(tx, gameRef, uid, "select_loot", nowTs(), 5);
+    const now = nowTs();
+    await assertRateLimitInTx(tx, gameRef, uid, "select_loot", now, 5);
     const drawn = turn.lootOffer.drawnCardIds;
+    const lootExpiresAt = turn.lootOffer.expiresAt ?? Timestamp.fromMillis(
+      turn.lootOffer.createdAt.toMillis() + LOOT_SELECTION_SECONDS * 1000,
+    );
+    if (lootExpiresAt.toMillis() <= now.toMillis()) {
+      tx.update(gameRef, {
+        currentTurn: {
+          ...turn,
+          discardPile: [...(turn.discardPile ?? []), ...drawn],
+          lootOffer: null,
+        },
+        updatedAt: now,
+      });
+      appendGameEventInTx(tx, gameRef, game, {
+        type: "LOOT_SELECTION_EXPIRED",
+        createdAt: now,
+        actorUid: null,
+        actorTeamId: turn.hiderTeamId,
+        payload: {
+          questionId: turn.lootOffer.questionId,
+          selectedCardIds: [],
+          discardedDrawnCardIds: drawn,
+        },
+      });
+      return;
+    }
     if (selectedCardIds.length > turn.lootOffer.takeLimit) {
       throw new HttpsError("invalid-argument", "Seleccionaste más cartas que el límite.");
     }
@@ -1178,8 +1207,6 @@ export const selectLoot = onCall(async (request) => {
       ...unselectedDrawn,
       ...discardFromHandIds,
     ];
-    const now = nowTs();
-
     tx.update(gameRef, {
       currentTurn: {
         ...turn,
@@ -1965,6 +1992,7 @@ export const nextTurn = onCall(async (request) => {
       endgameQuestionsUnlocked: false,
       lastEndgameQuestionsConsultAt: null,
       expirations: 0,
+      timeoutPenaltyAppliedSeconds: 0,
       foundVotes: [],
       captureAttempt: null,
     };
@@ -2061,6 +2089,53 @@ const completeMoveIfDueInTx = (
   return nextTurn;
 };
 
+const lootOfferExpiresAtMillis = (turn: TurnState): number | null => {
+  const offer = turn.lootOffer;
+  if (!offer) return null;
+  return (offer.expiresAt ?? Timestamp.fromMillis(
+    offer.createdAt.toMillis() + LOOT_SELECTION_SECONDS * 1000,
+  )).toMillis();
+};
+
+const expireLootOfferIfDueInTx = (
+  tx: Transaction,
+  gameRef: DocumentReference,
+  game: GameDoc,
+  turn: TurnState,
+  txNow: Timestamp,
+): boolean => {
+  const expiresAtMillis = lootOfferExpiresAtMillis(turn);
+  if (!turn.lootOffer || expiresAtMillis === null || expiresAtMillis > txNow.toMillis()) return false;
+
+  const expiredOffer = turn.lootOffer;
+  turn.discardPile = [...(turn.discardPile ?? []), ...expiredOffer.drawnCardIds];
+  turn.lootOffer = null;
+  appendGameEventInTx(tx, gameRef, game, {
+    type: "LOOT_SELECTION_EXPIRED",
+    createdAt: txNow,
+    actorUid: null,
+    actorTeamId: turn.hiderTeamId,
+    payload: {
+      questionId: expiredOffer.questionId,
+      selectedCardIds: [],
+      discardedDrawnCardIds: expiredOffer.drawnCardIds,
+    },
+  });
+  return true;
+};
+
+const applyQuestionTimeoutPenalty = (turn: TurnState, txNow: Timestamp): void => {
+  if (turn.phase !== "CHASE") return;
+  const previousEndsAtMillis = turn.phaseEndsAt.toMillis();
+  const nextEndsAtMillis = Math.max(
+    txNow.toMillis(),
+    previousEndsAtMillis - 30 * 60 * 1000,
+  );
+  turn.phaseEndsAt = Timestamp.fromMillis(nextEndsAtMillis);
+  turn.timeoutPenaltyAppliedSeconds = (turn.timeoutPenaltyAppliedSeconds ?? 0) +
+    Math.floor((previousEndsAtMillis - nextEndsAtMillis) / 1000);
+};
+
 export const processGameTick = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
@@ -2082,7 +2157,8 @@ export const processGameTick = onCall(async (request) => {
     const phaseDueAtStart = turn.phaseEndsAt.toMillis() <= txNow.toMillis();
     const questionDueAtStart = Boolean(turn.pendingQuestionId && turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= txNow.toMillis());
     const moveDueAtStart = Boolean(turn.moveState?.status === "ACTIVE" && turn.moveState.endsAt.toMillis() <= txNow.toMillis());
-    if (!phaseDueAtStart && !questionDueAtStart && !moveDueAtStart) return;
+    const lootDueAtStart = Boolean(lootOfferExpiresAtMillis(turn) !== null && lootOfferExpiresAtMillis(turn)! <= txNow.toMillis());
+    if (!phaseDueAtStart && !questionDueAtStart && !moveDueAtStart && !lootDueAtStart) return;
 
     await assertRateLimitInTx(tx, gameRef, uid, `process_game_tick_${turn.runNumber}_${turn.phase}`, txNow, 3);
 
@@ -2105,6 +2181,11 @@ export const processGameTick = onCall(async (request) => {
       turn.pendingQuestionId = null;
       turn.pendingQuestionEndsAt = null;
       turn.expirations += 1;
+      applyQuestionTimeoutPenalty(turn, txNow);
+      changed = true;
+    }
+
+    if (expireLootOfferIfDueInTx(tx, gameRef, game, turn, txNow)) {
       changed = true;
     }
 
@@ -2187,7 +2268,8 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
     const phaseDue = turn.phaseEndsAt.toMillis() <= now.toMillis();
     const questionDue = Boolean(turn.pendingQuestionEndsAt && turn.pendingQuestionEndsAt.toMillis() <= now.toMillis());
     const moveDue = Boolean(turn.moveState?.status === "ACTIVE" && turn.moveState.endsAt.toMillis() <= now.toMillis());
-    return phaseDue || questionDue || moveDue;
+    const lootDue = Boolean(lootOfferExpiresAtMillis(turn) !== null && lootOfferExpiresAtMillis(turn)! <= now.toMillis());
+    return phaseDue || questionDue || moveDue || lootDue;
   });
 
   const tasks = dueDocs.map(async (docSnap) => {
@@ -2221,6 +2303,11 @@ export const scheduledTick = onSchedule({schedule: "every 5 minutes", maxInstanc
         turn.pendingQuestionId = null;
         turn.pendingQuestionEndsAt = null;
         turn.expirations += 1;
+        applyQuestionTimeoutPenalty(turn, txNow);
+        changed = true;
+      }
+
+      if (expireLootOfferIfDueInTx(tx, docSnap.ref, game, turn, txNow)) {
         changed = true;
       }
 

@@ -76,6 +76,7 @@ const buildBlueprint = (
       baseStationSelectionRequired: false,
       activeEffects: [],
       expirations: 0,
+      timeoutPenaltyAppliedSeconds: 0,
       foundVotes: [],
       foundConfirmed: false,
       captureAttempt: null,
@@ -642,6 +643,7 @@ export class GameFacadeService {
         baseStationSelectionRequired: Boolean(currentTurn?.['baseStationSelectionRequired']),
         activeEffects: this.mapActiveEffects(currentTurn?.['activeEffects']),
         expirations: Number(currentTurn?.['expirations'] ?? 0),
+        timeoutPenaltyAppliedSeconds: Number(currentTurn?.['timeoutPenaltyAppliedSeconds'] ?? 0),
         foundVotes: Array.isArray(currentTurn?.['foundVotes']) ? currentTurn['foundVotes'] as string[] : [],
         captureAttempt: this.mapCaptureAttempt(currentTurn?.['captureAttempt']),
         endgameConsultation: this.mapEndgameConsultation(currentTurn?.['endgameConsultation']),
@@ -909,12 +911,16 @@ export class GameFacadeService {
     }
 
     const lootOffer = value as Record<string, unknown>;
+    const createdAtIso = this.timestampToIso(lootOffer['createdAt']);
+    const expiresAtIso = this.timestampToIso(lootOffer['expiresAt'])
+      ?? (createdAtIso ? new Date(new Date(createdAtIso).getTime() + 3 * 60 * 1000).toISOString() : null);
     return {
       questionId: String(lootOffer['questionId'] ?? ''),
       categoryId: String(lootOffer['categoryId'] ?? ''),
       drawnCardIds: this.stringArray(lootOffer['drawnCardIds']),
       takeLimit: Number(lootOffer['takeLimit'] ?? 0),
-      createdAtIso: this.timestampToIso(lootOffer['createdAt']),
+      createdAtIso,
+      expiresAtIso,
     };
   }
 

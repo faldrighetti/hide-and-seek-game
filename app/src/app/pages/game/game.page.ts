@@ -218,11 +218,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
     const phaseDue = this.secondsUntil(vm.currentTurn.endsAtIso) <= 0;
     const questionDue = Boolean(vm.currentTurn.pendingQuestionEndsAtIso && this.secondsUntil(vm.currentTurn.pendingQuestionEndsAtIso) <= 0);
     const moveDue = Boolean(vm.currentTurn.moveState?.status === 'ACTIVE' && vm.currentTurn.moveState.endsAtIso && this.secondsUntil(vm.currentTurn.moveState.endsAtIso) <= 0);
-    if (!phaseDue && !questionDue && !moveDue) {
+    const lootDue = Boolean(vm.currentTurn.lootOffer?.expiresAtIso && this.secondsUntil(vm.currentTurn.lootOffer.expiresAtIso) <= 0);
+    if (!phaseDue && !questionDue && !moveDue && !lootDue) {
       return;
     }
 
-    const tickKey = `${vm.currentTurn.runNumber}:${vm.currentTurn.phase}:${vm.currentTurn.endsAtIso}:${vm.currentTurn.pendingQuestionId ?? ''}:${vm.currentTurn.pendingQuestionEndsAtIso ?? ''}:${vm.currentTurn.moveState?.endsAtIso ?? ''}`;
+    const tickKey = `${vm.currentTurn.runNumber}:${vm.currentTurn.phase}:${vm.currentTurn.endsAtIso}:${vm.currentTurn.pendingQuestionId ?? ''}:${vm.currentTurn.pendingQuestionEndsAtIso ?? ''}:${vm.currentTurn.moveState?.endsAtIso ?? ''}:${vm.currentTurn.lootOffer?.expiresAtIso ?? ''}`;
     if (this.lastTickKey === tickKey) {
       return;
     }
@@ -1464,6 +1465,11 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return 0;
     }
     return Math.max(0, Math.ceil((new Date(iso).getTime() - this.now) / 1000));
+  }
+
+  lootRemainingLabel(expiresAtIso: string | null): string {
+    const seconds = this.secondsUntil(expiresAtIso);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   }
 
   phaseRemainingSeconds(vm: GameBlueprint): number {

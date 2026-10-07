@@ -25,6 +25,7 @@ export const CHASE_MAX_SECONDS = 18000;
 export const ENDGAME_DWELL_SECONDS = 60;
 export const ENDGAME_QUESTIONS_CONSULT_COOLDOWN_SECONDS = 60;
 export const MOVE_DURATION_SECONDS = MOVE_DURATION_MINUTES * 60;
+export const LOOT_SELECTION_SECONDS = 3 * 60;
 export const FINISHED_GAME_RETENTION_SECONDS = 24 * 60 * 60;
 
 export type GameMode = "INDIVIDUAL_1v1" | "INDIVIDUAL_3" | "TEAMS_2v2" | "TEAMS_2v2v2";
@@ -67,6 +68,7 @@ export interface LootOffer {
   drawnCardIds: string[];
   takeLimit: number;
   createdAt: Timestamp;
+  expiresAt: Timestamp;
 }
 
 export interface LatLng {
@@ -168,6 +170,7 @@ export interface TurnState {
   lastEndgameQuestionsConsultAt?: Timestamp | null;
   endgameConsultation?: EndgameConsultation | null;
   expirations: number;
+  timeoutPenaltyAppliedSeconds?: number;
   lastQuestionResult?: {
     questionId: string;
     categoryId: string;
@@ -684,7 +687,10 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   const chaseEnd = txNow.toMillis();
   const chaseDurationSeconds = Math.max(0, Math.floor((chaseEnd - chaseStart) / 1000));
   const timeBonusSeconds = getTimeBonusSeconds(turn.hiderHand);
-  const timeoutPenaltySeconds = turn.expirations * 1800;
+  const timeoutPenaltySeconds = Math.max(
+    0,
+    turn.expirations * 1800 - (turn.timeoutPenaltyAppliedSeconds ?? 0),
+  );
   const finalTime = Math.max(0, chaseDurationSeconds + timeBonusSeconds - timeoutPenaltySeconds);
 
   const currentStanding = game.standings[turn.hiderTeamId] ?? {
@@ -757,6 +763,7 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
     endgameQuestionsUnlocked: false,
     lastEndgameQuestionsConsultAt: null,
     expirations: 0,
+    timeoutPenaltyAppliedSeconds: 0,
     foundVotes: [],
     captureAttempt: null,
     thermometerState: null,

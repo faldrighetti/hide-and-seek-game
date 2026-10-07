@@ -47,6 +47,7 @@ export interface TurnStatus {
   baseStationSelectionRequired: boolean;
   activeEffects: ActiveEffect[];
   expirations: number;
+  timeoutPenaltyAppliedSeconds: number;
   foundVotes: string[];
   foundConfirmed: boolean;
   captureAttempt: CaptureAttempt | null;
@@ -159,6 +160,7 @@ export interface LootOffer {
   drawnCardIds: string[];
   takeLimit: number;
   createdAtIso: string | null;
+  expiresAtIso: string | null;
 }
 
 export interface ActiveEffect {

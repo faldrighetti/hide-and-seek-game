@@ -14,7 +14,7 @@
         <button type="button" class="mobile-map-summary__main" (click)="toggleMobilePanel()" [attr.aria-expanded]="mobilePanelExpanded">
           <span>
             <small>{{ mapPhaseLabel }}</small>
-            <strong>{{ mapRemainingTime }}</strong>
+            <strong *ngIf="showMapRemainingTime">{{ mapRemainingTime }}</strong>
           </span>
           <span class="mobile-map-summary__status">{{ mapStatusLabel }}</span>
           <ion-icon [name]="mobilePanelExpanded ? 'chevron-down-outline' : 'chevron-up-outline'"></ion-icon>
