@@ -73,6 +73,14 @@ app-hider-hand {
   line-height: 1.2;
 }
 
+.turn-metric {
+  text-align: center;
+}
+
+.turn-metric__timer--urgent {
+  color: var(--ion-color-danger);
+}
+
 .turn-metrics__base-station {
   grid-column: 1 / -1;
 }

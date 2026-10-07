@@ -1488,6 +1488,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return vm.currentTurn.phase === 'CHASE' && this.phaseRemainingSeconds(vm) <= 60 * 60;
   }
 
+  isRemainingTimerUrgent(vm: GameBlueprint): boolean {
+    const remainingSeconds = this.phaseRemainingSeconds(vm);
+    return (vm.currentTurn.phase === 'ESCAPE' && remainingSeconds <= 10 * 60)
+      || (vm.currentTurn.phase === 'CHASE' && remainingSeconds <= 30 * 60);
+  }
+
   phaseElapsedSeconds(vm: GameBlueprint): number {
     if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
       return 0;

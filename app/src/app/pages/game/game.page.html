@@ -56,7 +56,7 @@
           <ion-card class="turn-summary" [class.hider]="role.isHider" [class.seeker]="role.isSeeker">
             <ion-card-header>
               <div class="turn-summary-header">
-                <div>
+                <div class="turn-metric">
                   <div class="turn-summary-title-row">
                     <ion-card-title>{{ turnActionState(vm, role, questionContext.pendingQuestion).title }}</ion-card-title>
                     <ion-chip class="game-status-chip" [color]="vm.operational.mode === 'NORMAL' ? 'success' : vm.operational.mode === 'PAUSED' ? 'warning' : 'danger'">
@@ -76,13 +76,15 @@
                   <span>Fase</span>
                   <strong>{{ phaseLabel(vm.currentTurn.phase) }}</strong>
                 </div>
-                <div *ngIf="vm.currentTurn.phase === 'CHASE'">
+                <div class="turn-metric" *ngIf="vm.currentTurn.phase === 'CHASE'">
                   <span>Tiempo fase</span>
                   <strong>{{ formatTime(phaseElapsedSeconds(vm)) }}</strong>
                 </div>
-                <div *ngIf="vm.currentTurn.phase !== 'CHASE' || showChaseRemainingTime(vm)">
+                <div class="turn-metric" *ngIf="vm.currentTurn.phase !== 'CHASE' || showChaseRemainingTime(vm)">
                   <span>Tiempo restante</span>
-                  <strong>{{ formatTime(phaseRemainingSeconds(vm)) }}</strong>
+                  <strong [class.turn-metric__timer--urgent]="isRemainingTimerUrgent(vm)">
+                    {{ formatTime(phaseRemainingSeconds(vm)) }}
+                  </strong>
                 </div>
                 <div *ngIf="role.isHider" class="turn-metrics__base-station">
                   <span>Estación base elegida</span>
