@@ -16,6 +16,9 @@ interface LobbyViewModel {
   lobby: LobbyState;
   role: PlayerRole;
   teams: TeamGroup[];
+  expectedSeats: number;
+  missingSeats: number;
+  allSeatsAssigned: boolean;
   hasCompleteTeams: boolean;
   canStart: boolean;
   startBlockedReason: string;
@@ -54,14 +57,26 @@ export class LobbyPage implements OnDestroy {
         return null;
       }
 
+      const expectedSeats = this.expectedSeats(blueprint);
+      const missingSeats = Math.max(0, expectedSeats - lobby.seats.length);
       const teams = this.buildTeamGroups(lobby, blueprint);
       const unassignedSeats = lobby.seats.filter(seat => !seat.teamId);
-      const emptyTeams = teams.filter(team => team.members.length === 0);
+      const allSeatsAssigned = unassignedSeats.length === 0 && lobby.seats.length > 0;
       const hasCompleteTeams = teams.every(team => team.isComplete);
-      const startBlockedReason = this.startBlockedReason(unassignedSeats.length, emptyTeams);
+      const startBlockedReason = this.startBlockedReason(missingSeats, unassignedSeats.length, hasCompleteTeams);
       const canStart = startBlockedReason.length === 0;
 
-      return { lobby, role, teams, hasCompleteTeams, canStart, startBlockedReason };
+      return {
+        lobby,
+        role,
+        teams,
+        expectedSeats,
+        missingSeats,
+        allSeatsAssigned,
+        hasCompleteTeams,
+        canStart,
+        startBlockedReason,
+      };
     }),
   );
 
@@ -82,6 +97,31 @@ export class LobbyPage implements OnDestroy {
     } catch (error) {
       this.errorMessage = 'No se pudo copiar al portapapeles.';
     }
+  }
+
+  async shareInvitation(lobby: LobbyState): Promise<void> {
+    this.errorMessage = '';
+    this.copiedMessage = '';
+    const text = `Sumate a mi partida de Hide & Seek. Código: ${lobby.gameId}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Hide & Seek', text, url: lobby.joinLink });
+        this.copiedMessage = 'Invitación compartida.';
+        return;
+      }
+      await navigator.clipboard.writeText(`${text}\n${lobby.joinLink}`);
+      this.copiedMessage = 'Invitación copiada.';
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      this.errorMessage = 'No se pudo compartir la invitación.';
+    }
+  }
+
+  shareOnWhatsApp(lobby: LobbyState): void {
+    const text = `Sumate a mi partida de Hide & Seek. Código: ${lobby.gameId}\n${lobby.joinLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   }
 
   ngOnDestroy(): void {
@@ -158,7 +198,7 @@ export class LobbyPage implements OnDestroy {
       .map(team => team.id)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    const requiredSeats = Math.max(1, Math.floor(lobby.seats.length / teamIds.length));
+    const requiredSeats = Math.max(1, Math.floor(this.expectedSeats(blueprint) / teamIds.length));
 
     return teamIds.map(teamId => {
       const members = lobby.seats
@@ -174,13 +214,24 @@ export class LobbyPage implements OnDestroy {
     });
   }
 
-  private startBlockedReason(unassignedSeats: number, emptyTeams: TeamGroup[]): string {
+  private expectedSeats(blueprint: GameBlueprint): number {
+    if (blueprint.mode === 'INDIVIDUAL_1v1') return 2;
+    if (blueprint.mode === 'INDIVIDUAL_3') return 3;
+    if (blueprint.mode === 'TEAMS_2v2') return 4;
+    return 6;
+  }
+
+  private startBlockedReason(missingSeats: number, unassignedSeats: number, hasCompleteTeams: boolean): string {
+    if (missingSeats > 0) {
+      return missingSeats === 1 ? 'Falta 1 jugador para completar la partida.' : `Faltan ${missingSeats} jugadores para completar la partida.`;
+    }
+
     if (unassignedSeats > 0) {
       return 'Todos los jugadores tienen que tener equipo.';
     }
 
-    if (emptyTeams.length > 0) {
-      return `Faltan jugadores en equipo ${emptyTeams.map(team => team.id).join(', ')}.`;
+    if (!hasCompleteTeams) {
+      return 'Los equipos tienen que quedar completos y equilibrados.';
     }
 
     return '';

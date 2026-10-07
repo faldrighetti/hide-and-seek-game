@@ -12,16 +12,22 @@
     <ion-card>
       <ion-card-header>
         <ion-card-title>Invitar jugadores</ion-card-title>
+        <ion-card-subtitle>
+          {{ vm.lobby.seats.length }}/{{ vm.expectedSeats }} jugadores
+          <ng-container *ngIf="vm.missingSeats"> · faltan {{ vm.missingSeats }}</ng-container>
+        </ion-card-subtitle>
       </ion-card-header>
       <ion-card-content>
-      <div class="share-row">
-        <p><strong>gameId:</strong> {{ vm.lobby.gameId }}</p>
-        <ion-button size="small" fill="outline" (click)="copyToClipboard(vm.lobby.gameId, 'gameId')">Copiar</ion-button>
-      </div>
-      <div class="share-row">
-        <p><strong>link:</strong> {{ vm.lobby.joinLink }}</p>
-        <ion-button size="small" fill="outline" (click)="copyToClipboard(vm.lobby.joinLink, 'link')">Copiar</ion-button>
-      </div>
+        <div class="invite-code">
+          <span>Código de partida</span>
+          <strong>{{ vm.lobby.gameId }}</strong>
+          <ion-button size="small" fill="clear" (click)="copyToClipboard(vm.lobby.gameId, 'gameId')">Copiar código</ion-button>
+        </div>
+        <div class="invite-actions">
+          <ion-button expand="block" (click)="shareInvitation(vm.lobby)">Compartir invitación</ion-button>
+          <ion-button expand="block" color="success" fill="outline" (click)="shareOnWhatsApp(vm.lobby)">Enviar por WhatsApp</ion-button>
+          <ion-button expand="block" fill="clear" size="small" (click)="copyToClipboard(vm.lobby.joinLink, 'link')">Copiar enlace</ion-button>
+        </div>
         <ion-note *ngIf="copiedMessage" color="success">{{ copiedMessage }}</ion-note>
         <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
       </ion-card-content>
@@ -38,6 +44,9 @@
             <p class="player-chip__seat">Jugador {{ index + 1 }}</p>
             <ion-badge *ngIf="seat.host" color="primary">Host</ion-badge>
             <ion-badge *ngIf="seat.uid === vm.role.uid" color="success">Vos</ion-badge>
+            <ion-badge [color]="seat.online ? 'success' : 'warning'">
+              {{ seat.online ? 'Conectado' : 'Desconectado temporalmente' }}
+            </ion-badge>
             <ion-item lines="none" class="player-chip__team-select">
               <ion-select
                 label="Equipo"
@@ -71,6 +80,21 @@
           </div>
 
           <div class="actions" *ngIf="vm.role.isHost">
+            <section class="start-checklist">
+              <h3>Antes de iniciar</h3>
+              <p [class.complete]="vm.missingSeats === 0">
+                <span>{{ vm.missingSeats === 0 ? '✓' : '○' }}</span>
+                Cupos completos ({{ vm.lobby.seats.length }}/{{ vm.expectedSeats }})
+              </p>
+              <p [class.complete]="vm.allSeatsAssigned">
+                <span>{{ vm.allSeatsAssigned ? '✓' : '○' }}</span>
+                Todos tienen equipo
+              </p>
+              <p [class.complete]="vm.hasCompleteTeams">
+                <span>{{ vm.hasCompleteTeams ? '✓' : '○' }}</span>
+                Equipos completos y equilibrados
+              </p>
+            </section>
             <ion-item *ngIf="vm.teams.length > 2" lines="none" class="uk-mode-toggle">
               <ion-toggle
                 [checked]="vm.lobby.settings.ukMode"

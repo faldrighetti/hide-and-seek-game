@@ -202,6 +202,8 @@ export interface Seat {
   displayName: string;
   teamId: string;
   host: boolean;
+  online: boolean;
+  connectionStatus: 'ONLINE' | 'TEMPORARILY_DISCONNECTED';
 }
 
 export interface PlayerRole {

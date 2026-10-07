@@ -554,6 +554,10 @@ export class GameFacadeService {
         displayName: String(seat['displayName'] ?? 'Jugador'),
         teamId: String(seat['teamId'] ?? ''),
         host: Boolean(seat['isHost']),
+        online: seat['online'] !== false,
+        connectionStatus: seat['connectionStatus'] === 'TEMPORARILY_DISCONNECTED'
+          ? 'TEMPORARILY_DISCONNECTED'
+          : 'ONLINE',
       })),
       teamsLocked: Boolean(game['teamsLocked']),
       settings: { ...DEFAULT_SETTINGS, ...(game['settings'] as Partial<GameBlueprint['settings'] | undefined>) },
