@@ -69,6 +69,18 @@ app-hider-hand {
   line-height: 1.2;
 }
 
+.turn-summary-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.game-status-chip {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 .loot-guide {
   margin-bottom: 1rem;
 }
@@ -112,15 +124,17 @@ app-hider-hand {
   margin-top: 0.75rem;
 }
 
+.operational-controls {
+  margin-top: 0.5rem;
+}
+
 .base-station-card p {
   margin-top: 0;
   line-height: 1.35;
 }
 
-.seeker-map-card p {
-  margin-top: 0;
-  color: var(--ion-color-medium-shade);
-  line-height: 1.35;
+.seeker-map-link ion-button {
+  margin: 0.25rem 0;
 }
 
 .base-station-map {
@@ -300,6 +314,17 @@ app-hider-hand {
 }
 
 @media (max-width: 720px) {
+  :host ion-content {
+    --padding-top: 0.5rem;
+    --padding-start: 0.5rem;
+    --padding-end: 0.5rem;
+  }
+
+  :host ion-grid {
+    max-width: none;
+    padding-inline: 0;
+  }
+
   .turn-summary-header {
     display: grid;
   }

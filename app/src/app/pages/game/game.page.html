@@ -57,7 +57,12 @@
             <ion-card-header>
               <div class="turn-summary-header">
                 <div>
-                  <ion-card-title>{{ turnActionState(vm, role, questionContext.pendingQuestion).title }}</ion-card-title>
+                  <div class="turn-summary-title-row">
+                    <ion-card-title>{{ turnActionState(vm, role, questionContext.pendingQuestion).title }}</ion-card-title>
+                    <ion-chip class="game-status-chip" [color]="vm.operational.mode === 'NORMAL' ? 'success' : vm.operational.mode === 'PAUSED' ? 'warning' : 'danger'">
+                      {{ vm.operational.mode === 'NORMAL' ? 'En juego' : vm.operational.mode === 'PAUSED' ? 'Pausada' : 'Emergencia' }}
+                    </ion-chip>
+                  </div>
                   <p>{{ turnActionState(vm, role, questionContext.pendingQuestion).detail }}</p>
                 </div>
                 <ion-chip [color]="turnActionState(vm, role, questionContext.pendingQuestion).color">
@@ -94,70 +99,11 @@
       </ion-col>
     </ion-row>
 
-    <ion-row id="operation-action">
+    <ion-row *ngIf="role.isSeeker" class="seeker-map-link">
       <ion-col size="12">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Operación</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-chip [color]="vm.operational.mode === 'NORMAL' ? 'success' : vm.operational.mode === 'PAUSED' ? 'warning' : 'danger'">
-              {{ vm.operational.mode === 'NORMAL' ? 'Normal' : vm.operational.mode === 'PAUSED' ? 'Pausada' : 'Emergencia' }}
-            </ion-chip>
-            <ion-note *ngIf="vm.operational.reason" color="medium">{{ vm.operational.reason }}</ion-note>
-
-            <div class="operational-actions">
-              <ion-button
-                *ngIf="role.isParticipant && vm.operational.mode === 'NORMAL'"
-                size="small"
-                fill="outline"
-                [disabled]="operationalActionInFlight"
-                (click)="pauseGame(role)"
-              >
-                Pausar
-              </ion-button>
-              <ion-button
-                *ngIf="role.isHost && vm.operational.mode !== 'NORMAL'"
-                size="small"
-                color="success"
-                [disabled]="operationalActionInFlight"
-                (click)="resumeGame(role)"
-              >
-                Reanudar
-              </ion-button>
-              <ion-button
-                *ngIf="role.isHost"
-                size="small"
-                color="danger"
-                [disabled]="operationalActionInFlight"
-                (click)="cancelGame(role)"
-              >
-                Finalizar partida
-              </ion-button>
-            </div>
-            <ion-note *ngIf="operationalMessage" color="medium">{{ operationalMessage }}</ion-note>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-
-
-    <ion-row *ngIf="role.isSeeker">
-      <ion-col size="12">
-        <ion-card class="seeker-map-card">
-          <ion-card-header>
-            <ion-card-title>Mapa seeker</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <p>
-              Abrí el motor de mapa para esta partida. Precarga la pregunta pendiente,
-              usa referencias manuales y guarda el historial local asociado al questionId.
-            </p>
-            <ion-button expand="block" fill="outline" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId, role: 'seeker' }">
-              Abrir mapa de partida
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
+        <ion-button expand="block" fill="outline" [routerLink]="['/map-generator']" [queryParams]="{ gameId: gameId, role: 'seeker' }">
+          Abrir mapa de partida
+        </ion-button>
       </ion-col>
     </ion-row>
 
@@ -786,6 +732,42 @@
             </ion-list>
           </ion-card-content>
         </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <ion-row id="operation-action" class="operational-controls">
+      <ion-col size="12">
+        <ion-note *ngIf="vm.operational.reason" color="medium">{{ vm.operational.reason }}</ion-note>
+        <div class="operational-actions">
+          <ion-button
+            *ngIf="role.isParticipant && vm.operational.mode === 'NORMAL'"
+            size="small"
+            fill="outline"
+            [disabled]="operationalActionInFlight"
+            (click)="pauseGame(role)"
+          >
+            Pausar
+          </ion-button>
+          <ion-button
+            *ngIf="role.isHost && vm.operational.mode !== 'NORMAL'"
+            size="small"
+            color="success"
+            [disabled]="operationalActionInFlight"
+            (click)="resumeGame(role)"
+          >
+            Reanudar
+          </ion-button>
+          <ion-button
+            *ngIf="role.isHost"
+            size="small"
+            color="danger"
+            [disabled]="operationalActionInFlight"
+            (click)="cancelGame(role)"
+          >
+            Finalizar partida
+          </ion-button>
+        </div>
+        <ion-note *ngIf="operationalMessage" color="medium">{{ operationalMessage }}</ion-note>
       </ion-col>
     </ion-row>
     </ng-container>
