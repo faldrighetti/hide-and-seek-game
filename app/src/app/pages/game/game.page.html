@@ -92,17 +92,6 @@
               <ion-button *ngIf="!role.isParticipant" expand="block" fill="outline" [routerLink]="['/join', gameId]">
                 Revisar invitación y recuperar lugar
               </ion-button>
-              <ng-container *ngIf="primaryTurnAction(vm, role, questionContext.pendingQuestion) as primaryAction">
-                <div class="primary-action-bar">
-                  <span>Tu acción ahora</span>
-                  <ion-button
-                    [color]="primaryAction.color"
-                    (click)="scrollToAction(primaryAction.targetId)"
-                  >
-                    {{ primaryAction.label }}
-                  </ion-button>
-                </div>
-              </ng-container>
             </ion-card-content>
           </ion-card>
         </ng-container>
