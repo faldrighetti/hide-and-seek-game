@@ -538,17 +538,6 @@
             <ion-note *ngIf="thermometerMessage && !vm.currentTurn.thermometerState" color="success">
               {{ thermometerMessage }}
             </ion-note>
-            <div class="endgame-question-actions">
-              <ion-button
-                size="small"
-                fill="outline"
-                [disabled]="consultingEndgameQuestions || vm.currentTurn.phase !== 'CHASE' || vm.currentTurn.endgameQuestionsUnlocked"
-                (click)="consultEndgameQuestions(role)"
-              >
-                {{ consultingEndgameQuestions ? 'Consultando...' : 'Consultar endgame' }}
-              </ion-button>
-              <ion-note *ngIf="endgameQuestionsMessage" color="medium">{{ endgameQuestionsMessage }}</ion-note>
-            </div>
             <ion-note *ngIf="questionErrorMessage" color="danger">{{ questionErrorMessage }}</ion-note>
             <ion-card *ngIf="vm.currentTurn.lastQuestionResult" class="question-result-card">
               <ion-card-header>
@@ -628,6 +617,19 @@
               Endgame {{ vm.currentTurn.endgameActive ? 'activo' : 'inactivo' }}
             </ion-chip>
             <p>{{ captureStatusLabel(vm) }}</p>
+
+            <div *ngIf="role.isSeeker" class="endgame-question-actions">
+              <ion-button
+                expand="block"
+                size="small"
+                fill="outline"
+                [disabled]="consultingEndgameQuestions || vm.currentTurn.phase !== 'CHASE' || vm.currentTurn.endgameQuestionsUnlocked"
+                (click)="consultEndgameQuestions(role)"
+              >
+                {{ consultingEndgameQuestions ? 'Consultando...' : 'Consultar endgame' }}
+              </ion-button>
+              <ion-note *ngIf="endgameQuestionsMessage" color="medium">{{ endgameQuestionsMessage }}</ion-note>
+            </div>
 
             <ng-container *ngIf="vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER'">
               <ion-note color="warning">
@@ -741,12 +743,13 @@
         <div class="operational-actions">
           <ion-button
             *ngIf="role.isParticipant && vm.operational.mode === 'NORMAL'"
+            class="pause-game-button"
             size="small"
             fill="outline"
             [disabled]="operationalActionInFlight"
             (click)="pauseGame(role)"
           >
-            Pausar
+            Pausar partida
           </ion-button>
           <ion-button
             *ngIf="role.isHost && vm.operational.mode !== 'NORMAL'"
