@@ -216,6 +216,17 @@ export interface PlayerRole {
 
 export type GameStatus = 'LOBBY' | 'LIVE' | 'FINISHED';
 
+export interface ActiveGameSummary {
+  gameId: string;
+  gameName: string;
+  status: Exclude<GameStatus, 'FINISHED'>;
+  mode: GameMode;
+  phase: Phase | null;
+  teamId: string | null;
+  role: 'HIDER' | 'SEEKER' | 'HOST' | 'PLAYER';
+  isHost: boolean;
+}
+
 export interface LobbyState {
   gameId: string;
   hostUid: string | null;

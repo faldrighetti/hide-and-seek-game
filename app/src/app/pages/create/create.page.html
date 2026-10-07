@@ -44,7 +44,7 @@
     </ng-template>
   </ion-list>
 
-  <ion-button expand="block" [disabled]="creating" (click)="create()">
+  <ion-button expand="block" [disabled]="creating || !!createdLobby" (click)="create()">
     {{ creating ? 'Creando...' : 'Crear' }}
   </ion-button>
   <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>

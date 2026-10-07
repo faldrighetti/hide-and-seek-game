@@ -35,6 +35,33 @@
       <ion-note *ngIf="authErrorMessage" color="danger">{{ authErrorMessage }}</ion-note>
 
       <div class="actions" *ngIf="user$ | async as user">
+        <ion-card *ngIf="activeGame as game" class="active-game-card">
+          <ion-card-header>
+            <div class="active-game-card__header">
+              <div>
+                <ion-card-subtitle>Mi partida</ion-card-subtitle>
+                <ion-card-title>{{ game.gameName }}</ion-card-title>
+              </div>
+              <ion-badge [color]="game.status === 'LIVE' ? 'success' : 'primary'">
+                {{ statusLabel(game) }}
+              </ion-badge>
+            </div>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="active-game-card__details">
+              <span>{{ modeLabel(game.mode) }}</span>
+              <span>{{ roleLabel(game) }}<ng-container *ngIf="game.teamId"> · Equipo {{ game.teamId }}</ng-container></span>
+              <span *ngIf="game.status === 'LIVE'">{{ phaseLabel(game.phase) }}</span>
+            </div>
+            <ion-button expand="block" [routerLink]="activeGameLink(game)">
+              {{ game.status === 'LOBBY' ? 'Volver al lobby' : 'Reanudar partida' }}
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-progress-bar *ngIf="activeGameLoading" type="indeterminate"></ion-progress-bar>
+        <ion-note *ngIf="activeGameErrorMessage" color="danger">{{ activeGameErrorMessage }}</ion-note>
+
         <ion-button expand="block" routerLink="/create">Crear partida</ion-button>
         <ion-button expand="block" fill="outline" routerLink="/join">Unirse a partida</ion-button>
         <ion-button expand="block" fill="outline" routerLink="/settings">Notificaciones</ion-button>

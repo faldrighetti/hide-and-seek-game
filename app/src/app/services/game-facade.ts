@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, combineLatest, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
+  ActiveGameSummary,
   DEFAULT_SETTINGS,
   GameEvent,
   GameNotification,
@@ -148,6 +149,11 @@ interface SendQuestionOptions {
   randomizePool?: string[];
   venueType?: string;
   venueSelection?: string;
+}
+
+interface GetMyActiveGameResponse {
+  ok: boolean;
+  activeGame: ActiveGameSummary | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -612,6 +618,11 @@ export class GameFacadeService {
         thermometerState: this.mapThermometerState(currentTurn?.['thermometerState']),
       },
     };
+  }
+
+  async getMyActiveGame(): Promise<ActiveGameSummary | null> {
+    const response = await this.firebaseClient.callFunction<object, GetMyActiveGameResponse>('getMyActiveGame', {});
+    return response.activeGame;
   }
 
   private mapCategoryCooldowns(value: unknown): Record<string, string | null> {

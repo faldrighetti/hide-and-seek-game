@@ -4,6 +4,25 @@
   margin-top: 1rem;
 }
 
+.active-game-card {
+  margin: 0 0 0.25rem;
+}
+
+.active-game-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.active-game-card__details {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+
 .auth-panel {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

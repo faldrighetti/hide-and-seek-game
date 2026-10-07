@@ -1981,6 +1981,8 @@ export {
   finishGame,
 } from "./query-callables";
 
+export {getMyActiveGame} from "./active-game-callable";
+
 const completeMoveIfDueInTx = (
   tx: Transaction,
   gameRef: DocumentReference,
