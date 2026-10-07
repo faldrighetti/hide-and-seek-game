@@ -1,0 +1,7 @@
+:host { ion-content { --background: #f4f5f8; } }
+.history-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; padding: 0.75rem 0; }
+.history-filters ion-select { min-height: 58px; padding: 0.4rem 0.75rem; border: 1px solid var(--ion-color-step-200, #d7d8da); border-radius: 10px; background: #fff; }
+.history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.history-heading h2 { margin: 0; font-size: 1rem; line-height: 1.35; }
+.history-heading ion-badge { flex: 0 0 auto; }
+@media (max-width: 560px) { .history-filters { grid-template-columns: 1fr; } }

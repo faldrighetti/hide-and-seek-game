@@ -151,6 +151,11 @@ interface SendQuestionOptions {
   venueSelection?: string;
 }
 
+interface ListOperationalHistoryResponse {
+  ok: boolean;
+  events: GameEvent[];
+}
+
 interface GetMyActiveGameResponse {
   ok: boolean;
   activeGame: ActiveGameSummary | null;
@@ -622,6 +627,14 @@ export class GameFacadeService {
         thermometerState: this.mapThermometerState(currentTurn?.['thermometerState']),
       },
     };
+  }
+
+  async listOperationalHistory(gameId: string, limit = 200): Promise<GameEvent[]> {
+    const response = await this.firebaseClient.callFunction<
+      { gameId: string; limit: number },
+      ListOperationalHistoryResponse
+    >('listOperationalHistory', { gameId, limit });
+    return response.events;
   }
 
   async getMyActiveGame(): Promise<ActiveGameSummary | null> {

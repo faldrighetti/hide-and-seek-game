@@ -1,0 +1,48 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button [defaultHref]="'/game/' + gameId"></ion-back-button></ion-buttons>
+    <ion-title>Historial</ion-title>
+    <ion-buttons slot="end"><ion-button [disabled]="loading" (click)="refresh()">Actualizar</ion-button></ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-note *ngIf="errorMessage" color="danger">{{ errorMessage }}</ion-note>
+  <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
+  <ion-segment [value]="view" (ionChange)="setView($event.detail.value)">
+    <ion-segment-button value="ACTIVITY"><ion-label>Actividad</ion-label></ion-segment-button>
+    <ion-segment-button value="QUESTIONS"><ion-label>Preguntas</ion-label></ion-segment-button>
+  </ion-segment>
+  <section class="history-filters">
+    <ion-select *ngIf="view === 'ACTIVITY'" label="Tipo" labelPlacement="stacked" interface="popover" [(ngModel)]="eventCategory">
+      <ion-select-option *ngFor="let category of eventCategories" [value]="category.value">{{ category.label }}</ion-select-option>
+    </ion-select>
+    <ion-select *ngIf="view === 'QUESTIONS'" label="Estado" labelPlacement="stacked" interface="popover" [(ngModel)]="questionStatus">
+      <ion-select-option value="ALL">Todas</ion-select-option><ion-select-option value="PENDING">Pendientes</ion-select-option>
+      <ion-select-option value="RESOLVED">Resueltas</ion-select-option><ion-select-option value="EXPIRED">Vencidas</ion-select-option>
+    </ion-select>
+    <ion-select label="Turno" labelPlacement="stacked" interface="popover" [(ngModel)]="selectedRun">
+      <ion-select-option value="ALL">Todos</ion-select-option>
+      <ion-select-option *ngFor="let run of availableRuns" [value]="run">Turno {{ run }}</ion-select-option>
+    </ion-select>
+  </section>
+  <ion-list *ngIf="view === 'ACTIVITY'" inset>
+    <ion-item *ngFor="let event of filteredEvents">
+      <ion-badge slot="start" [color]="eventColor(event.type)">&nbsp;</ion-badge>
+      <ion-label class="ion-text-wrap">
+        <div class="history-heading"><h2>{{ eventTitle(event) }}</h2><ion-badge [color]="eventColor(event.type)">{{ eventCategoryLabel(event.type) }}</ion-badge></div>
+        <p>{{ eventDetail(event) }}</p><ion-note color="medium">{{ eventMeta(event) }}</ion-note>
+      </ion-label>
+    </ion-item>
+    <ion-item *ngIf="!loading && filteredEvents.length === 0"><ion-label><h2>No hay actividad con estos filtros</h2><p>Probá otro tipo o turno.</p></ion-label></ion-item>
+  </ion-list>
+  <ion-list *ngIf="view === 'QUESTIONS'" inset>
+    <ion-item *ngFor="let question of filteredQuestions">
+      <ion-label class="ion-text-wrap">
+        <div class="history-heading"><h2>{{ question.prompt }}</h2><ion-badge [color]="statusColor(question)">{{ statusLabel(question) }}</ion-badge></div>
+        <p>{{ questionMeta(question) }}</p><p><strong>Respuesta:</strong> {{ answerLabel(question) }}</p>
+        <p *ngIf="question.resolvedAtIso">Respondida: {{ formatDate(question.resolvedAtIso) }}</p>
+      </ion-label>
+    </ion-item>
+    <ion-item *ngIf="!loading && filteredQuestions.length === 0"><ion-label><h2>No hay preguntas con estos filtros</h2><p>Probá otro estado o turno.</p></ion-label></ion-item>
+  </ion-list>
+</ion-content>

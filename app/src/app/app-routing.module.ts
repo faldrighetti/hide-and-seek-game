@@ -34,7 +34,7 @@ const routes: Routes = [
   },
   {
     path: 'game/:gameId/history',
-    loadChildren: () => import('../app/pages/history/history.module').then(m => m.HistoryPageModule),
+    loadChildren: () => import('../app/pages/operational-history/operational-history.module').then(m => m.OperationalHistoryPageModule),
   },
   {
     path: 'game/:gameId',
