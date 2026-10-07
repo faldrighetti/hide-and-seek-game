@@ -1485,19 +1485,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return Math.max(0, Math.floor((this.now - new Date(vm.currentTurn.startedAtIso).getTime()) / 1000));
   }
 
-  roleLabel(role: PlayerRole): string {
-    if (role.isHider) {
-      return 'Escondido';
-    }
-    if (role.isSeeker) {
-      return 'Buscador';
-    }
-    if (role.isHost) {
-      return 'Anfitrión';
-    }
-    return 'Sin lugar asignado';
-  }
-
   baseStationSummary(vm: GameBlueprint): string {
     const stationId = vm.currentTurn.hidingZone?.stationId;
     if (!stationId) {

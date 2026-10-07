@@ -253,21 +253,6 @@ export class MapGeneratorPage implements AfterViewInit, OnDestroy {
     setTimeout(() => this.map?.invalidateSize({ animate: false }), 250);
   }
 
-  centerMap(): void {
-    if (!this.map) return;
-    const lat = this.seekerLocationState?.lastLat;
-    const lng = this.seekerLocationState?.lastLng;
-    if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
-      this.map.setView([lat, lng], Math.max(this.map.getZoom(), 15), { animate: true });
-      return;
-    }
-    if (this.selectedStation) {
-      this.map.setView([this.selectedStation.lat, this.selectedStation.lng], Math.max(this.map.getZoom(), 15), { animate: true });
-      return;
-    }
-    this.fitMapToPlayableStations();
-  }
-
   private startGameSummary(): void {
     this.blueprintSubscription?.unsubscribe();
     this.blueprintSubscription = this.gameFacade.blueprint$.subscribe(blueprint => {

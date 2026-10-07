@@ -16,8 +16,7 @@
   overflow: hidden;
 }
 
-.mobile-map-summary,
-.center-map-button {
+.mobile-map-summary {
   display: none;
 }
 
@@ -227,15 +226,6 @@ ion-item.selected {
   #map-generator-leaflet {
     height: 100%;
     min-height: 0;
-  }
-
-  .center-map-button {
-    display: block;
-    margin: 0;
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    z-index: 500;
   }
 
   .coordinate-grid {

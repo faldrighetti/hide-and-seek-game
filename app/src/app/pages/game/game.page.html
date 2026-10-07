@@ -61,7 +61,7 @@
                   <p>{{ turnActionState(vm, role, questionContext.pendingQuestion).detail }}</p>
                 </div>
                 <ion-chip [color]="turnActionState(vm, role, questionContext.pendingQuestion).color">
-                  {{ role.isHider ? 'Hider' : role.isSeeker ? 'Seeker' : role.isHost ? 'Host' : 'Sin seat' }}
+                  {{ role.isHider ? 'Escondido' : role.isSeeker ? 'Buscador' : role.isHost ? 'Anfitrión' : 'Sin lugar asignado' }}
                 </ion-chip>
               </div>
             </ion-card-header>
@@ -78,10 +78,6 @@
                 <div>
                   <span>Tiempo restante</span>
                   <strong>{{ formatTime(phaseRemainingSeconds(vm)) }}</strong>
-                </div>
-                <div>
-                  <span>Rol</span>
-                  <strong>{{ roleLabel(role) }}</strong>
                 </div>
                 <div>
                   <span>Estación base elegida</span>
