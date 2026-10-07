@@ -406,7 +406,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const ok = window.confirm(`¿Confirmar ${this.selectedBaseStation.name} como estación base?`);
+    const ok = await this.confirmAction(
+      'Confirmar estación base',
+      `${this.selectedBaseStation.name} será la estación base de este turno. Después no podrá cambiarse salvo que se juegue SALÍ DE AHÍ.`,
+      'Confirmar estación',
+      'success',
+    );
     if (!ok) {
       return;
     }
@@ -926,11 +931,21 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.operationalMessage = 'Solo el host puede finalizar la partida.';
       return;
     }
-    const reason = window.prompt('Motivo de finalización')?.trim() || null;
-    const confirmed = window.confirm('¿Finalizar y cerrar la partida? Esta acción no continúa el turno.');
-    if (!confirmed) {
+    const alert = await this.alertController.create({
+      header: 'Finalizar partida',
+      message: 'La partida se cerrará para todos los jugadores y no podrá continuarse.',
+      inputs: [{ name: 'reason', type: 'text', placeholder: 'Motivo (opcional)' }],
+      buttons: [
+        { text: 'Volver', role: 'cancel' },
+        { text: 'Finalizar partida', role: 'destructive' },
+      ],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    if (result.role !== 'destructive') {
       return;
     }
+    const reason = String(result.data?.values?.reason ?? '').trim() || null;
     await this.runOperationalAction(() => this.gameFacade.cancelGame(this.gameId, reason), 'Partida finalizada.');
   }
 
@@ -945,6 +960,25 @@ export class GamePage implements AfterViewInit, OnDestroy {
     } finally {
       this.operationalActionInFlight = false;
     }
+  }
+
+  private async confirmAction(
+    header: string,
+    message: string,
+    confirmText: string,
+    color: 'success' | 'warning' | 'danger',
+  ): Promise<boolean> {
+    const alert = await this.alertController.create({
+      header,
+      message,
+      buttons: [
+        { text: 'Volver', role: 'cancel' },
+        { text: confirmText, role: 'confirm', cssClass: `alert-button-${color}` },
+      ],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm';
   }
 
   curseCards(cardIds: string[]): HiderCardData[] {
@@ -1265,6 +1299,14 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
+    const confirmed = await this.confirmAction(
+      'Iniciar intento de captura',
+      'Indicá que encontraron al hider. El escondido deberá confirmar o rechazar el intento.',
+      'Iniciar captura',
+      'danger',
+    );
+    if (!confirmed) return;
+
     this.foundActionInFlight = true;
     this.foundErrorMessage = '';
     try {
@@ -1282,6 +1324,16 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
+    const accepted = await this.confirmAction(
+      confirmed ? 'Confirmar captura' : 'Rechazar captura',
+      confirmed
+        ? 'Confirmás que los buscadores te encontraron. Esto cerrará el turno.'
+        : 'El intento quedará rechazado y los buscadores podrán ratificarlo si corresponde.',
+      confirmed ? 'Sí, confirmar captura' : 'Sí, rechazar captura',
+      confirmed ? 'danger' : 'warning',
+    );
+    if (!accepted) return;
+
     this.foundActionInFlight = true;
     this.foundErrorMessage = '';
     try {
@@ -1298,6 +1350,14 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.foundErrorMessage = 'Solo los buscadores pueden confirmar captura.';
       return;
     }
+
+    const confirmed = await this.confirmAction(
+      'Ratificar captura',
+      'Confirmás que el hider fue encontrado. Si se reúnen las ratificaciones necesarias, el turno se cerrará.',
+      'Ratificar captura',
+      'warning',
+    );
+    if (!confirmed) return;
 
     this.foundActionInFlight = true;
     this.foundErrorMessage = '';
