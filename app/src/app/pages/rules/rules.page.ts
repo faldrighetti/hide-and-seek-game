@@ -68,17 +68,17 @@ export class RulesPage {
     {
       title: 'Endgame y captura',
       items: [
-        'El endgame se activa cuando los buscadores consultan y el escondido lo confirma. Para consultarlo, tienen que creer estar dentro de la zona de escondite y no estar subidos a ningún transporte.',
-        'Una vez iniciado el endgame, el escondido debe quedarse fijo en un punto público, en planta baja y razonablemente visible. No tiene permitido cambiar de ubicación.',
-        'Encontrar al escondido requiere reconocimiento inequívoco en persona y confirmacion manual entre jugadores.',
-        'Para confirmar la captura al sistema, los buscadores deben realizar una confirmación manual y los escondidos deben confirmar la captura.',
+        'El endgame se activa cuando los buscadores consultan y el equipo escondido lo confirma. Para consultarlo, tienen que creer estar dentro de la zona de escondite y no estar subidos a ningún transporte.',
+        'Una vez iniciado el endgame, el equipo escondido debe quedarse fijo en un punto público, en planta baja y razonablemente visible. No tiene permitido cambiar de ubicación.',
+        'Encontrar al equipo escondido requiere reconocimiento inequívoco en persona y confirmación manual entre jugadores.',
+        'Para confirmar la captura al sistema, los buscadores deben realizar una confirmación manual y el equipo escondido debe confirmar la captura.',
         'Una vez que se confirma la captura, el turno termina e inicia la fase de intervalo. Los roles se invierten y al finalizar la fase de intervalo, empieza la fase de escape.'
       ],
     },
     {
       title: 'Cartas y maldiciones',
       items: [
-        'Solo el escondido tiene mazo. Puede recibir cartas al responder preguntas y la mano tiene límite máximo de 6 cartas.',
+        'Solo el equipo escondido tiene mazo. Puede recibir cartas al responder preguntas y la mano tiene límite máximo de 6 cartas.',
         'Las maldiciones se activan cuando el servidor las valida y aplican al equipo buscador. El escondido puede aplicarlas cuando quiera y no tenga preguntas pendientes por responder.',
       ],
     },

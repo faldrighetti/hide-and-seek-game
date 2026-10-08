@@ -610,7 +610,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     try {
       const destination = await this.getCurrentPositionOnce();
       const result = await this.gameFacade.completeThermometer(this.gameId, destination);
-      this.thermometerMessage = `Recorrido validado: ${result.actualDistanceM} m. Se envió la pregunta al escondido.`;
+      this.thermometerMessage = `Recorrido validado: ${result.actualDistanceM} m. Se envió la pregunta al equipo escondido.`;
     } catch (error) {
       this.thermometerMessage = this.friendlyFunctionError(error, 'No se pudo completar el termómetro.');
     } finally {
@@ -719,7 +719,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return `Descarta ${excess} carta${excess === 1 ? '' : 's'} mas de tu mano para respetar el maximo de ${vm.deckPolicy.maxSize}.`;
     }
 
-    return 'Listo para guardar esta seleccion.';
+    return 'Listo para guardar esta selección.';
   }
 
 

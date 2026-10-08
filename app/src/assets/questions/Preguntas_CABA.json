@@ -83,42 +83,42 @@
         },
         {
           "label": "Comuna",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos la localidad/comuna de ___?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos la localidad/comuna de ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Barrio",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Estadio de fútbol",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "General Paz",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Riachuelo",
-          "prompt": "Comparado conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
+          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
           "resolutionMode": "AUTOMATIC"
         },
         {
