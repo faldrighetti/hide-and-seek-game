@@ -1203,21 +1203,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
     return question.asunto ?? '';
   }
 
-  questionResultTitle(vm: GameBlueprint): string {
-    const result = vm.currentTurn.lastQuestionResult;
-    if (!result) {
-      return '';
-    }
-
-    const labels: Record<string, string> = {
-      ANSWER: 'Respuesta recibida',
-      VETO: 'Pregunta vetada',
-      RANDOMIZE: 'Pregunta randomizada',
-      TIMEOUT: 'Pregunta vencida',
-    };
-    return labels[result.resolution] ?? 'Pregunta resuelta';
-  }
-
   questionResultBody(vm: GameBlueprint): string {
     const result = vm.currentTurn.lastQuestionResult;
     if (!result) {

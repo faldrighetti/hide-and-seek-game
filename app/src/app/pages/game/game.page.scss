@@ -81,6 +81,12 @@ app-hider-hand {
   color: var(--ion-color-danger);
 }
 
+.question-menu-title {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .turn-metrics__base-station {
   grid-column: 1 / -1;
 }

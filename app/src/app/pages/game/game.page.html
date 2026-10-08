@@ -56,7 +56,7 @@
           <ion-card class="turn-summary" [class.hider]="role.isHider" [class.seeker]="role.isSeeker">
             <ion-card-header>
               <div class="turn-summary-header">
-                <div class="turn-metric">
+                <div>
                   <div class="turn-summary-title-row">
                     <ion-card-title>{{ turnActionState(vm, role, questionContext.pendingQuestion).title }}</ion-card-title>
                     <ion-chip class="game-status-chip" [color]="vm.operational.mode === 'NORMAL' ? 'success' : vm.operational.mode === 'PAUSED' ? 'warning' : 'danger'">
@@ -72,7 +72,7 @@
             </ion-card-header>
             <ion-card-content>
               <div class="turn-metrics" [class.turn-metrics--three-columns]="showChaseRemainingTime(vm)">
-                <div>
+                <div class="turn-metric">
                   <span>Fase</span>
                   <strong>{{ phaseLabel(vm.currentTurn.phase) }}</strong>
                 </div>
@@ -432,11 +432,10 @@
     <ion-row id="question-action">
       <ion-col size="12" size-md="6" *ngIf="role.isSeeker || vm.currentTurn.pendingQuestion">
         <ion-card>
-          <ion-card-header>
+          <ion-card-header *ngIf="vm.currentTurn.pendingQuestion">
             <ion-card-title>Pregunta pendiente</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <p>{{ vm.currentTurn.pendingQuestion ? 'Hay 1 pregunta pendiente' : 'No hay pregunta pendiente' }}</p>
             <ng-container *ngIf="pendingQuestion$ | async as pendingQuestion">
               <div class="pending-question-detail">
                 <ion-chip color="warning">{{ pendingQuestion.isPhoto ? 'Foto' : pendingQuestion.categoryId }}</ion-chip>
@@ -546,10 +545,11 @@
             <ion-note *ngIf="questionErrorMessage" color="danger">{{ questionErrorMessage }}</ion-note>
             <ion-card *ngIf="vm.currentTurn.lastQuestionResult" class="question-result-card">
               <ion-card-header>
-                <ion-card-title>{{ questionResultTitle(vm) }}</ion-card-title>
+                <ion-card-title>Última pregunta</ion-card-title>
               </ion-card-header>
               <ion-card-content>
-                <p>{{ questionResultBody(vm) }}</p>
+                <p><strong>Pregunta:</strong> {{ vm.currentTurn.lastQuestionResult.prompt }}</p>
+                <p><strong>Respuesta:</strong> {{ questionResultBody(vm) }}</p>
                 <ng-container *ngIf="vm.currentTurn.lastQuestionResult.resolution === 'RANDOMIZE'">
                   <ng-container *ngIf="pendingQuestion$ | async as randomizedQuestion">
                     <ion-note color="primary">Q2</ion-note>
@@ -558,6 +558,7 @@
                 </ng-container>
               </ion-card-content>
             </ion-card>
+            <h2 class="question-menu-title">Menú de preguntas</h2>
             <ion-accordion-group class="question-menu">
               <ion-accordion
                 *ngFor="let category of visibleQuestionCategories(vm); trackBy: trackByQuestionCategory"
