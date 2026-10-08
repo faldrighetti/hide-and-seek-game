@@ -128,11 +128,22 @@ export class HomePage implements OnDestroy {
       this.activeGame = await this.gameFacade.getMyActiveGame();
     } catch (error) {
       this.activeGame = null;
-      this.activeGameErrorMessage = error instanceof Error
-        ? error.message
-        : 'No se pudo consultar tu partida activa.';
+      this.activeGameErrorMessage = this.activeGameLoadError(error);
     } finally {
       this.activeGameLoading = false;
     }
+  }
+
+  private activeGameLoadError(error: unknown): string {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code ?? '')
+      : '';
+    const message = error instanceof Error ? error.message.trim() : '';
+
+    if (code === 'functions/internal' || message.toUpperCase() === 'INTERNAL') {
+      return 'No se pudo consultar tu partida activa. Volvé a intentar en unos segundos.';
+    }
+
+    return message || 'No se pudo consultar tu partida activa.';
   }
 }
