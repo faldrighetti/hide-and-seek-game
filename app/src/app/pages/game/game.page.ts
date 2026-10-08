@@ -1479,6 +1479,22 @@ export class GamePage implements AfterViewInit, OnDestroy {
       || (vm.currentTurn.phase === 'CHASE' && remainingSeconds <= 30 * 60);
   }
 
+  timeBonusSeconds(vm: GameBlueprint): number {
+    return this.cardsForIds(vm.currentTurn.hiderHandIds)
+      .reduce((total, card) => total + (card.timeBonusMinutes ?? 0) * 60, 0);
+  }
+
+  timeoutPenaltySeconds(vm: GameBlueprint): number {
+    return vm.currentTurn.expirations * vm.questionPolicy.timeoutPenaltySeconds;
+  }
+
+  calculatedTurnTimeSeconds(vm: GameBlueprint): number {
+    return Math.max(
+      0,
+      this.phaseElapsedSeconds(vm) + this.timeBonusSeconds(vm) - this.timeoutPenaltySeconds(vm),
+    );
+  }
+
   phaseElapsedSeconds(vm: GameBlueprint): number {
     if (vm.status !== 'LIVE' || vm.currentTurn.phase === 'ENDED') {
       return 0;

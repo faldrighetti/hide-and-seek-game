@@ -687,10 +687,7 @@ export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {
   const chaseEnd = txNow.toMillis();
   const chaseDurationSeconds = Math.max(0, Math.floor((chaseEnd - chaseStart) / 1000));
   const timeBonusSeconds = getTimeBonusSeconds(turn.hiderHand);
-  const timeoutPenaltySeconds = Math.max(
-    0,
-    turn.expirations * 1800 - (turn.timeoutPenaltyAppliedSeconds ?? 0),
-  );
+  const timeoutPenaltySeconds = turn.expirations * 1800;
   const finalTime = Math.max(0, chaseDurationSeconds + timeBonusSeconds - timeoutPenaltySeconds);
 
   const currentStanding = game.standings[turn.hiderTeamId] ?? {

@@ -91,6 +91,20 @@
                   <strong>{{ baseStationSummary(vm) }}</strong>
                 </div>
               </div>
+              <div class="turn-metrics time-calculation" *ngIf="vm.currentTurn.phase === 'CHASE'">
+                <div class="turn-metric">
+                  <span>Bonus de cartas</span>
+                  <strong>+{{ formatTime(timeBonusSeconds(vm)) }}</strong>
+                </div>
+                <div class="turn-metric time-calculation__penalty">
+                  <span>Reducido por sanciones</span>
+                  <strong>−{{ formatTime(timeoutPenaltySeconds(vm)) }}</strong>
+                </div>
+                <div class="turn-metric time-calculation__total">
+                  <span>Tiempo total calculado</span>
+                  <strong>{{ formatTime(calculatedTurnTimeSeconds(vm)) }}</strong>
+                </div>
+              </div>
               <ion-progress-bar [value]="phaseProgress(vm)"></ion-progress-bar>
               <ion-button *ngIf="!role.isParticipant" expand="block" fill="outline" [routerLink]="['/join', gameId]">
                 Revisar invitación y recuperar lugar

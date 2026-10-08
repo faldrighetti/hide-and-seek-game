@@ -81,6 +81,22 @@ app-hider-hand {
   color: var(--ion-color-danger);
 }
 
+.time-calculation {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.time-calculation__penalty strong {
+  color: var(--ion-color-danger);
+}
+
+.time-calculation__total {
+  border-color: rgba(var(--ion-color-primary-rgb), 0.35);
+}
+
+.time-calculation__total strong {
+  color: var(--ion-color-primary);
+}
+
 .question-menu-title {
   margin: 1.25rem 0 0.5rem;
   font-size: 1.1rem;
