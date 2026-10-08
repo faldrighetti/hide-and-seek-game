@@ -1052,14 +1052,16 @@ export const resolveQuestion = onCall(async (request) => {
         expiresAt: replacementExpiry,
       });
     }
-    const deckDraw = drawFromDeck(turn, resolution === "ANSWER" ? drawRule.draw : 0);
+    const rewardsLoot = resolution === "ANSWER" || resolution === "VETO";
+    const resolvedAnswerText = resolution === "VETO" ? "Veto" : answerText;
+    const deckDraw = drawFromDeck(turn, rewardsLoot ? drawRule.draw : 0);
 
     tx.update(qRef, {
       status: "RESOLVED",
       resolution,
       resolvedByUid: uid,
       resolvedAt: now,
-      answerText: resolution === "ANSWER" ? answerText : null,
+      answerText: rewardsLoot ? resolvedAnswerText : null,
     });
 
     const categoryCooldowns = {...(turn.categoryCooldowns ?? {})};
@@ -1084,10 +1086,10 @@ export const resolveQuestion = onCall(async (request) => {
           categoryId,
           prompt,
           resolution: resolution as "ANSWER" | "VETO" | "RANDOMIZE",
-          answerText: resolution === "ANSWER" ? answerText : null,
+          answerText: rewardsLoot ? resolvedAnswerText : null,
           resolvedAt: now,
         },
-        lootOffer: resolution === "ANSWER" ? {
+        lootOffer: rewardsLoot ? {
           questionId: qRef.id,
           categoryId,
           drawnCardIds: deckDraw.drawnCardIds,

@@ -1213,7 +1213,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return result.answerText || 'El escondido registró la respuesta.';
     }
     if (result.resolution === 'VETO') {
-      return 'El escondido usó Veto. La pregunta queda resuelta sin respuesta.';
+      return result.answerText || 'Veto';
     }
     if (result.resolution === 'TIMEOUT') {
       return 'El escondido no respondió a tiempo. La pregunta queda resuelta y los buscadores reciben 30 minutos de bonus.';
