@@ -1417,7 +1417,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       .map(seat => seat.displayName.trim())
       .filter(Boolean) ?? [];
 
-    return members.length > 0 ? `${teamName} - ${this.joinNames(members)}` : teamName;
+    return members.length > 0 ? this.joinNames(members) : teamName;
   }
 
   winnerTitle(vm: GameBlueprint, lobby: LobbyState | null): string {

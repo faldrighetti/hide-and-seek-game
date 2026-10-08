@@ -723,6 +723,7 @@
 
     <ion-row>
       <ion-col size="12">
+        <ng-container *ngIf="{ lobby: lobby$ | async } as lobbyContext">
         <ion-card>
           <ion-card-header>
             <ion-card-title>Posiciones</ion-card-title>
@@ -731,7 +732,7 @@
             <ion-list>
               <ion-item *ngFor="let team of vm.standings">
                 <ion-label>
-                  <h2>{{ team.name }}</h2>
+                  <h2>{{ teamDisplayName(team, lobbyContext.lobby) }}</h2>
                   <p>Tiempo total: {{ formatTime(team.totalTimeSeconds) }}</p>
                   <p>Mejor turno: {{ formatTime(team.bestSingleRunSeconds) }}</p>
                 </ion-label>
@@ -739,6 +740,7 @@
             </ion-list>
           </ion-card-content>
         </ion-card>
+        </ng-container>
       </ion-col>
     </ion-row>
 
