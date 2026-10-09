@@ -157,3 +157,30 @@
   --padding-start: 0;
   --inner-padding-end: 0;
 }
+
+.admin-phase-settings {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ion-color-primary);
+  border-radius: 12px;
+
+  h3 { margin: 0; font-size: 1rem; }
+}
+
+.phase-duration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+
+  ion-input {
+    --padding-start: 0.5rem;
+    --padding-end: 0.5rem;
+    border: 1px solid var(--ion-color-step-200);
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .phase-duration-grid { grid-template-columns: 1fr; }
+}

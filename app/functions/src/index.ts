@@ -63,6 +63,27 @@ import {
   validateLobbyTeams,
 } from "./game-core";
 
+const ADMIN_HOST_EMAIL = "fede.aldrighetti.15@gmail.com";
+const MIN_ADMIN_PHASE_MINUTES = 1;
+const MAX_ADMIN_PHASE_MINUTES = 24 * 60;
+
+const requireAdminHostEmail = (email: unknown): void => {
+  if (String(email ?? "").trim().toLowerCase() !== ADMIN_HOST_EMAIL) {
+    throw new HttpsError("permission-denied", "Esta configuración está disponible únicamente para el administrador.");
+  }
+};
+
+const parseAdminPhaseMinutes = (value: unknown, label: string): number => {
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes) || minutes < MIN_ADMIN_PHASE_MINUTES || minutes > MAX_ADMIN_PHASE_MINUTES) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${label} debe ser un número entero entre ${MIN_ADMIN_PHASE_MINUTES} y ${MAX_ADMIN_PHASE_MINUTES} minutos.`,
+    );
+  }
+  return minutes;
+};
+
 export const createGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);
@@ -321,6 +342,46 @@ export const setUkMode = onCall(async (request) => {
 
   return {ok: true, ukMode};
 });
+
+export const setPhaseDurations = onCall(async (request) => {
+  const uid = requireAuthUid(request.auth?.uid);
+  requireAdminHostEmail(request.auth?.token?.email);
+  await assertGlobalPlayEnabled(db);
+  await assertUserRateLimit(db, uid, "set_phase_durations", 2);
+
+  const gameId = String(request.data?.gameId ?? "").trim().toUpperCase();
+  if (!gameId) throw new HttpsError("invalid-argument", "gameId es obligatorio.");
+
+  const intermissionMinutes = parseAdminPhaseMinutes(request.data?.intermissionMinutes, "Intervalo");
+  const escapeMinutes = parseAdminPhaseMinutes(request.data?.escapeMinutes, "Escape");
+  const chaseMinutes = parseAdminPhaseMinutes(request.data?.chaseMinutes, "Búsqueda");
+  await requireHost(db, gameId, uid);
+
+  const gameRef = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
+    const game = gameSnap.data() as GameDoc;
+    if (game.status !== "LOBBY") {
+      throw new HttpsError("failed-precondition", "Las duraciones sólo se pueden cambiar en el lobby.");
+    }
+
+    tx.update(gameRef, {
+      "settings.intermissionSeconds": intermissionMinutes * 60,
+      "settings.escapeSeconds": escapeMinutes * 60,
+      "settings.chaseMaxSeconds": chaseMinutes * 60,
+      updatedAt: nowTs(),
+    });
+  });
+
+  return {
+    ok: true,
+    intermissionMinutes,
+    escapeMinutes,
+    chaseMinutes,
+  };
+});
+
 export const startGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertGlobalPlayEnabled(db);

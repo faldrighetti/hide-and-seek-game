@@ -112,6 +112,52 @@
                 ukMode
               </ion-toggle>
             </ion-item>
+            <section *ngIf="isAdminUser" class="admin-phase-settings">
+              <h3>Duración de fases</h3>
+              <ion-note color="medium">Configuración administrativa para esta partida.</ion-note>
+              <div class="phase-duration-grid">
+                <ion-input
+                  type="number"
+                  label="Intervalo (min)"
+                  labelPlacement="stacked"
+                  min="1"
+                  max="1440"
+                  step="1"
+                  [(ngModel)]="intermissionMinutes"
+                  (ngModelChange)="phaseDurationsSavedMessage = ''"
+                ></ion-input>
+                <ion-input
+                  type="number"
+                  label="Escape (min)"
+                  labelPlacement="stacked"
+                  min="1"
+                  max="1440"
+                  step="1"
+                  [(ngModel)]="escapeMinutes"
+                  (ngModelChange)="phaseDurationsSavedMessage = ''"
+                ></ion-input>
+                <ion-input
+                  type="number"
+                  label="Búsqueda (min)"
+                  labelPlacement="stacked"
+                  min="1"
+                  max="1440"
+                  step="1"
+                  [(ngModel)]="chaseMinutes"
+                  (ngModelChange)="phaseDurationsSavedMessage = ''"
+                ></ion-input>
+              </div>
+              <ion-button
+                expand="block"
+                fill="outline"
+                [disabled]="updatingPhaseDurations || !phaseDurationsValid()"
+                (click)="savePhaseDurations(vm.role.isHost)"
+              >
+                {{ updatingPhaseDurations ? 'Guardando...' : 'Guardar duraciones' }}
+              </ion-button>
+              <ion-note *ngIf="!phaseDurationsValid()" color="danger">Usá minutos enteros entre 1 y 1440.</ion-note>
+              <ion-note *ngIf="phaseDurationsSavedMessage" color="success">{{ phaseDurationsSavedMessage }}</ion-note>
+            </section>
             <ion-button expand="block" fill="outline" [disabled]="vm.lobby.teamsLocked || randomizing" (click)="randomizeTeams(vm.role.isHost)">
               {{ randomizing ? 'Asignando...' : 'Asignar al azar' }}
             </ion-button>

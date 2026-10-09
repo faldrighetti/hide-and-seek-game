@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, combineLatest, Observable } from 'rxjs';
 import { filter, map, takeUntil } from 'rxjs/operators';
 import { GameFacadeService } from '../../services/game-facade';
+import { FirebaseGameClientService } from '../../services/firebase-game-client.service';
 import { GameBlueprint, LobbyState, PlayerRole, Seat } from '../../models/core-model';
 
 interface TeamGroup {
@@ -31,9 +32,11 @@ interface LobbyViewModel {
   standalone: false,
 })
 export class LobbyPage implements OnDestroy {
+  private static readonly ADMIN_HOST_EMAIL = 'fede.aldrighetti.15@gmail.com';
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly gameFacade = inject(GameFacadeService);
+  private readonly firebaseClient = inject(FirebaseGameClientService);
   private readonly destroy$ = new Subject<void>();
 
   readonly gameId = this.route.snapshot.paramMap.get('gameId') ?? '';
@@ -42,7 +45,14 @@ export class LobbyPage implements OnDestroy {
   assigningSeatId: string | null = null;
   randomizing = false;
   updatingUkMode = false;
+  updatingPhaseDurations = false;
+  isAdminUser = false;
+  intermissionMinutes = 2;
+  escapeMinutes = 2;
+  chaseMinutes = 300;
+  phaseDurationsSavedMessage = '';
   errorMessage = '';
+  private phaseDurationsInitialized = false;
   readonly lobby$: Observable<LobbyState | null> = this.gameFacade.lobby$.pipe(
     map(lobby => (lobby?.gameId === this.gameId ? lobby : null)),
   );
@@ -82,6 +92,19 @@ export class LobbyPage implements OnDestroy {
 
   constructor() {
     this.gameFacade.loadGame(this.gameId);
+    this.firebaseClient.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+      this.isAdminUser = user?.email?.trim().toLowerCase() === LobbyPage.ADMIN_HOST_EMAIL;
+    });
+    this.lobby$.pipe(
+      filter((lobby): lobby is LobbyState => lobby !== null),
+      takeUntil(this.destroy$),
+    ).subscribe(lobby => {
+      if (this.phaseDurationsInitialized) return;
+      this.intermissionMinutes = Math.max(1, Math.round(lobby.settings.intermissionSeconds / 60));
+      this.escapeMinutes = Math.max(1, Math.round(lobby.settings.escapeSeconds / 60));
+      this.chaseMinutes = Math.max(1, Math.round(lobby.settings.chaseMaxSeconds / 60));
+      this.phaseDurationsInitialized = true;
+    });
     this.lobby$.pipe(
       filter((lobby): lobby is LobbyState => lobby?.status === 'LIVE'),
       takeUntil(this.destroy$),
@@ -181,6 +204,33 @@ export class LobbyPage implements OnDestroy {
       this.updatingUkMode = false;
     }
   }
+
+  phaseDurationsValid(): boolean {
+    return [this.intermissionMinutes, this.escapeMinutes, this.chaseMinutes]
+      .every(value => Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 1440);
+  }
+
+  async savePhaseDurations(isHost: boolean): Promise<void> {
+    if (!isHost || !this.isAdminUser || !this.phaseDurationsValid()) return;
+
+    this.updatingPhaseDurations = true;
+    this.phaseDurationsSavedMessage = '';
+    this.errorMessage = '';
+    try {
+      await this.gameFacade.setPhaseDurations(
+        this.gameId,
+        Number(this.intermissionMinutes),
+        Number(this.escapeMinutes),
+        Number(this.chaseMinutes),
+      );
+      this.phaseDurationsSavedMessage = 'Duraciones guardadas para esta partida.';
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'No se pudieron guardar las duraciones.';
+    } finally {
+      this.updatingPhaseDurations = false;
+    }
+  }
+
   async startGame(isHost: boolean): Promise<void> {
     if (!isHost) {
       return;

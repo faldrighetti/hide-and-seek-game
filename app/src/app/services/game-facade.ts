@@ -342,6 +342,18 @@ export class GameFacadeService {
     );
   }
 
+  setPhaseDurations(
+    gameId: string,
+    intermissionMinutes: number,
+    escapeMinutes: number,
+    chaseMinutes: number,
+  ): Promise<{ ok: boolean; intermissionMinutes: number; escapeMinutes: number; chaseMinutes: number }> {
+    return this.firebaseClient.callFunction<
+      { gameId: string; intermissionMinutes: number; escapeMinutes: number; chaseMinutes: number },
+      { ok: boolean; intermissionMinutes: number; escapeMinutes: number; chaseMinutes: number }
+    >('setPhaseDurations', { gameId, intermissionMinutes, escapeMinutes, chaseMinutes });
+  }
+
   startGame(gameId: string): Promise<{ ok: boolean }> {
     return this.firebaseClient.callFunction<{ gameId: string }, { ok: boolean }>('startGame', { gameId });
   }
