@@ -8,7 +8,7 @@ import {
 
 export const getMyActiveGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
-  await assertUserRateLimit(db, uid, "get_my_active_game", 5);
+  await assertUserRateLimit(db, uid, "get_my_active_game", 1);
 
   const seatsSnap = await db.collectionGroup("seats")
     .where("uid", "==", uid)

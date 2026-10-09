@@ -19,6 +19,7 @@ export class HomePage implements OnDestroy {
   public activeGameLoading = true;
   public activeGameErrorMessage = '';
   private readonly authSubscription: Subscription;
+  private activeGameLoadPromise: Promise<void> | null = null;
 
   public constructor(
     private readonly firebaseClient: FirebaseGameClientService,
@@ -121,9 +122,19 @@ export class HomePage implements OnDestroy {
     return labels[mode];
   }
 
-  private async loadActiveGame(): Promise<void> {
+  private loadActiveGame(): Promise<void> {
+    if (this.activeGameLoadPromise) {
+      return this.activeGameLoadPromise;
+    }
+
     this.activeGameLoading = true;
     this.activeGameErrorMessage = '';
+
+    this.activeGameLoadPromise = this.fetchActiveGame();
+    return this.activeGameLoadPromise;
+  }
+
+  private async fetchActiveGame(): Promise<void> {
     try {
       this.activeGame = await this.gameFacade.getMyActiveGame();
     } catch (error) {
@@ -131,6 +142,7 @@ export class HomePage implements OnDestroy {
       this.activeGameErrorMessage = this.activeGameLoadError(error);
     } finally {
       this.activeGameLoading = false;
+      this.activeGameLoadPromise = null;
     }
   }
 
