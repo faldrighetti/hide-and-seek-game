@@ -7,6 +7,7 @@ import { GameFacadeService } from '../../services/game-facade';
 import {
   ActiveEffect,
   GameBlueprint,
+  GameNotification,
   LobbyState,
   PendingQuestion,
   PlayerRole,
@@ -144,6 +145,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
   confirmingBaseStation = false;
   baseStationMessage = '';
   baseStationLoadError = '';
+  gameNotifications: GameNotification[] = [];
+  notificationsLoading = false;
+  notificationsErrorMessage = '';
+  activityFeedExpanded = false;
   now = Date.now();
 
   private readonly timerId = window.setInterval(() => {
@@ -161,6 +166,11 @@ export class GamePage implements AfterViewInit, OnDestroy {
   private lastTickKey: string | null = null;
   private lastLootKey: string | null = null;
   private lastTurnIdentityKey: string | null = null;
+  private notificationLoadPromise: Promise<void> | null = null;
+  private notificationRefreshTimer: number | null = null;
+  private lastNotificationLoadAt = 0;
+  private lastReadNotificationMillis = 0;
+  private notificationReaderUid: string | null = null;
   private baseStationMap?: L.Map;
   private baseStationMarkers = new Map<string, L.CircleMarker>();
   private baseStationZoneLayer = L.layerGroup();
@@ -174,6 +184,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.latestGameBlueprint = vm;
       this.syncTurnLocalState(vm);
       this.syncLootSelections(vm);
+      this.scheduleNotificationRefresh();
       setTimeout(() => {
         this.ensureBaseStationMap();
         this.renderBaseStationMarkers(vm);
@@ -183,6 +194,13 @@ export class GamePage implements AfterViewInit, OnDestroy {
     });
     this.playerRoleSubscription = this.playerRole$.subscribe(role => {
       this.latestPlayerRole = role;
+      if (role.uid && role.uid !== this.notificationReaderUid) {
+        this.notificationReaderUid = role.uid;
+        const storedReadAt = Number(localStorage.getItem(this.notificationReadStorageKey(role.uid)) ?? 0);
+        this.lastReadNotificationMillis = Number.isFinite(storedReadAt) ? storedReadAt : 0;
+        this.gameNotifications = [];
+      }
+      this.scheduleNotificationRefresh();
       void this.syncStadiumHint();
     });
     this.pendingQuestionSubscription = this.pendingQuestion$.subscribe(question => {
@@ -204,8 +222,124 @@ export class GamePage implements AfterViewInit, OnDestroy {
     this.blueprintSubscription.unsubscribe();
     this.playerRoleSubscription.unsubscribe();
     this.pendingQuestionSubscription.unsubscribe();
+    if (this.notificationRefreshTimer !== null) {
+      window.clearTimeout(this.notificationRefreshTimer);
+    }
     this.baseStationMap?.remove();
     this.confirmedBaseStationMap?.remove();
+  }
+
+  toggleActivityFeed(): void {
+    this.activityFeedExpanded = !this.activityFeedExpanded;
+    if (this.activityFeedExpanded) this.markNotificationsRead();
+  }
+
+  openActivityFeed(): void {
+    this.activityFeedExpanded = true;
+    this.markNotificationsRead();
+    setTimeout(() => document.getElementById('activity-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  }
+
+  unreadNotificationCount(): number {
+    return this.gameNotifications.filter(notification => this.notificationTimestamp(notification) > this.lastReadNotificationMillis).length;
+  }
+
+  visibleGameNotifications(): GameNotification[] {
+    return this.gameNotifications.slice(0, 8);
+  }
+
+  notificationColor(notification: GameNotification): string {
+    return notification.importance === 'CRITICAL' ? 'danger' : notification.importance === 'MEDIUM' ? 'warning' : 'medium';
+  }
+
+  notificationCategoryLabel(category: string): string {
+    const labels: Record<string, string> = {
+      phase: 'Fase', turn: 'Turno', operations: 'Operación', base_station: 'Estación', question: 'Pregunta',
+      loot: 'Cartas', curse: 'Maldición', endgame: 'Endgame', capture: 'Captura', safety: 'Seguridad', presence: 'Conexión',
+    };
+    return labels[category] ?? 'Partida';
+  }
+
+  notificationTime(notification: GameNotification): string {
+    const millis = this.notificationTimestamp(notification);
+    return millis ? new Date(millis).toLocaleString('es-AR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    }) : '';
+  }
+
+  notificationActionTarget(notification: GameNotification): string | null {
+    const targets: Record<string, string> = {
+      base_station: 'base-station-action', question: 'question-action', loot: 'loot-action', curse: 'effects-action',
+      endgame: 'capture-action', capture: 'capture-action', operations: 'operation-action', safety: 'operation-action',
+    };
+    return targets[notification.category] ?? null;
+  }
+
+  currentActionTarget(vm: GameBlueprint, role: PlayerRole, pendingQuestion: PendingQuestion | null): string | null {
+    if (vm.operational.mode !== 'NORMAL') return 'operation-action';
+    if ((vm.currentTurn.phase === 'ESCAPE' && role.isHider) || vm.currentTurn.baseStationSelectionRequired) return 'base-station-action';
+    if (vm.currentTurn.endgameConsultation?.status === 'PENDING_HIDER' || vm.currentTurn.captureAttempt) return 'capture-action';
+    if (pendingQuestion) return 'question-action';
+    if (role.isHider && vm.currentTurn.lootOffer) return 'loot-action';
+    if (role.isSeeker && this.hasQuestionBlockingEffect(vm.currentTurn.activeEffects)) return 'effects-action';
+    return role.isSeeker ? 'question-action' : null;
+  }
+
+  scrollToGameSection(targetId: string): void {
+    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  private scheduleNotificationRefresh(): void {
+    if (!this.latestPlayerRole?.isParticipant || !this.latestGameBlueprint) return;
+    if (this.notificationRefreshTimer !== null) window.clearTimeout(this.notificationRefreshTimer);
+    const delay = Math.max(0, 5500 - (Date.now() - this.lastNotificationLoadAt));
+    this.notificationRefreshTimer = window.setTimeout(() => {
+      this.notificationRefreshTimer = null;
+      void this.loadGameNotifications();
+    }, delay);
+  }
+
+  private loadGameNotifications(): Promise<void> {
+    if (this.notificationLoadPromise) return this.notificationLoadPromise;
+    this.notificationsLoading = true;
+    this.notificationsErrorMessage = '';
+    this.lastNotificationLoadAt = Date.now();
+    this.notificationLoadPromise = this.gameFacade.listGameNotifications(this.gameId, 100)
+      .then(notifications => {
+        const teamId = this.latestPlayerRole?.teamId;
+        this.gameNotifications = notifications.filter(notification =>
+          notification.audience === 'ALL' || Boolean(teamId && notification.recipientTeamIds.includes(teamId)),
+        );
+        if (this.activityFeedExpanded) this.markNotificationsRead();
+      })
+      .catch(error => {
+        this.notificationsErrorMessage = error instanceof Error ? error.message : 'No se pudieron cargar las novedades.';
+      })
+      .finally(() => {
+        this.notificationsLoading = false;
+        this.notificationLoadPromise = null;
+      });
+    return this.notificationLoadPromise;
+  }
+
+  private markNotificationsRead(): void {
+    const newest = Math.max(0, ...this.gameNotifications.map(notification => this.notificationTimestamp(notification)));
+    if (!newest || !this.notificationReaderUid) return;
+    this.lastReadNotificationMillis = Math.max(this.lastReadNotificationMillis, newest);
+    localStorage.setItem(this.notificationReadStorageKey(this.notificationReaderUid), String(this.lastReadNotificationMillis));
+  }
+
+  private notificationReadStorageKey(uid: string): string {
+    return `game-notifications-read:${uid}:${this.gameId}`;
+  }
+
+  private notificationTimestamp(notification: GameNotification): number {
+    if (typeof notification.createdAt === 'string') return Date.parse(notification.createdAt) || 0;
+    if (notification.createdAt && typeof notification.createdAt === 'object') {
+      if (typeof notification.createdAt.millis === 'number') return notification.createdAt.millis;
+      if (notification.createdAt.iso) return Date.parse(notification.createdAt.iso) || 0;
+    }
+    return 0;
   }
 
   private async processDueTickIfNeeded(): Promise<void> {

@@ -5,8 +5,14 @@
     </ion-buttons>
     <ion-title>{{ (blueprint$ | async)?.gameName || 'Partida' }}</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="openActivityFeed()" aria-label="Abrir novedades">
+        <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
+        <ion-badge *ngIf="unreadNotificationCount()" color="danger">{{ unreadNotificationCount() }}</ion-badge>
+      </ion-button>
       <ion-button [routerLink]="['/game', gameId, 'history']">Historial</ion-button>
-      <ion-button routerLink="/settings">Notificaciones</ion-button>
+      <ion-button routerLink="/settings" aria-label="Configurar notificaciones">
+        <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -109,6 +115,62 @@
               <ion-button *ngIf="!role.isParticipant" expand="block" fill="outline" [routerLink]="['/join', gameId]">
                 Revisar invitación y recuperar lugar
               </ion-button>
+            </ion-card-content>
+          </ion-card>
+        </ng-container>
+      </ion-col>
+    </ion-row>
+
+    <ion-row>
+      <ion-col size="12">
+        <ng-container *ngIf="{ pendingQuestion: pendingQuestion$ | async } as feedContext">
+          <ion-card id="activity-feed" class="activity-feed">
+            <ion-card-header>
+              <div class="turn-summary-title-row">
+                <ion-card-title>Novedades</ion-card-title>
+                <ion-badge *ngIf="unreadNotificationCount()" color="danger">{{ unreadNotificationCount() }} nuevas</ion-badge>
+                <ion-button fill="clear" size="small" (click)="toggleActivityFeed()">
+                  {{ activityFeedExpanded ? 'Ocultar' : 'Ver' }}
+                </ion-button>
+              </div>
+            </ion-card-header>
+            <ion-card-content *ngIf="activityFeedExpanded">
+              <ion-item lines="full" color="light">
+                <ion-label>
+                  <h2>Acción actual</h2>
+                  <p>{{ turnActionState(vm, role, feedContext.pendingQuestion).title }}</p>
+                </ion-label>
+                <ion-button
+                  *ngIf="currentActionTarget(vm, role, feedContext.pendingQuestion) as target"
+                  slot="end"
+                  size="small"
+                  (click)="scrollToGameSection(target)"
+                >Ir</ion-button>
+              </ion-item>
+
+              <ion-list *ngIf="visibleGameNotifications().length; else emptyFeed" lines="inset">
+                <ion-item *ngFor="let notification of visibleGameNotifications()">
+                  <ion-label class="ion-text-wrap">
+                    <div class="turn-summary-title-row">
+                      <h2>{{ notification.title }}</h2>
+                      <ion-badge [color]="notificationColor(notification)">{{ notificationCategoryLabel(notification.category) }}</ion-badge>
+                    </div>
+                    <p>{{ notification.body }}</p>
+                    <ion-note>{{ notificationTime(notification) }}</ion-note>
+                  </ion-label>
+                  <ion-button
+                    *ngIf="notificationActionTarget(notification) as target"
+                    slot="end"
+                    fill="clear"
+                    size="small"
+                    (click)="scrollToGameSection(target)"
+                  >Ver</ion-button>
+                </ion-item>
+              </ion-list>
+              <ng-template #emptyFeed><p *ngIf="!notificationsLoading">Todavía no hay novedades para tu equipo.</p></ng-template>
+              <ion-spinner *ngIf="notificationsLoading" name="crescent"></ion-spinner>
+              <ion-note *ngIf="notificationsErrorMessage" color="danger">{{ notificationsErrorMessage }}</ion-note>
+              <ion-button expand="block" fill="clear" size="small" [routerLink]="['/game', gameId, 'history']">Ver historial completo</ion-button>
             </ion-card-content>
           </ion-card>
         </ng-container>
