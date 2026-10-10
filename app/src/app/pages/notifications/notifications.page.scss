@@ -1,5 +1,5 @@
 :host {
-  ion-content { --background: #f4f5f8; }
+  ion-content { --background: var(--ion-background-color); }
 }
 
 ion-card { max-width: 760px; margin-inline: auto; }

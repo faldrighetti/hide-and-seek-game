@@ -1,5 +1,6 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { PushNotificationService, PushStatus } from './services/push-notification.service';
+import { ThemeService } from './services/theme.service';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -20,7 +21,12 @@ export class AppComponent implements OnInit {
   pushError = '';
   private deferredInstallPrompt?: BeforeInstallPromptEvent;
 
-  constructor(private readonly pushNotifications: PushNotificationService) {}
+  constructor(
+    private readonly pushNotifications: PushNotificationService,
+    private readonly theme: ThemeService,
+  ) {
+    this.theme.isDarkMode();
+  }
 
   ngOnInit(): void {
     const userAgent = navigator.userAgent;

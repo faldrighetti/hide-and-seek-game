@@ -10,8 +10,8 @@
 }
 
 .player-chip {
-  background: #f7f8fc;
-  border: 1px solid #e1e4ef;
+  background: var(--ion-color-light);
+  border: 1px solid var(--ion-color-step-200);
   border-radius: 12px;
   padding: 0.75rem;
 
@@ -23,7 +23,7 @@
 
   &__seat {
     margin: 0.25rem 0 0.5rem;
-    color: #1c1c1c;
+    color: var(--ion-text-color);
     font-weight: 600;
   }
 

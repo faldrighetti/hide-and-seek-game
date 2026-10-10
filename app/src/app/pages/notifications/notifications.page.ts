@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { NotificationPreferences } from '../../models/core-model';
 import { GameFacadeService } from '../../services/game-facade';
 import { PushNotificationService, PushStatus } from '../../services/push-notification.service';
+import { ThemeService } from '../../services/theme.service';
 
 interface NotificationCategory {
   key: string;
@@ -17,6 +18,7 @@ interface NotificationCategory {
 export class NotificationsPage {
   private readonly gameFacade = inject(GameFacadeService);
   private readonly pushNotifications = inject(PushNotificationService);
+  private readonly theme = inject(ThemeService);
 
   readonly categories: NotificationCategory[] = [
     { key: 'phase', label: 'Fases' },
@@ -41,6 +43,7 @@ export class NotificationsPage {
   pushActivating = false;
   pushActivatedForSession = false;
   pushError = '';
+  darkMode = this.theme.isDarkMode();
 
   constructor() {
     void this.load();
@@ -100,6 +103,11 @@ export class NotificationsPage {
       ...this.preferences,
       [level]: { ...this.preferences[level], [key]: enabled },
     };
+  }
+
+  setDarkMode(enabled: boolean): void {
+    this.darkMode = enabled;
+    this.theme.setDarkMode(enabled);
   }
 
   private withDefaults(preferences: NotificationPreferences): NotificationPreferences {

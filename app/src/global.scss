@@ -33,8 +33,7 @@
  */
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";
+@import "@ionic/angular/css/palettes/dark.class.css";
 @import "leaflet/dist/leaflet.css";
 .fit-select-popover {
   --width: max-content;
@@ -50,4 +49,20 @@
 
 .fit-select-popover ion-label {
   white-space: nowrap;
+}
+
+.ion-palette-dark app-game ion-content {
+  --background: var(--ion-background-color);
+}
+
+.ion-palette-dark app-game :is(.turn-metrics div, .game-finished-hero, .loot-steps div, .pending-question-detail, .question-category-content) {
+  background: var(--ion-card-background);
+}
+
+.ion-palette-dark app-game .out-of-area-panel {
+  background: rgba(var(--ion-color-warning-rgb), 0.14);
+}
+
+.ion-palette-dark app-game .out-of-area-panel.alerted {
+  background: rgba(var(--ion-color-danger-rgb), 0.14);
 }
