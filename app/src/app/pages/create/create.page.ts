@@ -14,7 +14,7 @@ export class CreatePage {
   private readonly router = inject(Router);
 
   mode: GameMode = 'INDIVIDUAL_3';
-  gameName = 'Hide & Seek';
+  gameName = '';
   turnsPerTeam: 1 | 2 | 3 = 2;
   winCondition: WinCondition = 'TOTAL_TIME';
   hostDisplayName = '';
@@ -31,6 +31,7 @@ export class CreatePage {
   }
 
   async create(): Promise<void> {
+    if (this.creating || this.createdLobby) return;
     this.creating = true;
     this.errorMessage = '';
     try {

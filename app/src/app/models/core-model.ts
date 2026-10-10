@@ -222,6 +222,7 @@ export interface PlayerRole {
 export type GameStatus = 'LOBBY' | 'LIVE' | 'FINISHED';
 
 export interface ActiveGameSummary {
+  hostFirstName: string;
   gameId: string;
   gameName: string;
   status: Exclude<GameStatus, 'FINISHED'>;

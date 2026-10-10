@@ -40,7 +40,7 @@
             <div class="active-game-card__header">
               <div>
                 <ion-card-subtitle>Mi partida</ion-card-subtitle>
-                <ion-card-title>{{ game.gameName }}</ion-card-title>
+                <ion-card-title>{{ game.gameId }}</ion-card-title>
               </div>
               <ion-badge [color]="game.status === 'LIVE' ? 'success' : 'primary'">
                 {{ statusLabel(game) }}
@@ -50,7 +50,8 @@
           <ion-card-content>
             <div class="active-game-card__details">
               <span>{{ modeLabel(game.mode) }}</span>
-              <span>{{ roleLabel(game) }}<ng-container *ngIf="game.teamId"> · Equipo {{ game.teamId }}</ng-container></span>
+              <span>Anfitrión: {{ game.hostFirstName || (game.isHost ? firstName(user) : 'Sin nombre') }}</span>
+              <span *ngIf="game.status === 'LIVE'">{{ roleLabel(game) }}</span>
               <span *ngIf="game.status === 'LIVE'">{{ phaseLabel(game.phase) }}</span>
             </div>
             <ion-button expand="block" [routerLink]="activeGameLink(game)">

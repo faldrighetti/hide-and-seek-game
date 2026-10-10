@@ -115,7 +115,7 @@ export const createGame = onCall(async (request) => {
 
   const createdAt = nowTs();
   const payload: GameDoc = {
-    gameName: String(request.data?.gameName ?? "Jet Lag Hide & Seek"),
+    gameName: String(request.data?.gameName ?? "").trim() || gameId,
     mode,
     status: "LOBBY",
     hostUid: uid,

@@ -57,5 +57,13 @@ export const getMyActiveGame = onCall(async (request) => {
     return statusDifference || right.updatedAtMillis - left.updatedAtMillis;
   });
 
-  return {ok: true, activeGame: candidates[0]?.summary ?? null};
+  const selected = candidates[0]?.summary;
+  if (!selected) return {ok: true, activeGame: null};
+
+  const selectedGame = gameSnaps.find((snapshot) => snapshot.id === selected.gameId)?.data() as GameDoc;
+  const hostSeat = await db.collection("games").doc(selected.gameId)
+    .collection("seats").doc(selectedGame.hostUid).get();
+  const hostFirstName = String(hostSeat.data()?.displayName ?? "").trim().split(/\s+/)[0] || "Sin nombre";
+
+  return {ok: true, activeGame: {...selected, hostFirstName}};
 });

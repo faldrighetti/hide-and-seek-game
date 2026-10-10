@@ -223,13 +223,13 @@ export class GameFacadeService {
       winCondition,
       ukMode,
       displayName: hostDisplayName.trim() || this.firstNameFromGoogleUser(currentUser) || 'Host',
-      gameName: gameName.trim() || 'Hide & Seek',
+      gameName: gameName.trim(),
     });
 
     this.loadGame(response.gameId);
     return {
       gameId: response.gameId,
-      gameName: gameName.trim() || 'Hide & Seek',
+      gameName: gameName.trim() || response.gameId,
       mode,
       status: 'LOBBY',
       hostUid: currentUser.uid,
