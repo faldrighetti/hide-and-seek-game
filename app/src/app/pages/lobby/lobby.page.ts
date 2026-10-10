@@ -199,7 +199,7 @@ export class LobbyPage implements OnDestroy {
     try {
       await this.gameFacade.setUkMode(this.gameId, enabled);
     } catch (error) {
-      this.errorMessage = error instanceof Error ? error.message : 'No se pudo actualizar ukMode.';
+      this.errorMessage = error instanceof Error ? error.message : 'No se pudo actualizar “Omitir turno del líder”.';
     } finally {
       this.updatingUkMode = false;
     }

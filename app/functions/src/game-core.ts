@@ -542,10 +542,35 @@ export const findWinnerIds = (game: GameDoc): string[] => {
     ).map(([teamId]) => teamId) : [bestTeamId];
 };
 
+const uniqueLeaderTeamId = (game: GameDoc): string | null => {
+  const entries = Object.entries(game.standings);
+  const primary = game.settings.winCondition === "TOTAL_TIME" ? "totalTimeSeconds" : "bestSingleRunSeconds";
+  const secondary = game.settings.winCondition === "TOTAL_TIME" ? "bestSingleRunSeconds" : "totalTimeSeconds";
+  const sorted = [...entries].sort((left, right) => {
+    const primaryDifference = right[1][primary] - left[1][primary];
+    if (primaryDifference !== 0) return primaryDifference;
+    return right[1][secondary] - left[1][secondary];
+  });
+
+  if (sorted.length === 0) return null;
+  const [leaderId, leader] = sorted[0];
+  const tiedForLead = sorted.slice(1).some(([, standing]) =>
+    standing[primary] === leader[primary] && standing[secondary] === leader[secondary],
+  );
+  return tiedForLead ? null : leaderId;
+};
+
 export const getNextHiderTeamId = (game: GameDoc, currentHider: string): string => {
   const order = game.teamOrder;
   const idx = order.indexOf(currentHider);
   if (idx < 0) return order[0];
+  const leaderId = game.settings.ukMode ? uniqueLeaderTeamId(game) : null;
+
+  for (let offset = 1; offset <= order.length; offset += 1) {
+    const candidateId = order[(idx + offset) % order.length];
+    if (candidateId !== leaderId) return candidateId;
+  }
+
   return order[(idx + 1) % order.length];
 };
 
@@ -670,13 +695,11 @@ export const allRunsCompleted = (game: GameDoc): boolean =>
 
 export const ukModeCanFinish = (game: GameDoc): boolean => {
   if (!game.settings.ukMode) return false;
-  const entries = Object.entries(game.standings);
-  if (entries.length < 2) return false;
-  const sorted = [...entries].sort((a, b) => b[1].totalTimeSeconds - a[1].totalTimeSeconds);
-  const [leaderId, leader] = sorted[0];
-  const everyoneElseDone = sorted.slice(1).every(([, standing]) => standing.runsCompleted >= game.settings.turnsPerTeam);
-  const nobodyCanPass = sorted.slice(1).every(([, standing]) => standing.totalTimeSeconds <= leader.totalTimeSeconds);
-  return everyoneElseDone && nobodyCanPass && !!leaderId;
+  const leaderId = uniqueLeaderTeamId(game);
+  if (!leaderId) return false;
+  return Object.entries(game.standings)
+    .filter(([teamId]) => teamId !== leaderId)
+    .every(([, standing]) => standing.runsCompleted >= game.settings.turnsPerTeam);
 };
 
 export const endTurnInTx = (game: GameDoc, txNow: Timestamp): GameDoc => {

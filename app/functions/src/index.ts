@@ -328,10 +328,10 @@ export const setUkMode = onCall(async (request) => {
     if (!gameSnap.exists) throw new HttpsError("not-found", "Partida no encontrada.");
     const game = gameSnap.data() as GameDoc;
     if (game.status !== "LOBBY") {
-      throw new HttpsError("failed-precondition", "ukMode solo se puede cambiar en el lobby.");
+      throw new HttpsError("failed-precondition", "Omitir turno del líder solo se puede cambiar en el lobby.");
     }
     if (modeTeamIds(game.mode).length <= 2 && ukMode) {
-      throw new HttpsError("failed-precondition", "ukMode solo aplica con más de 2 equipos.");
+      throw new HttpsError("failed-precondition", "Omitir turno del líder solo aplica con más de 2 equipos.");
     }
 
     tx.update(gameRef, {

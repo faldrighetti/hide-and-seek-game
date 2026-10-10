@@ -109,7 +109,7 @@
                 [disabled]="!vm.role.isHost || updatingUkMode"
                 (ionChange)="setUkMode($event.detail.checked, vm.role.isHost)"
               >
-                ukMode
+                Omitir turno del líder
               </ion-toggle>
             </ion-item>
             <section *ngIf="isAdminUser" class="admin-phase-settings">
