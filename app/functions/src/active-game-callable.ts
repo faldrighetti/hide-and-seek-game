@@ -9,6 +9,8 @@ import {
 export const getMyActiveGame = onCall(async (request) => {
   const uid = requireAuthUid(request.auth?.uid);
   await assertUserRateLimit(db, uid, "get_my_active_game", 1);
+  const nowMillis = Date.now();
+  const scheduledTickGraceMillis = 10 * 60 * 1000;
 
   const seatsSnap = await db.collectionGroup("seats")
     .where("uid", "==", uid)
@@ -28,14 +30,16 @@ export const getMyActiveGame = onCall(async (request) => {
   const candidates = gameSnaps.flatMap((gameSnap, index) => {
     if (!gameSnap.exists) return [];
     const game = gameSnap.data() as GameDoc;
-    if (game.status !== "LOBBY" && game.status !== "LIVE") return [];
+    if (game.status !== "LIVE" || !game.currentTurn) return [];
+    const isPaused = game.operational?.mode === "PAUSED" || game.operational?.mode === "EMERGENCY";
+    const phaseIsStillCurrent = game.currentTurn.phaseEndsAt.toMillis() >= nowMillis - scheduledTickGraceMillis;
+    if (!isPaused && !phaseIsStillCurrent) return [];
     const seat = memberships[index].seat;
     const teamId = String(seat.teamId ?? "") || null;
     const hiderTeamId = String(game.currentTurn?.hiderTeamId ?? "") || null;
     const isHost = game.hostUid === uid || Boolean(seat.isHost);
     const updatedAtMillis = game.updatedAt?.toMillis?.() ?? 0;
-    const role = game.status === "LOBBY" ? (isHost ? "HOST" : "PLAYER") :
-      teamId && teamId === hiderTeamId ? "HIDER" : "SEEKER";
+    const role = teamId && teamId === hiderTeamId ? "HIDER" : "SEEKER";
 
     return [{
       updatedAtMillis,

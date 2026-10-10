@@ -71,7 +71,7 @@ export class LobbyPage implements OnDestroy {
       const missingSeats = Math.max(0, expectedSeats - lobby.seats.length);
       const teams = this.buildTeamGroups(lobby, blueprint);
       const unassignedSeats = lobby.seats.filter(seat => !seat.teamId);
-      const allSeatsAssigned = unassignedSeats.length === 0 && lobby.seats.length > 0;
+      const allSeatsAssigned = missingSeats === 0 && unassignedSeats.length === 0;
       const hasCompleteTeams = teams.every(team => team.isComplete);
       const startBlockedReason = this.startBlockedReason(missingSeats, unassignedSeats.length, hasCompleteTeams);
       const canStart = startBlockedReason.length === 0;
