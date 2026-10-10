@@ -125,7 +125,7 @@ export class LobbyPage implements OnDestroy {
   async shareInvitation(lobby: LobbyState): Promise<void> {
     this.errorMessage = '';
     this.copiedMessage = '';
-    const text = `Sumate a mi partida de Hide & Seek. Código: ${lobby.gameId}`;
+    const text = `Sumate a mi partida. Código: ${lobby.gameId}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Hide & Seek', text, url: lobby.joinLink });
@@ -143,7 +143,7 @@ export class LobbyPage implements OnDestroy {
   }
 
   shareOnWhatsApp(lobby: LobbyState): void {
-    const text = `Sumate a mi partida de Hide & Seek. Código: ${lobby.gameId}\n${lobby.joinLink}`;
+    const text = `Sumate a mi partida. Código: ${lobby.gameId}\n${lobby.joinLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   }
 
