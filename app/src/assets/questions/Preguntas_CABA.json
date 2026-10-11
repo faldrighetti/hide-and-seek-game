@@ -73,7 +73,7 @@
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "Comparando conmigo, ¿la longitud del nombre de la estación donde estás es mayor o menor?",
+          "prompt": "Comparando con mi estación más cercana, ¿la longitud del nombre de la estación donde estás es mayor o menor?",
           "resolutionMode": "AUTOMATIC"
         },
         {
@@ -83,7 +83,7 @@
         },
         {
           "label": "Comuna",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la comuna de ___?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la comuna ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
