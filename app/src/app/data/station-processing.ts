@@ -9,6 +9,9 @@ const GBA_BARRIO = 'GBA';
 
 export interface RawStationsFile {
   version?: string;
+  referenceLists?: {
+    highways?: string[];
+  };
   transport?: Array<Record<string, Array<{ line: string; stations: Array<Partial<Station>> }>>>;
 }
 

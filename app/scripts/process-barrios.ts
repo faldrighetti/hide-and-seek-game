@@ -105,6 +105,7 @@ function main(): void {
   const processed: StationsProcessedFile = {
     version: rawStations.version ?? 'unknown',
     source: basename(stationSourcePath),
+    referenceLists: rawStations.referenceLists,
     stations: playabilityResult.stations,
     warnings,
   };

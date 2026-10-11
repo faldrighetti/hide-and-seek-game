@@ -861,3 +861,33 @@
     </ng-container>
   </ion-grid>
 </ion-content>
+
+<ion-modal [isOpen]="referencePickerOpen" (didDismiss)="dismissReferencePicker()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ referencePickerTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="dismissReferencePicker()">Cancelar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar
+          placeholder="Buscar por nombre"
+          [value]="referencePickerFilter"
+          (ionInput)="onReferencePickerSearch($event)"
+        ></ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item button detail="false" *ngFor="let option of visibleReferencePickerOptions()" (click)="selectQuestionReference(option)">
+          <ion-label>{{ option }}</ion-label>
+        </ion-item>
+      </ion-list>
+      <ion-note class="reference-picker-empty" *ngIf="!visibleReferencePickerOptions().length">
+        No hay coincidencias.
+      </ion-note>
+    </ion-content>
+  </ng-template>
+</ion-modal>

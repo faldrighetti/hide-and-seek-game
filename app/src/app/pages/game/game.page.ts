@@ -36,7 +36,9 @@ interface QuestionItem {
   distance?: string;
   distanceM?: number | null;
   customDistance?: boolean;
-  venueSelector?: 'stadiums';
+  promptIndividual?: string;
+  promptTeams?: string;
+  reference?: QuestionReference;
   availability?: string;
   answerGroups?: AnswerGroup[];
   endgameOnly?: boolean;
@@ -46,8 +48,18 @@ interface QuestionItem {
 interface AnswerGroup {
   label: string;
   options: string[];
+  optionsIndividual?: string[];
+  optionsTeams?: string[];
   dependsOn?: string;
   optionsByAnswer?: Record<string, string[]>;
+}
+
+type QuestionReferenceKind = 'stations' | 'subwayStations' | 'trainStations' | 'stadiums' | 'communes' | 'neighborhoods' | 'highways' | 'cinemas' | 'hospitals' | 'text';
+
+interface QuestionReference {
+  kind: QuestionReferenceKind;
+  label: string;
+  placeholder: string;
 }
 
 interface QuestionCategory {
@@ -108,8 +120,17 @@ export class GamePage implements AfterViewInit, OnDestroy {
   cardById = new Map<string, HiderCardData>();
   fallbackCardByBaseId = new Map<string, HiderCardData>();
   questionCategories: QuestionCategory[] = [];
-  selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem; venueSelection?: string } | null = null;
+  selectedSeekerQuestion: { category: QuestionCategory; question: QuestionItem; referenceSelection?: string } | null = null;
   stadiumNames: string[] = [];
+  neighborhoodNames: string[] = [];
+  cinemaNames: string[] = [];
+  hospitalNames: string[] = [];
+  highwayNames: string[] = [];
+  referencePickerOpen = false;
+  referencePickerTitle = '';
+  referencePickerFilter = '';
+  referencePickerOptions: string[] = [];
+  private referencePickerResolve: ((value: string | null) => void) | null = null;
   stadiumHint = '';
   sendingQuestion = false;
   thermometerActionInFlight = false;
@@ -209,7 +230,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
     });
     void this.loadCardsFromCatalog();
     void this.loadQuestionsCatalog();
-    void this.loadStadiumNames();
+    void this.loadQuestionReferenceData();
     void this.loadBaseStationMapData();
   }
 
@@ -427,10 +448,26 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   }
 
-  async loadStadiumNames(): Promise<void> {
-    const response = await fetch('assets/estadios.json', {cache: 'force-cache'});
+  async loadQuestionReferenceData(): Promise<void> {
+    const [stadiums, neighborhoods, cinemas, hospitals, stations] = await Promise.all([
+      this.loadFeatureNames('assets/estadios.json'),
+      this.loadFeatureNames('assets/barrios_caba.json'),
+      this.loadFeatureNames('assets/cines.json'),
+      this.loadFeatureNames('assets/hospitales.json'),
+      fetch('assets/stations.processed.json', {cache: 'force-cache'}).then(response => response.json() as Promise<StationsProcessedFile>),
+    ]);
+    this.stadiumNames = stadiums;
+    this.neighborhoodNames = neighborhoods;
+    this.cinemaNames = cinemas;
+    this.hospitalNames = hospitals;
+    this.highwayNames = stations.referenceLists?.highways ?? [];
+  }
+
+  private async loadFeatureNames(path: string): Promise<string[]> {
+    const response = await fetch(path, {cache: 'force-cache'});
     const data = await response.json() as {features?: Array<{properties?: {nombre?: string}}>};
-    this.stadiumNames = (data.features ?? []).map(feature => feature.properties?.nombre ?? '').filter(Boolean).sort();
+    return [...new Set((data.features ?? []).map(feature => feature.properties?.nombre?.trim() ?? '').filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right, 'es'));
   }
 
   parseDrawTakeFromCost(cost: string | null): { draw: number; take: number } {
@@ -573,9 +610,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.questionErrorMessage = this.categoryCooldownLabel(category, vm);
       return;
     }
-    const venueSelection = question.venueSelector === 'stadiums' ? await this.chooseStadium() : undefined;
-    if (question.venueSelector === 'stadiums' && !venueSelection) return;
-    this.selectedSeekerQuestion = { category, question, venueSelection: venueSelection ?? undefined };
+    const referenceSelection = question.reference ? await this.chooseQuestionReference(question.reference) : undefined;
+    if (question.reference && !referenceSelection) return;
+    this.selectedSeekerQuestion = { category, question, referenceSelection: referenceSelection ?? undefined };
     this.questionErrorMessage = '';
     await this.sendSelectedQuestion(role);
   }
@@ -617,7 +654,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const { category, question, venueSelection } = this.selectedSeekerQuestion;
+    const { category, question, referenceSelection } = this.selectedSeekerQuestion;
     const vm = this.latestBlueprint();
     if (vm?.currentTurn.pendingQuestion) {
       this.questionErrorMessage = 'Ya hay una pregunta pendiente.';
@@ -664,9 +701,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const prompt = venueSelection
-      ? `¿El estadio de fútbol profesional más cercano a tu estación base es ${venueSelection}?`
-      : this.questionPromptText(category, question, customDistanceM ?? undefined);
+    const basePrompt = this.questionPromptText(category, question, customDistanceM ?? undefined);
+    const prompt = question.reference && referenceSelection
+      ? basePrompt.includes(question.reference.placeholder)
+        ? basePrompt.replace(question.reference.placeholder, referenceSelection)
+        : `${basePrompt} Referencia del buscador: ${referenceSelection}.`
+      : basePrompt;
     if (!prompt.trim()) {
       this.questionErrorMessage = 'La pregunta seleccionada no tiene texto.';
       return;
@@ -696,8 +736,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
         questionKey: this.questionKey(category, question),
         distanceM,
         customDistanceM: customDistanceM ?? undefined,
-        venueType: venueSelection ? 'stadium' : undefined,
-        venueSelection,
         randomizePool: this.randomizePoolForQuestion(category, question, customDistanceM ?? undefined),
       });
       this.selectedSeekerQuestion = null;
@@ -708,16 +746,19 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
   }
 
-  private async chooseStadium(): Promise<string | null> {
-    if (!this.stadiumNames.length) {
-      this.questionErrorMessage = 'La lista de estadios todavía no está disponible.';
+  private async chooseQuestionReference(reference: QuestionReference): Promise<string | null> {
+    if (reference.kind === 'text') return this.chooseFreeTextReference(reference.label);
+    const options = this.questionReferenceOptions(reference.kind);
+    if (!options.length) {
+      this.questionErrorMessage = `La lista para “${reference.label}” todavía no está disponible.`;
       return null;
     }
+    if (options.length > 10) return this.openSearchableReferencePicker(reference.label, options);
+
     let selection: string | null = null;
     const alert = await this.alertController.create({
-      header: 'Tu estadio más cercano',
-      message: 'Elegilo según la regla de honestidad del juego.',
-      inputs: this.stadiumNames.map(name => ({name, type: 'radio' as const, label: name, value: name})),
+      header: reference.label,
+      inputs: options.map(name => ({name, type: 'radio' as const, label: name, value: name})),
       buttons: [
         {text: 'Cancelar', role: 'cancel'},
         {text: 'Elegir', role: 'confirm', handler: value => { selection = String(value ?? ''); return Boolean(selection); }},
@@ -726,6 +767,75 @@ export class GamePage implements AfterViewInit, OnDestroy {
     await alert.present();
     const result = await alert.onDidDismiss();
     return result.role === 'confirm' ? selection : null;
+  }
+
+  private async chooseFreeTextReference(label: string): Promise<string | null> {
+    let selection = '';
+    const alert = await this.alertController.create({
+      header: label,
+      inputs: [{name: 'reference', type: 'text', placeholder: 'Escribí la referencia'}],
+      buttons: [
+        {text: 'Cancelar', role: 'cancel'},
+        {text: 'Usar', role: 'confirm', handler: value => {
+          selection = String(value?.reference ?? '').trim();
+          return Boolean(selection);
+        }},
+      ],
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'confirm' ? selection : null;
+  }
+
+  private questionReferenceOptions(kind: QuestionReferenceKind): string[] {
+    const uniqueStationNames = (mode?: Station['mode']) => [...new Set(this.stations
+      .filter(station => !mode || station.mode === mode)
+      .map(station => station.name))].sort((left, right) => left.localeCompare(right, 'es'));
+    const options: Record<Exclude<QuestionReferenceKind, 'text'>, string[]> = {
+      stations: uniqueStationNames(),
+      subwayStations: uniqueStationNames('SUBTE'),
+      trainStations: uniqueStationNames('TREN'),
+      stadiums: this.stadiumNames,
+      communes: Array.from({length: 15}, (_, index) => `Comuna ${index + 1}`),
+      neighborhoods: this.neighborhoodNames,
+      highways: this.highwayNames,
+      cinemas: this.cinemaNames,
+      hospitals: this.hospitalNames,
+    };
+    return options[kind as Exclude<QuestionReferenceKind, 'text'>] ?? [];
+  }
+
+  private openSearchableReferencePicker(title: string, options: string[]): Promise<string | null> {
+    this.referencePickerTitle = title;
+    this.referencePickerOptions = options;
+    this.referencePickerFilter = '';
+    this.referencePickerOpen = true;
+    return new Promise(resolve => { this.referencePickerResolve = resolve; });
+  }
+
+  visibleReferencePickerOptions(): string[] {
+    const filter = this.normalizeText(this.referencePickerFilter);
+    return this.referencePickerOptions
+      .filter(option => !filter || this.normalizeText(option).includes(filter))
+      .slice(0, 30);
+  }
+
+  onReferencePickerSearch(event: Event): void {
+    this.referencePickerFilter = (event as CustomEvent<{value?: string}>).detail?.value ?? '';
+  }
+
+  selectQuestionReference(value: string): void {
+    const resolve = this.referencePickerResolve;
+    this.referencePickerResolve = null;
+    this.referencePickerOpen = false;
+    resolve?.(value);
+  }
+
+  dismissReferencePicker(): void {
+    const resolve = this.referencePickerResolve;
+    this.referencePickerResolve = null;
+    this.referencePickerOpen = false;
+    resolve?.(null);
   }
 
   private async syncStadiumHint(): Promise<void> {
@@ -1319,8 +1429,9 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   questionText(category: QuestionCategory, question: QuestionItem, customDistanceM?: number): string {
-    if (question.prompt) {
-      return question.prompt;
+    const modePrompt = this.isTeamGame() ? question.promptTeams : question.promptIndividual;
+    if (modePrompt || question.prompt) {
+      return modePrompt ?? question.prompt ?? '';
     }
 
     if (category.prompt && category.placeholder && question.distance) {
@@ -1400,7 +1511,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return `${group.label}: ${options}.`;
     }
 
-    return `${group.label}: ${group.options.join(' / ')}.`;
+    const options = (this.isTeamGame() ? group.optionsTeams : group.optionsIndividual) ?? group.options;
+    return `${group.label}: ${options.join(' / ')}.`;
+  }
+
+  private isTeamGame(): boolean {
+    return this.latestBlueprint()?.mode.startsWith('TEAMS_') ?? false;
   }
 
   cardsForIds(cardIds: string[]): HiderCardData[] {
@@ -2095,6 +2211,7 @@ export class GamePage implements AfterViewInit, OnDestroy {
   ): string[] {
     const selectedPrompt = this.questionPromptText(category, selectedQuestion, customDistanceM);
     return category.items
+      .filter(question => !question.reference)
       .map(question => this.questionPromptText(category, question))
       .map(prompt => prompt.trim())
       .filter(prompt => prompt.length > 0 && prompt !== selectedPrompt)

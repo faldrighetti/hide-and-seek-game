@@ -4,6 +4,16 @@
     { "name": "GCBA Transporte GTFS", "scope": "Subte CABA" },
     { "name": "Trenes Argentinos GTFS", "scope": "AMBA trenes" }
   ],
+  "referenceLists": {
+    "highways": [
+      "Autopista 9 de Julio",
+      "Autopista 25 de Mayo",
+      "Autopista Perito Moreno",
+      "Avenida General Paz",
+      "Autopista Arturo Illia",
+      "Avenida Lugones/Cantilo"
+    ]
+  },
   "transport": [
     {
       "SUBTE": [

@@ -18,10 +18,13 @@ export interface Station {
 }
 
 export interface StationsProcessedFile {
-  version: string;
+  version?: string;
   source: string;
   stations: Station[];
-  warnings: string[];
+  warnings?: string[];
+  referenceLists?: {
+    highways?: string[];
+  };
 }
 
 export function getStationComparisonKey(station: Station): string {

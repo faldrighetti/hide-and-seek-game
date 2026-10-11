@@ -10,52 +10,62 @@
       "items": [
         {
           "label": "Línea de subte",
-          "prompt": "¿La línea de subte más cercana a tu estación base/de la estación que elegiste es la misma que mi línea de subte más cercana?",
+          "prompt": "¿La línea de subte más cercana a tu estación base es la misma que la de [Referencia]?",
+          "reference": { "kind": "subwayStations", "label": "Estación de subte más cercana al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Línea de trenes",
-          "prompt": "¿La línea de trenes más cercana a tu estación base es la misma que mi línea de trenes más cercana?",
+          "prompt": "¿La línea de trenes más cercana a tu estación base es la misma que la de [Referencia]?",
+          "reference": { "kind": "trainStations", "label": "Estación de tren más cercana al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Terminal de línea de trenes",
-          "prompt": "¿La terminal de trenes más cercana a tu estación base es la misma que mi terminal de línea de trenes más cercana?",
+          "prompt": "¿La terminal de trenes más cercana a tu estación base es la misma que [Referencia]?",
+          "reference": { "kind": "trainStations", "label": "Terminal más cercana al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "¿La longitud del nombre de tu estación base es la misma que la de la estación más cercana a mí?",
+          "prompt": "¿La longitud del nombre de tu estación base es la misma que la de [Referencia]?",
+          "reference": { "kind": "stations", "label": "Estación más cercana al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Autopista",
-          "prompt": "¿La autopista más cercana a tu estación base es la misma que mi autopista más cercana?",
+          "prompt": "¿La autopista más cercana a tu estación base es [Referencia]?",
+          "reference": { "kind": "highways", "label": "Autopista más cercana al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Comuna",
-          "prompt": "¿La comuna de tu estación base es la misma que la comuna en la que estoy?",
+          "prompt": "¿La comuna de tu estación base es la misma que [Referencia]?",
+          "reference": { "kind": "communes", "label": "Comuna donde está el buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Estadio de fútbol profesional",
-          "prompt": "¿El estadio de fútbol profesional más cercano a tu estación base es el mismo que mi estadio de fútbol profesional más cercano?",
+          "prompt": "¿El estadio de fútbol profesional más cercano a tu estación base es [Referencia]?",
+          "reference": { "kind": "stadiums", "label": "Estadio más cercano al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "¿El parque más cercano a tu estación base es el mismo que mi parque más cercano?",
+          "prompt": "¿El parque más cercano a tu estación base es [Referencia]?",
+          "reference": { "kind": "text", "label": "Parque más cercano al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "¿El cine más cercano a tu estación base es el mismo que mi cine más cercano?",
+          "prompt": "¿El cine más cercano a tu estación base es [Referencia]?",
+          "reference": { "kind": "cinemas", "label": "Cine más cercano al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "¿El hospital más cercano a tu estación base es el mismo que mi hospital más cercano?",
+          "prompt": "¿El hospital más cercano a tu estación base es [Referencia]?",
+          "reference": { "kind": "hospitals", "label": "Hospital más cercano al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         }
       ],
@@ -68,67 +78,89 @@
       "items": [
         {
           "label": "Terminal de línea de trenes",
-          "prompt": "Comparando conmigo, ¿estás más cerca o más lejos de una terminal de línea de trenes?",
+          "promptIndividual": "Comparando conmigo, ¿estás más cerca o más lejos de una terminal de línea de trenes?",
+          "promptTeams": "Comparando con nuestro equipo, ¿están más cerca o más lejos de una terminal de línea de trenes?",
+          "reference": { "kind": "trainStations", "label": "Terminal más cercana al buscador o equipo", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "Comparando con mi estación más cercana, ¿la longitud del nombre de la estación donde estás es mayor o menor?",
+          "promptIndividual": "Comparando con [Referencia], ¿la longitud del nombre de la estación donde estás es mayor o menor?",
+          "promptTeams": "Comparando con [Referencia], ¿la longitud del nombre de la estación donde están es mayor o menor?",
+          "reference": { "kind": "stations", "label": "Estación más cercana al buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Autopista",
-          "prompt": "Comparando conmigo, ¿estás más cerca o más lejos de una autopista?",
+          "promptIndividual": "Comparando conmigo, ¿estás más cerca o más lejos de una autopista?",
+          "promptTeams": "Comparando con nuestro equipo, ¿están más cerca o más lejos de una autopista?",
+          "reference": { "kind": "highways", "label": "Autopista de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Comuna",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la comuna ___?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de [Referencia]?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de [Referencia]?",
+          "reference": { "kind": "communes", "label": "Comuna de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Barrio",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de [Referencia]?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de [Referencia]?",
+          "reference": { "kind": "neighborhoods", "label": "Barrio de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Estadio de fútbol",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de un estadio de fútbol?",
+          "reference": { "kind": "stadiums", "label": "Estadio de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de un parque?",
+          "reference": { "kind": "text", "label": "Parque de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de un cine?",
+          "reference": { "kind": "cinemas", "label": "Cine de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de un hospital?",
+          "reference": { "kind": "hospitals", "label": "Hospital de referencia", "placeholder": "[Referencia]" },
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "General Paz",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos de la Avenida General Paz?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Riachuelo",
-          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
+          "promptIndividual": "Comparando conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
+          "promptTeams": "Comparando con nuestro equipo, ¿su estación base está más cerca o más lejos del Riachuelo?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Número de comuna",
-          "prompt": "¿El número de la comuna de tu estación base es mayor, menor o igual al de la comuna donde estoy?",
+          "prompt": "¿El número de la comuna de tu estación base es mayor, menor o igual al de [Referencia]?",
+          "reference": { "kind": "communes", "label": "Comuna donde está el buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Orden alfabético del barrio",
-          "prompt": "¿La inicial del barrio de tu estación base está antes, después o es la misma que la del barrio donde estoy?",
+          "prompt": "¿La inicial del barrio de tu estación base está antes, después o es la misma que la de [Referencia]?",
+          "reference": { "kind": "neighborhoods", "label": "Barrio donde está el buscador", "placeholder": "[Referencia]" },
           "resolutionMode": "AUTOMATIC"
         }
       ],
@@ -327,7 +359,9 @@
                 "Calle",
                 "Avenida",
                 "Otro/No estamos en una vía"
-              ]
+              ],
+              "optionsIndividual": ["Calle", "Avenida", "Otro/No estoy en una vía"],
+              "optionsTeams": ["Calle", "Avenida", "Otro/No estamos en una vía"]
             }
           ],
           "availability": "Solo endgame",
@@ -336,7 +370,9 @@
         },
         {
           "label": "Barrio",
-          "prompt": "¿Estás en el mismo barrio que yo ahora?",
+          "promptIndividual": "¿Estás en el mismo barrio que [Referencia]?",
+          "promptTeams": "¿Están en el mismo barrio que [Referencia]?",
+          "reference": { "kind": "neighborhoods", "label": "Barrio donde está el buscador", "placeholder": "[Referencia]" },
           "availability": "Solo endgame",
           "endgameOnly": true,
           "resolutionMode": "AUTOMATIC"

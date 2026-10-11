@@ -361,6 +361,12 @@ app-hider-hand {
   white-space: normal;
 }
 
+.reference-picker-empty {
+  display: block;
+  padding: 1rem;
+  text-align: center;
+}
+
 @media (max-width: 720px) {
   :host ion-content {
     --padding-top: 0.5rem;
