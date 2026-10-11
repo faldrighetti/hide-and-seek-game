@@ -15,12 +15,12 @@
         },
         {
           "label": "Línea de trenes",
-          "prompt": "¿La línea de trenes más cercana a tu estación base/de la estación que elegiste es la misma que mi línea de trenes más cercana?",
+          "prompt": "¿La línea de trenes más cercana a tu estación base es la misma que mi línea de trenes más cercana?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Terminal de línea de trenes",
-          "prompt": "¿La terminal de trenes más cercana a tu estación base/de la estación que elegiste es la misma que mi terminal de línea de trenes más cercana?",
+          "prompt": "¿La terminal de trenes más cercana a tu estación base es la misma que mi terminal de línea de trenes más cercana?",
           "resolutionMode": "AUTOMATIC"
         },
         {
@@ -35,7 +35,7 @@
         },
         {
           "label": "Comuna",
-          "prompt": "¿La localidad o comuna de tu estación base es la misma que mi localidad o comuna?",
+          "prompt": "¿La comuna de tu estación base es la misma que la comuna en la que estoy?",
           "resolutionMode": "AUTOMATIC"
         },
         {
@@ -68,57 +68,57 @@
       "items": [
         {
           "label": "Terminal de línea de trenes",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una terminal de línea de trenes?",
+          "prompt": "Comparando conmigo, ¿estás más cerca o más lejos de una terminal de línea de trenes?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Longitud del nombre de la estación",
-          "prompt": "Comparado conmigo, ¿la longitud del nombre de la estación donde estás es mayor o menor?",
+          "prompt": "Comparando conmigo, ¿la longitud del nombre de la estación donde estás es mayor o menor?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Autopista",
-          "prompt": "Comparado conmigo, ¿estás más cerca o más lejos de una autopista?",
+          "prompt": "Comparando conmigo, ¿estás más cerca o más lejos de una autopista?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Comuna",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos la localidad/comuna de ___?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la comuna de ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Barrio",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos del barrio ___?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Estadio de fútbol",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un estadio de fútbol?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Parque",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un parque?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Cine",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un cine?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "Hospital",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de un hospital?",
           "resolutionMode": "MANUAL_CIRCLE"
         },
         {
           "label": "General Paz",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos de la Avenida General Paz?",
           "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Riachuelo",
-          "prompt": "Comparada conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
+          "prompt": "Comparando conmigo, ¿tu estación base está más cerca o más lejos del Riachuelo?",
           "resolutionMode": "AUTOMATIC"
         },
         {
@@ -141,20 +141,6 @@
       "prompt": "Acabo de viajar (al menos) [Distancia]. ¿Estoy más “caliente” (más cerca) o más “frío” (más lejos)?",
       "placeholder": "[Distancia]",
       "items": [
-        {
-          "label": "100 m",
-          "availability": "Todos los tamaños",
-          "distance": "100 m",
-          "distanceM": 100,
-          "resolutionMode": "AUTOMATIC"
-        },
-        {
-          "label": "200 m",
-          "availability": "Todos los tamaños",
-          "distance": "200 m",
-          "distanceM": 200,
-          "resolutionMode": "AUTOMATIC"
-        },
         {
           "label": "500 m",
           "availability": "Todos los tamaños",
@@ -215,7 +201,7 @@
           "resolutionMode": "AUTOMATIC"
         },
         {
-          "label": "Elegir distancia (custom)",
+          "label": "Elegir distancia (personalizado)",
           "distance": null,
           "distanceM": null,
           "customDistance": true,
@@ -241,14 +227,6 @@
           "availability": "Mediano o menos",
           "distanceM": 1000,
           "resolutionMode": "MANUAL_STATIONS"
-        },
-        {
-          "label": "Estaciones de subte",
-          "places": "Estaciones de subte",
-          "distance": "1 km",
-          "availability": "Mediano o menos",
-          "distanceM": 1000,
-          "resolutionMode": "AUTOMATIC"
         },
         {
           "label": "Cines",
@@ -329,7 +307,7 @@
               "label": "Respuesta",
               "options": [
                 "Parada de colectivos",
-                "Acceso a estación de subte o tren",
+                "Acceso a estación de subte y/o tren",
                 "Ambos",
                 "Ninguno"
               ]
@@ -348,7 +326,7 @@
               "options": [
                 "Calle",
                 "Avenida",
-                "Otro"
+                "Otro/No estamos en una vía"
               ]
             }
           ],
@@ -371,96 +349,54 @@
       "name": "Fotos",
       "cost": "Robá 1",
       "time": "10 minutos",
-      "prompt": "Mandá una foto de [asunto].",
+      "prompt": "Mandá una foto de lo solicitado. Se permite tachar o blurear cualquier texto que pueda dar información de tu ubicación.",
       "placeholder": "[asunto]",
       "items": [
         {
-          "asunto": "Un árbol",
-          "requisito": "Debe incluir el árbol completo.",
+          "asunto": "Selfie",
+          "requisito": "Brazo paralelo al suelo, completamente extendido.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
         },
         {
-          "asunto": "El cielo",
-          "requisito": "Apoyá el teléfono en el suelo y sacá la foto apuntando directamente hacia arriba.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "Vos (selfie)",
-          "requisito": "Modo selfie; brazo paralelo al suelo, completamente extendido.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "La calle más ancha",
-          "requisito": "Debe incluir ambos lados de la calle.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "La estructura más alta en tu línea de visión",
-          "requisito": "La más alta desde tu perspectiva / línea de visión actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior del encuadre.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "Cualquier edificio visible desde la estación",
-          "requisito": "Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior del edificio debe quedar en el tercio superior del encuadre.",
+          "asunto": "El edificio más alto en tu campo visual",
+          "requisito": "El más alto desde tu campo visual actual. Debe incluir la parte superior y ambos lados. La cima debe quedar en el tercio superior de la imagen.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
         },
         {
           "asunto": "El edificio más alto visible desde la estación",
-          "requisito": "La más alta desde tu perspectiva / línea de visión. Parate justo afuera de la entrada de la estación (si hay varias, elegís una). Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "Trazá la calle/sendero más cercano",
-          "requisito": "La calle/sendero debe verse en una app de mapas. Trazá de intersección a intersección.",
-          "resolutionMode": "EXTERNAL_PHOTO",
-          "storesFiles": false,
-          "storesUrls": false
-        },
-        {
-          "asunto": "Dos edificios",
-          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
+          "requisito": "El más alto desde una de las entradas de tu estación base. Debe incluir el techo y ambos lados; la parte superior debe quedar en el tercio superior del encuadre. No válida para endgame.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
         },
         {
           "asunto": "Andén de tren",
-          "requisito": "Debe incluir una sección 1,5m x 1,5m con tres elementos distintos.",
+          "requisito": "Debe incluir una sección 1,5m x 1,5m. Tiene que mostrar al menos una pared y cualquier otro objeto (cartel, asiento, pantalla, etc). No válida para endgame.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
         },
         {
           "asunto": "Parque",
-          "requisito": "Sin zoom. Teléfono perpendicular al suelo. Debés estar a 1,5m de cualquier obstáculo.",
+          "requisito": "Sin zoom. Cámara paralela al suelo. Debés estar a 1,5m de cualquier obstáculo. No válida para endgame.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
         },
         {
-          "asunto": "500 metros de calles trazadas",
-          "requisito": "Debe ser continuo, incluir 5 giros, sin volver sobre tus pasos. Enviá orientado N-S. Las calles deben aparecer en una app de mapas.",
+          "asunto": "Dos edificios",
+          "requisito": "Debe incluir una sección 1,5m x 1,5m. Tiene que mostrar al menos una pared y cualquier otro objeto.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
         },
         {
           "asunto": "Cinco edificios",
-          "requisito": "Debe incluir la base y hasta cuatro pisos de altura.",
+          "requisito": "Debe incluir la base y uno o más de ellos, deben incluir tres pisos de altura. La planta baja cuenta como un piso.",
           "resolutionMode": "EXTERNAL_PHOTO",
           "storesFiles": false,
           "storesUrls": false
