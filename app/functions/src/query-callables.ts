@@ -1,7 +1,10 @@
 import {Timestamp} from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {db} from "./firebase";
-import {sanitizeNotificationCategoryPreferences} from "./notifications";
+import {
+  isVisibleGameNotificationCategory,
+  sanitizeNotificationCategoryPreferences,
+} from "./notifications";
 import {
   GameDoc,
   FINISHED_GAME_RETENTION_SECONDS,
@@ -147,6 +150,7 @@ export const listGameNotifications = onCall(async (request) => {
   const notificationsSnap = await query.get();
   const notifications = notificationsSnap.docs.filter((notificationDoc) => {
     const notification = notificationDoc.data();
+    if (!isVisibleGameNotificationCategory(notification.category)) return false;
     if (importance && notification.importance !== importance) return false;
     if (category && notification.category !== category) return false;
     return true;

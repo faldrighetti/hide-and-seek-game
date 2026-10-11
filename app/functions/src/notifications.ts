@@ -43,6 +43,9 @@ export const sanitizeNotificationCategoryPreferences = (value: unknown): Record<
   ) as Record<string, boolean>;
 };
 
+export const isVisibleGameNotificationCategory = (category: unknown): boolean =>
+  category === "phase" || category === "question";
+
 const eventPayloadString = (event: GameEventInput, key: string): string | null => {
   const value = event.payload?.[key];
   return typeof value === "string" && value.trim().length > 0 ? value : null;
@@ -370,7 +373,8 @@ export const appendGameNotificationsForEventInTx = (
   payload: Record<string, unknown>,
 ): void => {
   const turn = game.currentTurn;
-  const notifications = buildNotificationDrafts(game, event);
+  const notifications = buildNotificationDrafts(game, event)
+    .filter((notification) => isVisibleGameNotificationCategory(notification.category));
   notifications.forEach((notification, index) => {
     const notificationId = index === 0 ? eventId : `${eventId}_${index + 1}`;
     tx.set(gameRef.collection("notifications").doc(notificationId), {

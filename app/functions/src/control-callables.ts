@@ -94,9 +94,14 @@ export const resumeGame = onCall(async (request) => {
     await assertRateLimitInTx(tx, gameRef, uid, "resume_game", now, 10);
     const phaseRemainingSeconds = game.operational.phaseRemainingSeconds ?? secondsRemaining(turn.phaseEndsAt, now) ?? 0;
     const pendingQuestionRemainingSeconds = game.operational.pendingQuestionRemainingSeconds;
+    const pausedAt = game.operational.pausedAt;
+    const pausedDurationMillis = pausedAt ? Math.max(0, now.toMillis() - pausedAt.toMillis()) : 0;
+    const shiftTimestamp = (value: Timestamp | null | undefined): Timestamp | null =>
+      value ? Timestamp.fromMillis(value.toMillis() + pausedDurationMillis) : null;
     const nextTurn: TurnState = {
       ...turn,
-      phaseStartedAt: now,
+      phaseStartedAt: shiftTimestamp(turn.phaseStartedAt) ?? now,
+      ...(turn.chaseStartedAt ? {chaseStartedAt: shiftTimestamp(turn.chaseStartedAt)!} : {}),
       phaseEndsAt: Timestamp.fromMillis(now.toMillis() + phaseRemainingSeconds * 1000),
       pendingQuestionEndsAt: pendingQuestionRemainingSeconds === null || pendingQuestionRemainingSeconds === undefined ?
         turn.pendingQuestionEndsAt ?? null :

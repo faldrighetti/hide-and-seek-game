@@ -97,7 +97,7 @@
                   <strong>{{ baseStationSummary(vm) }}</strong>
                 </div>
               </div>
-              <div class="turn-metrics time-calculation" *ngIf="vm.currentTurn.phase === 'CHASE'">
+              <div class="turn-metrics time-calculation" *ngIf="vm.currentTurn.phase === 'CHASE' && role.isHider">
                 <div class="turn-metric">
                   <span>Bonus de cartas</span>
                   <strong>+{{ formatTime(timeBonusSeconds(vm)) }}</strong>
@@ -660,7 +660,7 @@
                     <ion-item
                       button
                       detail
-                      [disabled]="!!vm.currentTurn.thermometerState || isQuestionCategoryOnCooldown(category, vm) || isQuestionAlreadyAsked(category, question, vm)"
+                      [disabled]="!!vm.currentTurn.thermometerState || isQuestionCategoryOnCooldown(category, vm) || isQuestionAlreadyAsked(category, question, vm) || isQuestionUnavailableInEndgame(question, vm)"
                       [class.asked-question]="isQuestionAlreadyAsked(category, question, vm)"
                       *ngFor="let question of category.items; let index = index; trackBy: trackByQuestionItem"
                       (click)="selectSeekerQuestion(category, question, role)"
@@ -669,6 +669,9 @@
                         <h3>{{ questionTitle(question) }}</h3>
                         <p *ngIf="isQuestionAlreadyAsked(category, question, vm)" class="asked-question-note">
                           Ya preguntada en este turno
+                        </p>
+                        <p *ngIf="isQuestionUnavailableInEndgame(question, vm)" class="asked-question-note">
+                          No disponible durante el endgame
                         </p>
                         <p>{{ questionText(category, question) }}</p>
                         <p *ngIf="question.requisito">Requisito: {{ question.requisito }}</p>

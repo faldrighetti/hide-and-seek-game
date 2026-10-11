@@ -308,7 +308,8 @@ export class GamePage implements AfterViewInit, OnDestroy {
       .then(notifications => {
         const teamId = this.latestPlayerRole?.teamId;
         this.gameNotifications = notifications.filter(notification =>
-          notification.audience === 'ALL' || Boolean(teamId && notification.recipientTeamIds.includes(teamId)),
+          (notification.category === 'phase' || notification.category === 'question')
+          && (notification.audience === 'ALL' || Boolean(teamId && notification.recipientTeamIds.includes(teamId))),
         );
         if (this.activityFeedExpanded) this.markNotificationsRead();
       })
@@ -560,6 +561,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
 
   async selectSeekerQuestion(category: QuestionCategory, question: QuestionItem, role: PlayerRole): Promise<void> {
     const vm = this.latestBlueprint();
+    if (vm && this.isQuestionUnavailableInEndgame(question, vm)) {
+      this.questionErrorMessage = 'Esta pregunta no está disponible durante el endgame.';
+      return;
+    }
     if (vm && this.isQuestionAlreadyAsked(category, question, vm)) {
       this.questionErrorMessage = 'Esa pregunta ya fue hecha en este turno.';
       return;
@@ -568,7 +573,6 @@ export class GamePage implements AfterViewInit, OnDestroy {
       this.questionErrorMessage = this.categoryCooldownLabel(category, vm);
       return;
     }
-
     const venueSelection = question.venueSelector === 'stadiums' ? await this.chooseStadium() : undefined;
     if (question.venueSelector === 'stadiums' && !venueSelection) return;
     this.selectedSeekerQuestion = { category, question, venueSelection: venueSelection ?? undefined };
@@ -648,6 +652,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
     }
     if (vm && this.isQuestionCategoryOnCooldown(category, vm)) {
       this.questionErrorMessage = this.categoryCooldownLabel(category, vm);
+      return;
+    }
+    if (vm && this.isQuestionUnavailableInEndgame(question, vm)) {
+      this.questionErrorMessage = 'Esta pregunta no está disponible durante el endgame.';
       return;
     }
 
@@ -1271,6 +1279,12 @@ export class GamePage implements AfterViewInit, OnDestroy {
       || (prompt.length > 0 && vm.currentTurn.askedQuestionPrompts.includes(prompt));
   }
 
+  isQuestionUnavailableInEndgame(question: QuestionItem, vm: GameBlueprint): boolean {
+    if (!vm.currentTurn.endgameActive) return false;
+    const requirement = question.requisito?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR') ?? '';
+    return requirement.includes('no valida para endgame');
+  }
+
   private questionKey(category: QuestionCategory, question: QuestionItem): string {
     const identity = question.label
       ?? question.asunto
@@ -1280,7 +1294,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
   }
 
   availableQuestionCount(category: QuestionCategory, vm: GameBlueprint): number {
-    return category.items.filter(question => !this.isQuestionAlreadyAsked(category, question, vm)).length;
+    return category.items.filter(question =>
+      !this.isQuestionAlreadyAsked(category, question, vm)
+      && !this.isQuestionUnavailableInEndgame(question, vm),
+    ).length;
   }
 
   categoryCooldownLabel(category: QuestionCategory, vm: GameBlueprint): string {
@@ -1644,7 +1661,10 @@ export class GamePage implements AfterViewInit, OnDestroy {
       return Math.max(0, totalByPhase[vm.currentTurn.phase] - this.phaseRemainingSeconds(vm));
     }
 
-    return Math.max(0, Math.floor((this.now - new Date(vm.currentTurn.startedAtIso).getTime()) / 1000));
+    const effectiveNow = vm.operational.mode === 'NORMAL' || !vm.operational.changedAtIso
+      ? this.now
+      : new Date(vm.operational.changedAtIso).getTime();
+    return Math.max(0, Math.floor((effectiveNow - new Date(vm.currentTurn.startedAtIso).getTime()) / 1000));
   }
 
   baseStationSummary(vm: GameBlueprint): string {
